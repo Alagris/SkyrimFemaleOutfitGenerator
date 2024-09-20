@@ -1832,12 +1832,186 @@ begin
         addToLVLI(destFile, e, tawoba, 'ARMO', '00WBA_Circlet_W', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00WBA_Circlet_Y', '1', '1');
         e := newLVLI(e, destFile, 'TWA Wolf Body', '0', '1', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Armors', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Thongs', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Pauldron', '2', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Thigh Tasset and Abs', '4', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Accessories', '3', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Wolf Armors', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Wolf Thongs', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Wolf Pauldron', '2', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Wolf Thigh Tasset and Abs', '4', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Wolf Accessories', '3', '1');
         if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Wolf', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dragon Bone Armors', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Bikini_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Bikini_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Bikini_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Bikini_4', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Bikini_sling', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Breastplate', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dragon Bone Thongs', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Thong_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Thong_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Thong_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Thong_4', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dragon Bone Boots', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_boots_1_lg', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_boots_1_sh', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_boots_2_lg', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_boots_2_sh', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dragon Bone Gauntlets', '30', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_gauntlets_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_gauntlets_2', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dragon Bone Helmet', '50', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Mask_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Mask_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Mask_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Facemask', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Circlet_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Circlet_2', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dragon Bone Pauldron', '40', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Shoulder_1_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Shoulder_1_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Shoulder_2_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Shoulder_2_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Shoulder_3_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Shoulder_3_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Shoulder_4_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Shoulder_4_L', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dragon Bone Thigh Tasset and Abs', '35', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_abs_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_abs_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_abs_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_thigh_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_thigh_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_thigh_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_tasset_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_tasset_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_tasset_3', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dragon Bone Accessories', '70', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Gorget_1_A', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Gorget_1_B', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Gorget_1_C', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Chestguard_Bone', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_gorget_3_C', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_spine_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Faceguard', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dragon Bone Body', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Dragon Bone Armors', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Dragon Bone Thongs', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Dragon Bone Pauldron', '2', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Dragon Bone Thigh Tasset and Abs', '4', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Dragon Bone Accessories', '3', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-DragonBone', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Ebony Armors', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_Bikini_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_Bikini_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_Bikini_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_Bireastplate', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Ebony Thongs', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_thong_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_thong_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_thong_3', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Ebony Boots', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_boots1', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Ebony Gauntlets', '30', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_gaunt', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Ebony Helmet', '50', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_Mask', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_Maskbl', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_Maskop', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_circlet', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Ebony Pauldron', '40', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_shoulder_1_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_shoulder_1_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_shoulder_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_shoulder_3_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_shoulder_3_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_shoulder_cape', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Ebony Thigh Tasset and Abs', '35', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_abs_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_abs_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_abs_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_abs_4', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_thigh_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_thigh_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_skirt_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_tasset_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_tasset_1b', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_tasset_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_tasset_3', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Ebony Accessories', '70', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_gorg1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_harness', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Ebony Body', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Ebony Armors', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Ebony Thongs', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Ebony Pauldron', '2', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Ebony Thigh Tasset and Abs', '4', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Ebony Accessories', '3', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Ebony', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dwarven Armors', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_bikini_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_bikini_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_bikini_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_bikini_4', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_bikini_5', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_bikini_6', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_bikini_7', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dwarven Thongs', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_4', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_5', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_6', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_7', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dwarven Boots', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_boots_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_boots_2', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dwarven Gauntlets', '30', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_gaunt_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_gaunt_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_gaunt_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_gaunt_C', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dwarven Helmet', '50', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_headgear_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_headgear_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_headgear_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_openhelm_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_headdress_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_closehelm_1', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dwarven Pauldron', '40', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_shoulder_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_shoulder_2_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_shoulder_2_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_shoulder_3_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_shoulder_3_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_cape_1', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dwarven Thigh Tasset and Abs', '35', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_abs_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_abs_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_abs_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_abs_4', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thigh_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thigh_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thigh_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Tsset_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Tsset_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Tsset_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Skirt_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Skirt_1_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Skirt_1_R', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dwarven Accessories', '70', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_gorget', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_collar1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_collar2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_collar3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Harness1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Harness2', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Dwarven Body', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Dwarven Armors', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Dwarven Thongs', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Dwarven Pauldron', '2', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Dwarven Thigh Tasset and Abs', '4', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Dwarven Accessories', '3', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Dwarven', '1', '1');
         e := newLVLI(e, destFile, 'TWA Iron Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_Bikini_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_Bikini_2', '1', '1');
@@ -2540,6 +2714,7 @@ function ModifyFemaleOutfit(oldOutfitRecord, newOutfitRecord: IwbElement): IwbEl
 var
     isLVLI: Boolean;
     oldItemId: string;
+    oldItemPrefix: string;
     tawobaItemId: string;
     pantiesItemId: string;
     i: integer;
@@ -2584,38 +2759,104 @@ begin
             ElementAssign(newOutfitItem, LowInteger, femaleLVLI, false);
         end else begin
             oldItemId := EditorID(oldOutfitRef);
-            if StartsStr('Armor', oldItemId) then begin
-                tawobaItemId := 'TWA ';
+            if StartsStr('Dremora', oldItemId) then begin
+                if StartsStr('DremoraDaedric', oldItemId) then begin    
+                    oldItemPrefix := 'DremoraDaedric';
+                end else begin    
+                    oldItemPrefix := 'Dremora';
+                end;
+                tawobaItemId := 'TEW Daedric ';
+            end else if StartsStr('Draugr', oldItemId) then begin
+                tawobaItemId := 'TEW Ancient Nord ';
+                oldItemPrefix := 'Draugr';
+            end else if StartsStr('Clothes', oldItemId) then begin
+                if StartsStr('ClothesThalmor', oldItemId) then begin
+                    oldItemPrefix := 'ClothesThalmor';
+                    tawobaItemId := 'TWA Thalmor ';
+                end else if StartsStr('ClothesRobes', oldItemId) then begin    
+                    oldItemPrefix := 'ArmorLeather';
+                    tawobaItemId := 'TWA Leather ';
+                end else if StartsStr('ClothesCollege', oldItemId) then begin    
+                    oldItemPrefix := 'ArmorLeather';
+                    tawobaItemId := 'TWA Leather ';
+                end
+            end else if StartsStr('Armor', oldItemId) then begin
                 if StartsStr('ArmorIron', oldItemId) then begin
-                    tawobaItemId := tawobaItemId+'Iron ';
+                    oldItemPrefix := 'ArmorIron';
+                    tawobaItemId := 'TWA Iron ';
                 end else if StartsStr('ArmorLeather', oldItemId) then begin    
-                    tawobaItemId := tawobaItemId+'Leather ';
+                    oldItemPrefix := 'ArmorLeather';
+                    tawobaItemId := 'TWA Leather ';
+                end else if StartsStr('ArmorCompanions', oldItemId) then begin    
+                    oldItemPrefix := 'ArmorCompanions';
+                    tawobaItemId := 'TWA Wolf ';
+                end else if StartsStr('ArmorBandit', oldItemId) then begin    
+                    tawobaItemId := 'TWA Leather ';
+                    oldItemPrefix := 'ArmorBandit';
+                end else if StartsStr('ArmorBlades', oldItemId) then begin    
+                    tawobaItemId := 'TWA Blades ';
+                    oldItemPrefix := 'ArmorBlades';
                 end else if StartsStr('ArmorSteel', oldItemId) then begin    
-                    tawobaItemId := tawobaItemId+'Steel ';
+                    tawobaItemId := 'TWA Steel ';
+                    oldItemPrefix := 'ArmorSteel';
+                end else if StartsStr('ArmorElvenLight', oldItemId) then begin    
+                    tawobaItemId := 'TWA Elven ';
+                    oldItemPrefix := 'ArmorElvenLight';
                 end else if StartsStr('ArmorElven', oldItemId) then begin    
-                    tawobaItemId := tawobaItemId+'Elven ';
+                    tawobaItemId := 'TWA Elven ';
+                    oldItemPrefix := 'ArmorElven';
+                end else if StartsStr('ArmorDaedric', oldItemId) then begin    
+                    tawobaItemId := 'TEW Daedric ';
+                    oldItemPrefix := 'ArmorDaedric';
+                end else if StartsStr('ArmorDragonscale', oldItemId) then begin    
+                    tawobaItemId := 'TEW Dragonscale ';
+                    oldItemPrefix := 'ArmorDragonscale';
+                end else if StartsStr('ArmorDragonplate', oldItemId) then begin    
+                    tawobaItemId := 'TWA Dragon Bone ';
+                    oldItemPrefix := 'ArmorDragonplate';
+                end else if StartsStr('ArmorDwarven', oldItemId) then begin    
+                    tawobaItemId := 'TWA Dwarven ';
+                    oldItemPrefix := 'ArmorDwarven';
+                end else if StartsStr('ArmorEbony', oldItemId) then begin    
+                    tawobaItemId := 'TWA Ebony ';
+                    oldItemPrefix := 'ArmorEbony';
                 end else if StartsStr('ArmorHide', oldItemId) then begin    
-                    tawobaItemId := tawobaItemId+'Hide ';
+                    tawobaItemId := 'TWA Hide ';
+                    oldItemPrefix := 'ArmorHide';
+                end else if StartsStr('ArmorStudded', oldItemId) then begin    
+                    tawobaItemId := 'TWA Hide ';
+                    oldItemPrefix := 'ArmorStudded';
+                end else if StartsStr('ArmorScaled', oldItemId) then begin    
+                    tawobaItemId := 'TEW Scaled ';
+                    oldItemPrefix := 'ArmorScaled';
+                end else if StartsStr('ArmorDraugr', oldItemId) then begin    
+                    tawobaItemId := 'TEW Ancient Nord ';
+                    oldItemPrefix := 'ArmorDraugr';
+                end else if StartsStr('ArmorOrcish', oldItemId) then begin    
+                    tawobaItemId := 'TWA Orcish ';
+                    oldItemPrefix := 'ArmorOrcish';
+                end else if StartsStr('ArmorImperialLight', oldItemId) then begin    
+                    tawobaItemId := 'TEW Imperial Light ';
+                    oldItemPrefix := 'ArmorImperialLight';
+                end else if StartsStr('ArmorImperial', oldItemId) then begin    
+                    tawobaItemId := 'TEW Imperial Heavy ';
+                    oldItemPrefix := 'ArmorImperial';
                 end else begin
                     tawobaItemId := nil;
                 end;
+            end;
+            if Assigned(tawobaItemId) then begin
                 recGrp := lvliRecordGroup;
-                if Assigned(tawobaItemId) then begin
-                    if EndsStr('Cuirass', oldItemId) then begin
-                        TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Armors'), isLVLI);
-                        TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Thongs'), isLVLI);
-                        TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Thigh Tasset and Abs'), isLVLI);
-                        TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Pauldron'), isLVLI);
-                        TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Accessories'), isLVLI);
-                    end else if EndsStr('Gauntlets', oldItemId) then begin    
-                        TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Gauntlets'), isLVLI);
-                    end else if EndsStr('Boots', oldItemId) then begin    
-                        TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Boots'), isLVLI);
-                    end else if EndsStr('Helmet', oldItemId) then begin    
-                        TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Helmet'), isLVLI);
-                    end else begin
-                        tawobaItemId := nil;
-                    end;
+                if StartsStr(oldItemPrefix+'Cuirass', oldItemId) then begin
+                    TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Body'), isLVLI);
+                end else if StartsStr(oldItemPrefix+'Gauntlets', oldItemId) then begin    
+                    TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Gauntlets'), isLVLI);
+                end else if StartsStr(oldItemPrefix+'Boots', oldItemId) then begin    
+                    TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Boots'), isLVLI);
+                end else if StartsStr(oldItemPrefix+'Helmet', oldItemId) then begin    
+                    TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Helmet'), isLVLI);
+                end else begin
+                    tawobaItemId := nil;
                 end;
             end;
             if Assigned(pantiesItemId) and not hasPanties then begin
