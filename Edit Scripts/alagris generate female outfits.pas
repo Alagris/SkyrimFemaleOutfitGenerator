@@ -11,6 +11,9 @@ var
     lvliRecordGroup: IInterface;
     hasPantiesofskyrim: Boolean;
     filePantiesofskyrim: IwbFile;
+    fileUSSEP: IwbFile;
+    fileCocoBikini: IwbFile;
+    fileWizardHats: IwbFile;
     hasTAWOBA: Boolean;
     fileTAWOBA: IwbFile;
     fileTAWOBALeveledList: IwbFile;
@@ -61,28 +64,32 @@ begin
     SetElementEditValues(Result, 'LVLO\Level', level);
 end;
 function addToLVLI(destFile: IwbFile; e: IwbElement; filename: IwbFile; signat, ref, count, level:string): IwbMainRecord;
+var
     r: IwbMainRecord;
 begin
     Result := MainRecordByEditorID(GroupBySignature(filename, signat), ref);
     if not Assigned(Result) then begin
         raise Exception.Create('Element not found: '+GetFileName(filename)+' '+signat+' '+ref);
     end;
-    assignToLVLI(e, IwbMainRecord, count, level);
+    assignToLVLI(e, Result, count, level);
 end;
 function addToLVLIMaybe(destFile: IwbFile; e: IwbElement; filename: IwbFile; signat, ref, count, level:string): IwbMainRecord;
+var
     r: IwbMainRecord;
 begin
     Result := MainRecordByEditorID(GroupBySignature(filename, signat), ref);
     if Assigned(Result) then begin
-        assignToLVLI(e, IwbMainRecord, count, level);
+        assignToLVLI(e, Result, count, level);
     end;
 end;
 function addToLVLI_(destFile: IwbFile; e: IwbElement; signat, ref, count, level:string): IwbElement;
+var
     r: IwbMainRecord;
 begin
     Result := addToLVLI(destFile, e, destFile, signat, ref, count, level);
 end;
 function addToLVLIMaybe_(destFile: IwbFile; e: IwbElement; signat, ref, count, level:string): IwbElement;
+var
     r: IwbMainRecord;
 begin
     Result := addToLVLIMaybe(destFile, e, destFile, signat, ref, count, level);
@@ -122,35 +129,46 @@ var
     template: IwbMainRecord;
     enchR: IwbMainRecord;
 begin
-    template := MainRecordByEditorID(GroupBySignature(fileModularMage, 'ARMO'), '_ModularMage'+level+templateSuffix);
-    if Assigned(template) then begin
-        enchR := MainRecordByEditorID(GroupBySignature(fileSkyrim, 'ENCH'), ench);
-        Result := wbCopyElementToFileWithPrefix(template, destFile, true, true, '', '', '');
-        SetEditorID(Result, '_ModularMage'+level+templateSuffix+magic_type);
-        SetElementEditValues(Result, 'TNAM', Name(template));
-        SetElementEditValues(Result, 'EITM', Name(enchR));
-        if magic_type = 'MagickaRate' then
-            magic_type := '';
-        else
-            magic_type := ' of '+magic_type;
+    Result := MainRecordByEditorID(GroupBySignature(destFile, 'ARMO'), '_ModularMage'+level+templateSuffix+magic_type);
+    if not Assigned(Result) then begin
+        template := MainRecordByEditorID(GroupBySignature(fileModularMage, 'ARMO'), '_ModularMage'+level+templateSuffix);
+        if Assigned(template) then begin
+            enchR := MainRecordByEditorID(GroupBySignature(fileSkyrim, 'ENCH'), ench);
+            if not Assigned(enchR) then begin // \ [00] Skyrim.esm \ [16] GRUP Top "ENCH" \ [95] EnchRobesCollegeConjuration01 "Fortify Conjuration" [ENCH:0010E300] \ [0] Record Header
+                raise Exception.Create('Undefined enchantment '+ench);
+            end;
+            Result := wbCopyElementToFileWithPrefix(template, destFile, true, true, '', '', '');
+            SetEditorID(Result, '_ModularMage'+level+templateSuffix+magic_type);
+            SetElementEditValues(Result, 'TNAM', Name(template));
+            SetElementEditValues(Result, 'EITM', Name(enchR));
+            if magic_type = 'MagickaRate' then begin
+                magic_type := '';
+            end else begin
+                magic_type := ' of '+magic_type;
+            end;
+            SetElementEditValues(Result, 'FULL', level+' '+templateSuffix+magic_type);
         end;
-        SetElementEditValues(Result, 'FULL', level+' '+templateSuffix+magic_type);
     end;
 end;
 
-function GenerateModularMagePantiesForMagicTypeAndLevel(destFile: IwbFile; e:IwbElement; level: string; magic_type, ench:string): IwbElement;
+function GenerateModularMagePantiesForMagicTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type, ench:string): IwbElement;
 var
     i:integer;
     newEnchanted: IwbMainRecord;
 begin
     e := newLVLI(e, destFile, 'MM_'+level+'MagePanties'+magic_type, '0', '0', '1', '1');
-    assignToLVLI(e, GenerateModularMagePanty(destFile, e, 'StringThong', level, magic_type, ench), '1', '1');
-    for  i:= 1 to 8 do begin
+    newEnchanted := GenerateModularMagePanty(destFile, e, 'StringThong', level, magic_type, ench);
+    if not Assigned(newEnchanted) then begin
+        raise Exception.Create('Couldn''t find _ModularMage'+level+'StringThong in '+GetFileName(fileModularMage));
+    end;
+    assignToLVLI(e, newEnchanted, '1', '1');
+    for i:= 1 to 8 do begin
         newEnchanted := GenerateModularMagePanty(destFile, e, 'Panties'+IntToStr(i), level, magic_type, ench);
         if Assigned(newEnchanted) then begin
             assignToLVLI(e, newEnchanted, '1', '1');
         end;
     end;
+    e := newLVLI(e, destFile, 'MM_'+level+'MageSkirtCurtain'+magic_type, '0', '0', '1', '1');
     for  i:= 1 to 3 do begin
         newEnchanted := GenerateModularMagePanty(destFile, e, 'Skirt'+IntToStr(i), level, magic_type, ench);
         if Assigned(newEnchanted) then begin
@@ -163,9 +181,9 @@ end;
 function GenerateModularMage(destFile: IwbFile; e:IwbElement): IwbElement;
 begin
     e := newLVLI(e, destFile, 'MM_JourneymanHH', '0', '0', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageJourneymanHighHeelShoes', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageJourneymanHighHeelShoes2', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageJourneymanHighHeelBoots2', '1', '1');
+    addToLVLI(destFile, e, fileModularMage, 'ARMO', '_ModularMageJourneymanHighHeelShoes', '1', '1');
+    addToLVLI(destFile, e, fileModularMage, 'ARMO', '_ModularMageJourneymanHighHeelShoes2', '1', '1');
+    addToLVLI(destFile, e, fileModularMage, 'ARMO', '_ModularMageJourneymanHighHeelBoots2', '1', '1');
     e := GenerateModularMageForLevel(destFile, e, 'Novice', 1);
     e := GenerateModularMageForLevel(destFile, e, 'Apprentice', 2);
     e := GenerateModularMageForLevel(destFile, e, 'Adept', 3);
@@ -174,8 +192,11 @@ begin
     Result := e;
 end;
 
-function GenerateModularMageForLevel(destFile: IwbFile; e:IwbElement, level, levelNum:string): IwbElement;
+function GenerateModularMageForLevel(destFile: IwbFile; e:IwbElement; level: string; levelNum:integer): IwbElement;
+var
+    modular_mage : IwbFile;
 begin
+    modular_mage:=fileModularMage;
     e := newLVLI(e, destFile, 'MM_'+level+'MageStockings', '0', '0', '1', '1');
     addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Stockings1', '1', '1');
     addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Stockings2', '1', '1');
@@ -191,13 +212,14 @@ begin
     addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'StirrupSocks', '1', '1');
     e := newLVLI(e, destFile, 'MM_'+level+'MageBootsStockings', '0', '1', '0', '0');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageStockings', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'Footwear', '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageFootwear', '1', '1');
     e := newLVLI(e, destFile, 'MM_'+level+'MageBootsNoStockings', '0', '0', '1', '1');
-    addToLVLI(destFile, e, ussep, 'ARMO', 'ClothesMGBoots', '1', '1');
-    addToLVLI(destFile, e, ussep, 'ARMO', 'ClothesWarlockBoots', '1', '1');
-    addToLVLI(destFile, e, ussep, 'ARMO', 'ClothesCollegeBootsCommonVariant1', '1', '1');
-    addToLVLI(destFile, e, ussep, 'ARMO', 'ClothesCollegeBootsApprenticeVariant1', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'HighHeels', '1', '1');
+    addToLVLI(destFile, e, fileUSSEP, 'ARMO', 'ClothesMGBoots', '1', '1');
+    addToLVLI(destFile, e, fileUSSEP, 'ARMO', 'ClothesWarlockBoots', '1', '1');
+    addToLVLI(destFile, e, fileUSSEP, 'ARMO', 'ClothesCollegeBootsCommonVariant1', '1', '1');
+    addToLVLI(destFile, e, fileUSSEP, 'ARMO', 'ClothesCollegeBootsApprenticeVariant1', '1', '1');
+    addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'HighHeels', '1', '1');
+    addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'HighHeelBoots', '1', '1');
     e := newLVLI(e, destFile, 'MM_'+level+'MageBoots', '0', '0', '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBootsStockings', '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'JourneyBoots', '1', '1');
@@ -212,8 +234,8 @@ begin
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'CoatOpen', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'CoatOpenCollar', '1', '1');
         e := newLVLI(e, destFile, 'MM_'+level+'MageCoatClosed', '0', '0', '1', '1');
-        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'CoatClosed', '1', '1');
-        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'CoatClosedCollar', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Coat', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'CoatCollar', '1', '1');
     end;
     e := newLVLI(e, destFile, 'MM_'+level+'MageSkirt', '0', '0', '1', '1');
     addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Skirt1', '1', '1');
@@ -224,7 +246,7 @@ begin
     addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'TightSkirt', '1', '1');
     e := newLVLI(e, destFile, 'MM_'+level+'MageSkirtShorts', '0', '1', '0', '0');
     addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'MiniSkirt', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Shorts', '1', '1');
+    addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Shorts', '1', '1');
     e := newLVLI(e, destFile, 'MM_'+level+'MageArms', '0', '0', '1', '1');
     addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Sleeves1', '1', '1');
     addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Sleeves2', '1', '1');
@@ -257,21 +279,30 @@ begin
     addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'NipCurtains', '1', '1');
     addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Bra1', '1', '1');
     addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Bra2', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageJacket', '0', '0', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Jacket', '1', '1');
-    addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'JacketCollar', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageMantle', '0', '0', '1', '1');
-    addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle1', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle3', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle2', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageMantleShash', '0', '0', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle1Sash', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle3Sash', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageTopless', '0', '0', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Pasties', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Sash', '1', '1');
+    if levelNum < 4 then begin
+        e := newLVLI(e, destFile, 'MM_'+level+'MageJacket', '0', '0', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Jacket', '1', '1');
+        addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'JacketCollar', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageMantle', '0', '0', '1', '1');
+        addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle1', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle3', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle2', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageMantleShash', '0', '0', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle1Sash', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle3Sash', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageTopless', '0', '0', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Pasties', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Sash', '1', '1');
+    end else begin
+        e := newLVLI(e, destFile, 'MM_'+level+'MageJacket', '0', '0', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Jacket', '1', '1');
+        addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'JacketCollar', '1', '1');
+        addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle1', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle3', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Mantle2', '1', '1');
+    end;
     e := newLVLI(e, destFile, 'MM_'+level+'MageCorset', '0', '0', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Corset1Topless', '1', '1');
+    addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Corset1Topless', '1', '1');
     addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Corset2Topless', '1', '1');
     addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Corset3Topless', '1', '1');
     addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'CorsetTopless1', '1', '1');
@@ -281,49 +312,58 @@ begin
     addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Scarf1', '1', '1');
     addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Scarf2', '1', '1');
     addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Scarf3', '1', '1');
-    e := GenerateModularMageForTypeAndLevel(destFile, e, level, levelNum, 'Conjuration');
-    e := GenerateModularMageForTypeAndLevel(destFile, e, level, levelNum, 'Restoration');
-    e := GenerateModularMageForTypeAndLevel(destFile, e, level, levelNum, 'Destruction');
-    e := GenerateModularMageForTypeAndLevel(destFile, e, level, levelNum, 'Illusion');
-    e := GenerateModularMageForTypeAndLevel(destFile, e, level, levelNum, 'Alteration');
-    e := GenerateModularMageForTypeAndLevel(destFile, e, level, levelNum, 'MagickaRate');
+    e := GenerateModularMageForTypeAndLevel(destFile, e, level, 'Conjuration', levelNum);
+    e := GenerateModularMageForTypeAndLevel(destFile, e, level, 'Restoration', levelNum);
+    e := GenerateModularMageForTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
+    e := GenerateModularMageForTypeAndLevel(destFile, e, level, 'Illusion', levelNum);
+    e := GenerateModularMageForTypeAndLevel(destFile, e, level, 'Alteration', levelNum);
+    e := GenerateModularMageForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
     Result := e;
 end;
 
-function GenerateModularMageForTypeAndLevel(destFile: IwbFile; e:IwbElement, level, magic_type:string; levelNum:integer): IwbElement;
-begin     
-    e := GenerateModularMagePantiesForMagicTypeAndLevel(destFile, e, level, levelNum, magic_type, 'EnchRobesCollege'+magic_type+'0'+IntToStr(levelNum));
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSkirtCurtain'+magic_type, '0', '0', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Skirt1'+magic_type, '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Skirt2'+magic_type, '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Skirt3'+magic_type, '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageBottomCurtain'+magic_type, '0', '1', '0', '0');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Garterbelt', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'PelvisCurtains', '1', '1');
-    
-    e := newLVLI(e, destFile, 'MM_'+level+'MageBottomPanty'+magic_type, '0', '1', '0', '0');
+function GenerateModularMageForTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
+var
+    modular_mage : IwbFile;
+    ench: string;
+begin
+    modular_mage:=fileModularMage;
+    ench := 'EnchRobesCollege'+magic_type+'0'+IntToStr(levelNum);
+    e := GenerateModularMagePantiesForMagicTypeAndLevel(destFile, e, level, magic_type, ench);
+    if levelNum < 4 then begin
+        e := newLVLI(e, destFile, 'MM_'+level+'MageBottomCurtain'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Garterbelt', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'PelvisCurtains', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageBottomPanty'+magic_type, '0', '1', '0', '0');
+    end else begin
+        e := newLVLI(e, destFile, 'MM_'+level+'MageBottom'+magic_type, '0', '1', '0', '0');
+    end;    
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MagePanties'+magic_type, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirt', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageBottomShorts', '0', '0', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtShorts', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Shorts', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageBottom'+magic_type, '0', '0', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottomPanty'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottomShorts', '1', '1'); // TODO: Shorts should be enchanted
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottomCurtain'+magic_type, '1', '1');
+    if levelNum < 4 then begin
+        e := newLVLI(e, destFile, 'MM_'+level+'MageBottomShorts', '0', '0', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtShorts', '1', '1');
+        addToLVLIMaybe(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Shorts', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageBottom'+magic_type, '0', '0', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottomPanty'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottomShorts', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottomCurtain'+magic_type, '1', '1');
+    end;
     e := newLVLI(e, destFile, 'MM_'+level+'MageSet1Jacket'+magic_type, '0', '1', '0', '0');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopNormal', '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom'+magic_type, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageJacket', '1', '1');
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSet1Mantle'+magic_type, '0', '1', '0', '0');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopNormal', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageMantle', '1', '1');
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+    if levelNum > 3 then addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageCorset', '1', '1');
+    if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+    if levelNum < 4 then begin
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet1Mantle'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopNormal', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageMantle', '1', '1');
+    end;
+    if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
     e := newLVLI(e, destFile, 'MM_'+level+'MageSet1Arms'+magic_type, '0', '1', '0', '0');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopNormal', '1', '1');
@@ -334,101 +374,141 @@ begin
     end else begin
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Belts', '1', '1');
     end;
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+    if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
     e := newLVLI(e, destFile, 'MM_'+level+'MageSet1ArmsMantle'+magic_type, '0', '1', '0', '0');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopNormal', '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom'+magic_type, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageMantle', '1', '1');
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+    if levelNum>3 then begin addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageJacket', '1', '1'); 
+    end else begin addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageMantle', '1', '1'); end;
+    if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
     if levelNum>3 then begin
         e := newLVLI(e, destFile, 'MM_'+level+'MageSet1Coat'+magic_type, '0', '1', '0', '0');
         addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageCoatOpen', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopNormal', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom'+magic_type, '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
-        if Assigned(wizard_hats) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        if Assigned(fileWizardHats) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
     end;
     e := newLVLI(e, destFile, 'MM_'+level+'MageSet1'+magic_type, '0', '0', '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet1Arms'+magic_type, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet1Jacket'+magic_type, '1', '1');
-    addToLVLIMaybe(destFile, e, 'LVLI', 'MM_'+level+'MageSet1Coat'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet1Mantle'+magic_type, '1', '1');
+    addToLVLIMaybe_(destFile, e, 'LVLI', 'MM_'+level+'MageSet1Coat'+magic_type, '1', '1');
+    addToLVLIMaybe_(destFile, e, 'LVLI', 'MM_'+level+'MageSet1Mantle'+magic_type, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet1ArmsMantle'+magic_type, '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageBottom2'+magic_type, '0', '0', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottomCurtain'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSet2Arms'+magic_type, '0', '1', '0', '0');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom2'+magic_type, '1', '1');
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'SlingBikini', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Belts', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSet2ArmsMantle'+magic_type, '0', '1', '0', '0');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom2'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageMantleShash', '1', '1');
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'SlingBikini', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSet2Jacket'+magic_type, '0', '1', '0', '0');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageJacket', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom2'+magic_type, '1', '1');
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'SlingBikini', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSet2Mantle'+magic_type, '0', '1', '0', '0');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom2'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageMantleShash', '1', '1');
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'SlingBikini', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSet2'+magic_type, '0', '0', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2Arms'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2ArmsMantle'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2Jacket'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2Mantle'+magic_type, '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSet3Arms'+magic_type, '0', '1', '0', '0');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopless', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageCorset', '1', '1');
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'StringThong'+magic_type, '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSet3Jacket'+magic_type, '0', '1', '0', '0');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageJacket', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopless', '1', '1');
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'StringThong', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Belts', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSet3ArmsScarf'+magic_type, '0', '1', '0', '0');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopless', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageCorset', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageScarf', '1', '1');
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'StringThong'+magic_type, '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSet3JacketScarf'+magic_type, '0', '1', '0', '0');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageJacket', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopless', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageScarf', '1', '1');
-    if Assigned(wizard_hats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'StringThong'+magic_type, '1', '1');
-    addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Belts', '1', '1');
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSet3'+magic_type, '0', '0', '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3Arms'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3Jacket'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3ArmsScarf'+magic_type, '1', '1');
-    addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3JacketScarf'+magic_type, '1', '1');
+    if levelNum < 4 then begin
+        e := newLVLI(e, destFile, 'MM_'+level+'MageBottom2'+magic_type, '0', '0', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottomCurtain'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet2Arms'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom2'+magic_type, '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'SlingBikini', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Belts', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet2ArmsMantle'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom2'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageMantleShash', '1', '1');
+        if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'SlingBikini', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet2Jacket'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageJacket', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom2'+magic_type, '1', '1');
+        if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'SlingBikini', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet2Mantle'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBottom2'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageMantleShash', '1', '1');
+        if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'SlingBikini', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet2'+magic_type, '0', '0', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2Arms'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2ArmsMantle'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2Jacket'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2Mantle'+magic_type, '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet3Arms'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopless', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageCorset', '1', '1');
+        if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', '_ModularMage'+level+'StringThong'+magic_type, '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet3Jacket'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageJacket', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopless', '1', '1');
+        if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', '_ModularMage'+level+'StringThong'+magic_type, '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Belts', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet3ArmsScarf'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopless', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageCorset', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageScarf', '1', '1');
+        if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', '_ModularMage'+level+'StringThong'+magic_type, '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet3JacketScarf'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirtCurtain'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageJacket', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageTopless', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageScarf', '1', '1');
+        if Assigned(fileWizardHats) and (levelNum>2) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', '_ModularMage'+level+'StringThong'+magic_type, '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Belts', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet3'+magic_type, '0', '0', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3Arms'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3Jacket'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3ArmsScarf'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3JacketScarf'+magic_type, '1', '1');
+    end else begin
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet2Arms'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        if Assigned(fileWizardHats) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageScarf', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Onepiece', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Garterbelt', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', '_ModularMage'+level+'Skirt2'+magic_type, '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet2Coat'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageCoat', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Onepiece', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Garterbelt', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', '_ModularMage'+level+'Skirt2'+magic_type, '1', '1');
+        if Assigned(fileWizardHats) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet2'+magic_type, '0', '0', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2Arms'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2Coat'+magic_type, '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet3Arms'+magic_type, '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirt', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageArms', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MagePanties'+magic_type, '1', '1');
+        if Assigned(fileWizardHats) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'CoatCollar', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Harness3', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet3Coat'+magic_type, '0', '1', '0', '0');
+        if Assigned(fileWizardHats) then addToLVLI_(destFile, e, 'LVLI', 'MM_WizardHats', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageBoots', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSkirt', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MagePanties'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageCoatClosed', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMage'+level+'Harness3', '1', '1');
+        e := newLVLI(e, destFile, 'MM_'+level+'MageSet3'+magic_type, '0', '0', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3Arms'+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3Coat'+magic_type, '1', '1');
+    end;
     e := newLVLI(e, destFile, 'MM_'+level+'MageSets'+magic_type, '0', '0', '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet1'+magic_type, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2'+magic_type, '1', '1');
@@ -455,18 +535,17 @@ begin
     panties := filePantiesofskyrim;
     coco_lingerie := FileByName('[COCO]Lingerie.esp');
     coco_lace := FileByName('[COCO] Lace Lingerie Pack.esp');
-    coco_bikini := FileByName('[COCO]Bikini Collection.esp');
+    coco_bikini := fileCocoBikini;
     hs2_bunny := FileByName('HS2_bunyCostume.esp');
     modular_mage := fileModularMage;
-    ussep := FileByName('unofficial skyrim special edition patch.esp');
-    wizard_hats := FileByName('sirwho_Wizard_Hats-Simple.esp');
+    ussep := fileUSSEP;
+    wizard_hats := fileWizardHats;
     tewoba := fileTEWOBA;
     tawoba := fileTAWOBA;
     tawoba_list := fileTAWOBALeveledList;
     if Assigned(tawoba_list) then begin
-        AddMessage('You should disable "'+GetFileName(tawoba_list)+'" to avoid conflicts!');
-        Result := 1;
-        exit;
+        //TODO uncomment this
+        //raise Exception.Create('You should disable "'+GetFileName(tawoba_list)+'" to avoid conflicts!');
     end;
     if Assigned(wizard_hats) then begin
         AddMasterIfMissing(destFile, GetFileName(wizard_hats));
@@ -881,15 +960,15 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'bunny_full', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'bunny_reverse_any', '1', '1');
     end;
-    if Assigned(coco_lace) or Assigned(coco_lingerie) or Assigned(coco_bikini) or Assigned(hs2_bunny) then
+    if Assigned(coco_lace) or Assigned(coco_lingerie) or Assigned(coco_bikini) or Assigned(hs2_bunny) then begin
         e := newLVLI(e, destFile, 'any_lingerie', '0', '0', '0', '0');
         if Assigned(coco_lace) then begin 
             addToLVLI_(destFile, e, 'LVLI', 'coco_lace', '1', '1');
             addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body', '1', '1');
         end;
-        if Assigned(coco_lingerie) then addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie', '1', '1');
-        if Assigned(coco_bikini) then addToLVLI_(destFile, e, 'LVLI', 'coco_bikini', '1', '1');
-        if Assigned(hs2_bunny) then addToLVLI_(destFile, e, 'LVLI', 'bunny', '1', '1');
+        if Assigned(coco_lingerie) then begin addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie', '1', '1'); end;
+        if Assigned(coco_bikini) then begin addToLVLI_(destFile, e, 'LVLI', 'coco_bikini', '1', '1'); end;
+        if Assigned(hs2_bunny) then begin addToLVLI_(destFile, e, 'LVLI', 'bunny', '1', '1'); end;
     end;
     if Assigned(modular_mage) then begin
         AddMasterIfMissing(destFile, GetFileName(modular_mage));
@@ -1013,7 +1092,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TEW Dragonscale Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Dragonscale Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Dragonscale Thongs', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Dragoncale', '1', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Dragonscale', '1', '1');
         e := newLVLI(e, destFile, 'TEW Glass Accessories', '0', '0', '1', '0');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'Glass45', '1', '1');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'Glass46', '1', '1');
@@ -1193,8 +1272,8 @@ begin
         e := newLVLI(e, destFile, 'TWA Hide Helmet', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00HBA_neckcover', '1', '1');
         e := newLVLI(e, destFile, 'TWA Hide Thongs', '0', '0', '1', '0');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00HBA_hotpants_1', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00HBA_hotpants_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00HBA_hotpants1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00HBA_hotpants2', '1', '1');
         e := newLVLI(e, destFile, 'TWA Hide Boots', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00HBA_boots', '1', '1');
         e := newLVLI(e, destFile, 'TWA Hide Gauntlets', '30', '0', '1', '0');
@@ -1339,9 +1418,6 @@ begin
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Gorget_1_B', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Gorget_1_C', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Chestguard_Bone', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_gorget_3_C', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_spine_1', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Faceguard', '1', '1');
         e := newLVLI(e, destFile, 'TWA Dragon Bone Body', '0', '1', '0', '0');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Dragon Bone Armors', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Dragon Bone Thongs', '1', '1');
@@ -1409,7 +1485,6 @@ begin
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_2', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_3', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_4', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_5', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_6', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thong_7', '1', '1');
         e := newLVLI(e, destFile, 'TWA Dwarven Boots', '0', '0', '1', '0');
@@ -1442,9 +1517,9 @@ begin
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thigh_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thigh_2', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Thigh_3', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Tsset_1', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Tsset_2', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Tsset_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Tasset_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Tasset_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Tasset_3', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Skirt_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Skirt_1_L', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_Skirt_1_R', '1', '1');
@@ -1485,7 +1560,7 @@ begin
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_boots_3', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_boots_4', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_boots_5', '1', '1');
-        if Assigned(tewoba) addToLVLI(destFile, e, tewoba, 'ARMO', 'Iron37-06', '1', '1');
+        if Assigned(tewoba) then addToLVLI(destFile, e, tewoba, 'ARMO', 'Iron37-06', '1', '1');
         e := newLVLI(e, destFile, 'TWA Iron Gauntlets', '30', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_gauntlets_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_gauntlets_2', '1', '1');
@@ -1527,7 +1602,7 @@ begin
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_abs_4', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_abs_5', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_abs_6', '1', '1');
-        if Assigned(tewoba) addToLVLI(destFile, e, tewoba, 'ARMO', 'Iron56-07', '1', '1');
+        if Assigned(tewoba) then addToLVLI(destFile, e, tewoba, 'ARMO', 'Iron56-07', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_thigh_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_thigh_2', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_thigh_3', '1', '1');
@@ -1588,7 +1663,7 @@ begin
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_boots_3', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_boots_4', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_boots_5', '1', '1');
-        if Assigned(tewoba) addToLVLI(destFile, e, tewoba, 'ARMO', 'Steel37-06', '1', '1');
+        if Assigned(tewoba) then addToLVLI(destFile, e, tewoba, 'ARMO', 'Steel37-06', '1', '1');
         e := newLVLI(e, destFile, 'TWA Steel Gauntlets', '30', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_gauntlets_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_gauntlets_2', '1', '1');
@@ -1596,7 +1671,7 @@ begin
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_gauntlets_4', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_gauntlets_5', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_gauntlets_6', '1', '1');
-        if Assigned(tewoba) addToLVLI(destFile, e, tewoba, 'ARMO', 'Steel33-07', '1', '1');
+        if Assigned(tewoba) then addToLVLI(destFile, e, tewoba, 'ARMO', 'Steel33-07', '1', '1');
         e := newLVLI(e, destFile, 'TWA Steel Helmet', '50', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_helm_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_helm_2', '1', '1');
@@ -1622,13 +1697,13 @@ begin
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_abs_5', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_abs_6', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_abs_7', '1', '1');
-        if Assigned(tewoba) addToLVLI(destFile, e, tewoba, 'ARMO', 'Steel56-08', '1', '1');
+        if Assigned(tewoba) then addToLVLI(destFile, e, tewoba, 'ARMO', 'Steel56-08', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_Tasset_1_A', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_Tasset_1_B', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_Tasset_1_C', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_Tasset_2_a', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_Tasset_2_b', '1', '1');
-        if Assigned(tewoba) addToLVLI(destFile, e, tewoba, 'ARMO', 'Steel49-03', '1', '1');
+        if Assigned(tewoba) then addToLVLI(destFile, e, tewoba, 'ARMO', 'Steel49-03', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_Thigh_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_Thigh_2', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_Thigh_3', '1', '1');
@@ -1904,16 +1979,16 @@ begin
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Thong_3', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Thong_4', '1', '1');
         e := newLVLI(e, destFile, 'TWA Blades Pauldron', '40', '0', '1', '0');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_1_R', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_2_R', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_3_R', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_4_R', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_5_R', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_1_L', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_2_L', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_3_L', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_4_L', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_5_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_shoulder_1_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_shoulder_2_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_shoulder_3_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_shoulder_4_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_shoulder_5_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_shoulder_1_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_shoulder_2_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_shoulder_3_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_shoulder_4_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_shoulder_5_L', '1', '1');
         e := newLVLI(e, destFile, 'TWA Blades Thigh Tasset and Abs', '35', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Thigh_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Thigh_2', '1', '1');
@@ -1941,14 +2016,13 @@ begin
         e := newLVLI(e, destFile, 'TWA Orcish Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_bikini_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_bikini_2', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_bikini_3', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_BP_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_BP_sp', '1', '1');
         e := newLVLI(e, destFile, 'TWA Orcish Boots', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_boots_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_boots_2', '1', '1');
         e := newLVLI(e, destFile, 'TWA Orcish Gauntlets', '30', '0', '1', '0');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00Evb_gauntlets_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_gauntlets_1', '1', '1');
         e := newLVLI(e, destFile, 'TWA Orcish Helmet', '50', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_helm_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_helm_2', '1', '1');
@@ -1957,12 +2031,12 @@ begin
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_Thong_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_Thong_2', '1', '1');
         e := newLVLI(e, destFile, 'TWA Orcish Pauldron', '40', '0', '1', '0');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_should_1_R', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_should_2_R', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_should_3_R', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_should_1_L', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_should_2_L', '1', '1');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_should_3_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_shoulder_R_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_shoulder_R_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_shoulder_R_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_shoulder_L_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_shoulder_L_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_shoulder_L_3', '1', '1');
         e := newLVLI(e, destFile, 'TWA Orcish Thigh Tasset and Abs', '35', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_Thigh_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_Thigh_2', '1', '1');
@@ -2017,6 +2091,8 @@ begin
             if fname = 'The Amazing World of Bikini Armors REMASTERED.esp' then begin
                 hasTAWOBA := true;
                 fileTAWOBA := f;
+            end else if fname = 'TAWOBA Remastered Leveled List.esp' then begin
+                fileTAWOBALeveledList := f;
             end else if fname = 'pantiesofskyrim.esp' then begin
                 hasPantiesofskyrim := true;
                 filePantiesofskyrim := f;
@@ -2028,8 +2104,14 @@ begin
                 fileTEWOBA := f;
             end else if fname = 'slave girls SPID.esp' then begin
                 destinationFile := f;
-            end else if fname = 'Skyrim.esp' then begin
+            end else if fname = 'Skyrim.esm' then begin
                 fileSkyrim := f;
+            end else if fname = 'unofficial skyrim special edition patch.esp' then begin
+                fileUSSEP := f;
+            end else if fname = '[COCO]Bikini Collection.esp' then begin
+                fileCocoBikini := f;
+            end else if fname = 'sirwho_Wizard_Hats-Simple.esp' then begin
+                fileWizardHats := f;
             end;
         end;
         if not Assigned(destinationFile) then begin
@@ -2284,7 +2366,8 @@ begin
             end else if StartsStr('ArmorSummerset', newOutfitId) then begin
                 AddPanties(newOutfitItems, 'Summerset');    
             end;
-        else if StartsStr('Clothes', newOutfitId) then begin
+        end else if StartsStr('Clothes', newOutfitId) then begin
+            AddMessage("UNIMPLEMENTED");
         end;
     end;
     
@@ -2326,11 +2409,13 @@ begin
                 if StartsStr('EnchClothesRobesMage', oldItemId) then begin
                     
                 end else if StartsStr('EnchClothesNecroRobes', oldItemId) then begin    
-                    if StartsStr('EnchClothesNecroRobesHooded', oldItemId) then begin    
+                    if StartsStr('EnchClothesNecroRobesHooded', oldItemId) then begin 
+                        AddMessage("UNIMPLEMENTED");   
                     end else begin
+                        AddMessage("UNIMPLEMENTED");
                     end;
                 end else if StartsStr('EnchClothesWarlockRobes', oldItemId) then begin    
-                    
+                    AddMessage("UNIMPLEMENTED");
                 end;
             end else if StartsStr('Clothes', oldItemId) then begin
                 if StartsStr('ClothesThalmor', oldItemId) then begin
@@ -2338,9 +2423,9 @@ begin
                     tawobaItemId := 'TWA Thalmor ';
                     pantiesItemId := 'Panties-ThalmorArmor';
                 end else if StartsStr('ClothesRobes', oldItemId) then begin    
-                    
+                    AddMessage("UNIMPLEMENTED");
                 end else if StartsStr('ClothesCollege', oldItemId) then begin    
-                    
+                    AddMessage("UNIMPLEMENTED");
                 end;
             end else if StartsStr('Armor', oldItemId) then begin
                 if StartsStr('ArmorIron', oldItemId) then begin
@@ -2405,7 +2490,7 @@ begin
                 end else if StartsStr('ArmorDragonscale', oldItemId) then begin    
                     tawobaItemId := 'TEW Dragonscale ';
                     oldItemPrefix := 'ArmorDragonscale';
-                    pantiesItemId := 'Panties-Dragoncale';
+                    pantiesItemId := 'Panties-Dragonscale';
                 end else if StartsStr('ArmorDragonplate', oldItemId) then begin    
                     tawobaItemId := 'TWA Dragon Bone ';
                     oldItemPrefix := 'ArmorDragonplate';
