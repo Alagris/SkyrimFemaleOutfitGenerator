@@ -18,6 +18,7 @@ var
     fileTEWOBA: IwbFile;
     hasModularMage: Boolean;
     fileModularMage: IwbFile;
+    fileSkyrim: IwbFile;
 
 
 function FileByName(fn: string): IwbFile;
@@ -49,31 +50,51 @@ begin
     SetElementEditValues(Result, 'LVLF\Use All', useAll);
     Result := Add(Result, 'Leveled List Entries', true);
 end;
-function addToLVLI(destFile: IwbFile; e: IwbElement; filename: IwbFile; signat, ref, count, level:string): IwbElement;
-    r: IwbMainRecord;
+function assignToLVLI(e: IwbElement; ref: IwbMainRecord; count, level:string): IwbElement;
 begin
-    r := MainRecordByEditorID(GroupBySignature(filename, signat), ref);
-    if not Assigned(r) then begin
-        raise Exception.Create('Element not found: '+GetFileName(filename)+' '+signat+' '+ref);
+    if not Assigned(ref) then begin
+        raise Exception.Create('Tried to assign nil to '+FullPath(e));
     end;
     Result := Add(e, 'Leveled List Entry', true);
-    SetElementEditValues(Result, 'LVLO\Reference', Name(r));
+    SetElementEditValues(Result, 'LVLO\Reference', Name(ref));
     SetElementEditValues(Result, 'LVLO\Count', count);
     SetElementEditValues(Result, 'LVLO\Level', level);
+end;
+function addToLVLI(destFile: IwbFile; e: IwbElement; filename: IwbFile; signat, ref, count, level:string): IwbMainRecord;
+    r: IwbMainRecord;
+begin
+    Result := MainRecordByEditorID(GroupBySignature(filename, signat), ref);
+    if not Assigned(Result) then begin
+        raise Exception.Create('Element not found: '+GetFileName(filename)+' '+signat+' '+ref);
+    end;
+    assignToLVLI(e, IwbMainRecord, count, level);
 end;
 function addToLVLI_(destFile: IwbFile; e: IwbElement; signat, ref, count, level:string): IwbElement;
     r: IwbMainRecord;
 begin
-    r := MainRecordByEditorID(GroupBySignature(destFile, signat), ref);
-    if not Assigned(r) then begin
-        raise Exception.Create('Element not found: '+GetFileName(destFile)+' '+signat+' '+ref);
-    end;
-    Result := Add(e, 'Leveled List Entry', true);
-    SetElementEditValues(Result, 'LVLO\Reference', Name(r));
-    SetElementEditValues(Result, 'LVLO\Count', count);
-    SetElementEditValues(Result, 'LVLO\Level', level);
+    Result := addToLVLI(destFile, e, destFile, signat, ref, count, level);
 end;
 
+function EnchId(level: string; magic_type:string): string; 
+begin
+    Result := 'EnchRobesCollege';
+    if level = 'Novice' then ench_lvl = 1;
+    else if level = 'Apprentice' then ench_lvl = 2;
+    else if level = 'Adept' then ench_lvl = 3;
+    else if level = 'Expert' then ench_lvl = 4;
+    else if level = 'Master' then ench_lvl = 5;
+    else begin
+        Result := 'EnchRobesFortify';
+        if level = 'Minor' then ench_lvl = 1;
+        else if level = '' then ench_lvl = 2;
+        else if level = 'Major' then ench_lvl = 3;
+        else if level = 'Eminent' then ench_lvl = 4;
+        else if level = 'Extreme' then ench_lvl = 5;
+        else if level = 'Peerless' then ench_lvl = 6;
+        else raise Exception.Create('Undefined magic level '+level);
+    end;
+    Result := Result + magic_type + '0' + IntToStr(ench_lvl);
+end;
 /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
@@ -82,448 +103,63 @@ end;
 /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
 
-function generate(destFile: IwbFile): integer;
-var
-    e:IwbElement;
-    panties: IwbFile;
-    coco_lingerie: IwbFile;
-    coco_lace: IwbFile;
-    coco_bikini: IwbFile;
-    hs2_bunny: IwbFile;
-    modular_mage: IwbFile;
-    ussep: IwbFile;
-    wizard_hats: IwbFile;
-    tewoba: IwbFile;
-    tawoba: IwbFile;
-    tawoba_list: IwbFile;
-begin
-    panties := filePantiesofskyrim;
-    coco_lingerie := FileByName('[COCO]Lingerie.esp');
-    coco_lace := FileByName('[COCO] Lace Lingerie Pack.esp');
-    coco_bikini := FileByName('[COCO]Bikini Collection.esp');
-    hs2_bunny := FileByName('HS2_bunyCostume.esp');
-    modular_mage := fileModularMage;
-    ussep := FileByName('unofficial skyrim special edition patch.esp');
-    wizard_hats := FileByName('sirwho_Wizard_Hats-Simple.esp');
-    tewoba := fileTEWOBA;
-    tawoba := fileTAWOBA;
-    tawoba_list := fileTAWOBALeveledList;
-    if Assigned(tawoba_list) then begin
-        AddMessage('You should disable "'+GetFileName(tawoba_list)+'" to avoid conflicts!');
-        Result := 1;
-        exit;
-    end;
 
-    if Assigned(coco_lingerie) then begin
-        AddMasterIfMissing(destFile, GetFileName(coco_lingerie));
-        e := newLVLI(e, destFile, 'coco_lingerie1', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie1', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes1', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stock1', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lingerie2', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie2', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes2', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stock2', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lingerie3', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie3', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes3', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stock3', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lingerie4', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie4', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes4', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stock4', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lingerieb1', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb1', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb1', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes1', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lingerieb2', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb2', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb2', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes2', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lingerieb3', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb3', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb3', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes3', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lingerieb4', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb4', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb4', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes4', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lingerieb5', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb5', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb5', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes1', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lingerieb6', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb6', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb6', '1', '1');
-        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes2', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lingerie', '0', '0', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie1', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie2', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie3', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie4', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb1', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb2', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb3', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb4', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb5', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb6', '1', '1');
+function GenerateModularMagePanty(destFile: IwbFile; e:IwbElement; templateSuffix, level, magic_type, ench:string): IwbMainRecord;
+var
+    template: IwbMainRecord;
+    enchR: IwbMainRecord;
+begin
+    enchR := MainRecordByEditorID(GroupBySignature(fileSkyrim, 'ENCH'), ench);
+    template := MainRecordByEditorID(GroupBySignature(fileModularMage, 'ARMO'), '_ModularMage'+level+templateSuffix);
+    Result := wbCopyElementToFileWithPrefix(template, destFile, true, true, '', '', '');
+    SetEditorID(Result, '_ModularMage'+level+'StringThong'+magic_type);
+    SetElementEditValues(Result, 'TNAM', Name(template));
+    SetElementEditValues(Result, 'EITM', Name(enchR));
+    if magic_type = 'MagickaRate' then
+        magic_type := '';
+    else
+        magic_type := ' of '+magic_type;
     end;
-    if Assigned(coco_lace) then begin
-        AddMasterIfMissing(destFile, GetFileName(coco_lace));
-        e := newLVLI(e, destFile, 'coco_lace_heel1', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel01_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel01_2', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace1_bikini_only', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_5', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_6', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace1', '0', '1', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace1_bikini_only', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_heel1', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_heel2', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel02_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel02_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel02_3', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace2_bikini_only', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_5', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_6', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace2', '0', '1', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace2_bikini_only', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_heel2', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace3_2', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel03_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03handfur_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03head_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03tail_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03brafur_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03bellfur_2', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace3_1', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel03_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03bellfur_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03handfur_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03head_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03tail_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03brafur_1', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace3_3', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel03_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03bellfur_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03handfur_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03head_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03tail_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03brafur_1', '1', '1');   
-        e := newLVLI(e, destFile, 'coco_lace3', '0', '0', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace3_1', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace3_2', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace3_3', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_heel4', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_5', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_7', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_8', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace4_bikini_only', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini04_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini04_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini04_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini04_4', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace4', '0', '1', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace4_bikini_only', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_heel4', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace5_1', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05arm_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05nip_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', '05stock_1', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_heel4', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace5_2', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05arm_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05nip_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', '05stock_2', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_heel4', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace5', '0', '0', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace5_1', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace5_2', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace6', '0', '0', '0', '0');
-        e := newLVLI(e, destFile, 'coco_lace7_1', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07low_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07top_1', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace7_2', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07low_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07top_2', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace7_3', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07low_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07top_3', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace7_4', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07low_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07top_4', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace7_5', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07low_5', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07top_5', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace7', '0', '0', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7_1', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7_2', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7_3', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7_4', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7_5', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace8', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_5', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_6', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace9', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini09_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini09_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini09_3', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace', '0', '0', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace1', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace2', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace3', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace4', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace5', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace6', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace8', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace9', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body1', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_5', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_6', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body2', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace02_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace02_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace02_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace02_3', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body3', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace03_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace03_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace03_3', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body4', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace04_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace04_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace04_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace04_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace04_5', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body5', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_6', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_5', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body6', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace06_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace06_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace06_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace06_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace06_5', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body7', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace07_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace07_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace07_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace07_4', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body8_1', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_2', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body8_2', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_1', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body8_3', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_3', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body8_4', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_4', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body8_5', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_5', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_5', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body8_6', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_6', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_6', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body8_7', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_7', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_7', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body8', '0', '0', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_1', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_2', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_3', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_4', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_5', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_6', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_7', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body9', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_2', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_1', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_3', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_4', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_5', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_6', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_7', '1', '1');
-        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_8', '1', '1');
-        e := newLVLI(e, destFile, 'coco_lace_body', '0', '0', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body1', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body2', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body3', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body4', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body5', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body6', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body7', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body9', '1', '1');
+    SetElementEditValues(Result, 'FULL', level+' Panties'+magic_type);
+end;
+
+function GenerateModularMagePantiesForMagicTypeAndLevel(destFile: IwbFile; e:IwbElement; level: string; count: integer; magic_type, ench:string): integer;
+var
+    i:integer;
+    ench_lvl: integer;
+    ench_base: string;
+    newPanties: IwbElement;
+    template: IwbMainRecord;
+    enchR: IwbMainRecord;
+begin
+    e := newLVLI(e, destFile, 'MM_'+level+'MagePanties'+magic_type, '0', '0', '1', '1');
+    assignToLVLI(e, GenerateModularMagePanty(destFile, e, 'StringThong', level, magic_type, ench), '1', '1');
+    for  i:= 1 to count do begin
+        assignToLVLI(e, GenerateModularMagePanty(destFile, e, 'Panties'+IntToStr(i), level, magic_type, ench), '1', '1');
     end;
-    if Assigned(coco_bikini) then begin
-        AddMasterIfMissing(destFile, GetFileName(coco_bikini));
-        e := newLVLI(e, destFile, 'coco_bikini3a', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03a_body', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03a_bellfur', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03a_handfur', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini03a_head', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini03a_tailsmp', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini3b', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03b_body', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03b_bellfur', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03b_handfur', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini03b_head', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini03b_tailsmp', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini5a', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05a_body', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05a_stock', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05a_arm', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05a_bra', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini5b', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05b_body', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05b_stock', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05b_arm', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05b_bra', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini6a', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini06a_body', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini06a_low', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini6b', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini06b_body', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'BIKINI06b_lowDUPLICATE001', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini6c', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini06c_body', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini06c_low', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini7a', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini07a_body', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini07a_low', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini7b', '0', '1', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini07b_body', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini07b_low', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini8', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08a', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08bDUPLICATE001', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08cDUPLICATE001', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08dDUPLICATE001', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08eDUPLICATE001', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08fDUPLICATE001', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini9', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini09a', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini09bDUPLICATE001', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini09cDUPLICATE001', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini1', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini01a', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini01bDUPLICATE001', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini01cDUPLICATE001', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini2', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini02a', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini02bDUPLICATE001', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini4', '0', '0', '0', '0');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini04a', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini04bDUPLICATE001', '1', '1');
-        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini04cDUPLICATE001', '1', '1');
-        e := newLVLI(e, destFile, 'coco_bikini', '0', '0', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini3a', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini3b', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini5a', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini5b', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini6a', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini6b', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini6c', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini7a', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini7b', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini8', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini9', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini1', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini2', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bikini4', '1', '1');
-    end;
-    if Assigned(hs2_bunny) then begin
-        AddMasterIfMissing(destFile, GetFileName(hs2_bunny));
-        e := newLVLI(e, destFile, 'bunny_leggings', '0', '0', '0', '0');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_BunnyLeggings', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_BunnyLeggings_normal', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings00', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings01', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings02', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings04', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings05', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings06', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings07', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings08', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings09', '1', '1');
-        e := newLVLI(e, destFile, 'bunny_upper', '0', '0', '0', '0');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_BunnysuitUpperA', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_BunnysuitUpperB', '1', '1');
-        e := newLVLI(e, destFile, 'bunny_frontline', '80', '0', '0', '0');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_FrontLineA', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_FrontLineB', '1', '1');
-        e := newLVLI(e, destFile, 'bunny_full', '0', '1', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'bunny_leggings', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bunny_upper', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bunny_frontline', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Bunnytail', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Bunnyribbon', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyhandcuff', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyshoes', '1', '1');
-        e := newLVLI(e, destFile, 'bunny_reverse', '0', '1', '0', '0');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyUpper', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyLeggings', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyribbon', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyhandcuff', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyshoes', '1', '1');
-        e := newLVLI(e, destFile, 'bunny_reverse_white', '0', '1', '0', '0');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyribbon', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyLeggingswhite', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyUpperwhie', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyhandcuff', '1', '1');
-        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyshoes', '1', '1');
-        e := newLVLI(e, destFile, 'bunny_reverse_any', '0', '0', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'bunny_reverse', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bunny_reverse_white', '1', '1');
-        e := newLVLI(e, destFile, 'bunny', '50', '0', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'bunny_full', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'bunny_reverse_any', '1', '1');
-    end;
-    if Assigned(coco_lace) or Assigned(coco_lingerie) or Assigned(coco_bikini) or Assigned(hs2_bunny) then
-        e := newLVLI(e, destFile, 'any_lingerie', '0', '0', '0', '0');
-        if Assigned(coco_lace) then begin 
-            addToLVLI_(destFile, e, 'LVLI', 'coco_lace', '1', '1');
-            addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body', '1', '1');
-        end;
-        if Assigned(coco_lingerie) then addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie', '1', '1');
-        if Assigned(coco_bikini) then addToLVLI_(destFile, e, 'LVLI', 'coco_bikini', '1', '1');
-        if Assigned(hs2_bunny) then addToLVLI_(destFile, e, 'LVLI', 'bunny', '1', '1');
-    end;
-    if Assigned(modular_mage) then begin
-        AddMasterIfMissing(destFile, GetFileName(modular_mage));
+end;
+
+function GenerateModularMagePantiesForMagicType(destFile: IwbFile; e:IwbElement; magic_type:string): integer;
+begin
+    GenerateModularMagePantiesForMagicTypeAndLevel(destFile, e, 'Novice', 6, magic_type, 'EnchRobesCollege'+magic_type+'01');
+    GenerateModularMagePantiesForMagicTypeAndLevel(destFile, e, 'Apprentice', 6, magic_type, 'EnchRobesCollege'+magic_type+'02');
+    GenerateModularMagePantiesForMagicTypeAndLevel(destFile, e, 'Adept', 6, magic_type, 'EnchRobesCollege'+magic_type+'03');
+    GenerateModularMagePantiesForMagicTypeAndLevel(destFile, e, 'Expert', 8, magic_type, 'EnchRobesCollege'+magic_type+'04');
+    GenerateModularMagePantiesForMagicTypeAndLevel(destFile, e, 'Master', 8, magic_type, 'EnchRobesCollege'+magic_type+'05');
+end;
+
+function GenerateModularMagePanties(destFile: IwbFile; e:IwbElement): integer;
+begin
+    GenerateModularMagePantiesForMagicType(destFile, e, 'Conjuration');
+    GenerateModularMagePantiesForMagicType(destFile, e, 'Restoration');
+    GenerateModularMagePantiesForMagicType(destFile, e, 'Destruction');
+    GenerateModularMagePantiesForMagicType(destFile, e, 'Illusion');
+    GenerateModularMagePantiesForMagicType(destFile, e, 'Alteration');
+    GenerateModularMagePantiesForMagicType(destFile, e, 'MagickaRate');
+end;
+
+function GenerateModularMage(destFile: IwbFile; e:IwbElement): IwbElement;
+begin
         e := newLVLI(e, destFile, 'MM_NoviceMageStockings', '0', '0', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageNoviceStockings1', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageNoviceStockings2', '1', '1');
@@ -539,7 +175,7 @@ begin
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageNovicePanties4', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageNovicePanties5', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageNovicePanties6', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Mage', '1', '1');
+        // if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Mages', '1', '1');
         e := newLVLI(e, destFile, 'MM_NoviceMageSkirt', '0', '0', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageNoviceSkirt1', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageNoviceMiniSkirt', '1', '1');
@@ -779,7 +415,7 @@ begin
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticePanties4', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticePanties5', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticePanties6', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Mage', '1', '1');
+        //if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Mages', '1', '1');
         e := newLVLI(e, destFile, 'MM_ApprenticeMageFootwear', '0', '0', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticeThighHighBoots', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticeStirrupSocks', '1', '1');
@@ -958,13 +594,13 @@ begin
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageAdeptMiniSkirt', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageAdeptShorts', '1', '1');
         e := newLVLI(e, destFile, 'MM_AdeptMagePanties', '0', '0', '1', '1');
-        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticePanties1', '1', '1');
-        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticePanties2', '1', '1');
-        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticeStringThong', '1', '1');
-        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticePanties3', '1', '1');
-        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticePanties4', '1', '1');
-        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticePanties5', '1', '1');
-        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageApprenticePanties6', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageAdeptPanties1', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageAdeptPanties2', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageAdeptStringThong', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageAdeptPanties3', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageAdeptPanties4', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageAdeptPanties5', '1', '1');
+        addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageAdeptPanties6', '1', '1');
         e := newLVLI(e, destFile, 'MM_AdeptMageTopNormal', '0', '0', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageAdeptCorset2', '1', '1');
         addToLVLI(destFile, e, modular_mage, 'ARMO', '_ModularMageAdeptBeltTop1', '1', '1');
@@ -1445,6 +1081,454 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'MM_MasterMageSet2', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'MM_MasterMageSet3', '1', '1');
     end;
+    Result := e;
+end;
+
+
+function generate(destFile: IwbFile): integer;
+var
+    e:IwbElement;
+    panties: IwbFile;
+    coco_lingerie: IwbFile;
+    coco_lace: IwbFile;
+    coco_bikini: IwbFile;
+    hs2_bunny: IwbFile;
+    modular_mage: IwbFile;
+    ussep: IwbFile;
+    wizard_hats: IwbFile;
+    tewoba: IwbFile;
+    tawoba: IwbFile;
+    tawoba_list: IwbFile;
+begin
+    panties := filePantiesofskyrim;
+    coco_lingerie := FileByName('[COCO]Lingerie.esp');
+    coco_lace := FileByName('[COCO] Lace Lingerie Pack.esp');
+    coco_bikini := FileByName('[COCO]Bikini Collection.esp');
+    hs2_bunny := FileByName('HS2_bunyCostume.esp');
+    modular_mage := fileModularMage;
+    ussep := FileByName('unofficial skyrim special edition patch.esp');
+    wizard_hats := FileByName('sirwho_Wizard_Hats-Simple.esp');
+    tewoba := fileTEWOBA;
+    tawoba := fileTAWOBA;
+    tawoba_list := fileTAWOBALeveledList;
+    if Assigned(tawoba_list) then begin
+        AddMessage('You should disable "'+GetFileName(tawoba_list)+'" to avoid conflicts!');
+        Result := 1;
+        exit;
+    end;
+
+    if Assigned(coco_lingerie) then begin
+        AddMasterIfMissing(destFile, GetFileName(coco_lingerie));
+        e := newLVLI(e, destFile, 'coco_lingerie1', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie1', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes1', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stock1', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lingerie2', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie2', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes2', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stock2', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lingerie3', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie3', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes3', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stock3', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lingerie4', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie4', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes4', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stock4', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lingerieb1', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb1', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb1', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes1', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lingerieb2', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb2', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb2', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes2', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lingerieb3', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb3', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb3', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes3', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lingerieb4', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb4', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb4', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes4', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lingerieb5', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb5', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb5', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes1', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lingerieb6', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerieb6', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_stockb6', '1', '1');
+        addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes2', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lingerie', '0', '0', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie3', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie4', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb3', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb4', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb5', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lingerieb6', '1', '1');
+    end;
+    if Assigned(coco_lace) then begin
+        AddMasterIfMissing(destFile, GetFileName(coco_lace));
+        e := newLVLI(e, destFile, 'coco_lace_heel1', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel01_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel01_2', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace1_bikini_only', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_5', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini01_6', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace1', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace1_bikini_only', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_heel1', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_heel2', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel02_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel02_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel02_3', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace2_bikini_only', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_5', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini02_6', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace2', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace2_bikini_only', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_heel2', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace3_2', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel03_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03handfur_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03head_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03tail_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03brafur_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03bellfur_2', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace3_1', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel03_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03bellfur_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03handfur_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03head_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03tail_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03brafur_1', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace3_3', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel03_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03bellfur_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03handfur_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03head_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini03tail_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'Bikini03brafur_1', '1', '1');   
+        e := newLVLI(e, destFile, 'coco_lace3', '0', '0', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace3_1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace3_2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace3_3', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_heel4', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_5', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_7', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel04_8', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace4_bikini_only', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini04_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini04_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini04_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini04_4', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace4', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace4_bikini_only', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_heel4', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace5_1', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05arm_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05nip_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', '05stock_1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_heel4', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace5_2', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05arm_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini05nip_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', '05stock_2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_heel4', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace5', '0', '0', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace5_1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace5_2', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace6', '0', '0', '0', '0');
+        e := newLVLI(e, destFile, 'coco_lace7_1', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07low_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07top_1', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace7_2', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07low_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07top_2', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace7_3', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07low_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07top_3', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace7_4', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07low_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07top_4', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace7_5', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07low_5', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini07top_5', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace7', '0', '0', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7_1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7_2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7_3', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7_4', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7_5', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace8', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_5', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini08_6', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace9', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini09_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini09_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'bikini09_3', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace', '0', '0', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace3', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace4', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace5', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace6', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace7', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace8', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace9', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body1', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_5', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace01_6', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body2', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace02_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace02_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace02_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace02_3', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body3', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace03_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace03_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace03_3', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body4', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace04_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace04_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace04_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace04_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace04_5', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body5', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_6', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace05_5', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body6', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace06_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace06_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace06_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace06_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace06_5', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body7', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace07_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace07_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace07_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lace07_4', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body8_1', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_2', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body8_2', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_1', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body8_3', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_3', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body8_4', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_4', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body8_5', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_5', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_5', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body8_6', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_6', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_6', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body8_7', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacelow08_7', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop08_7', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body8', '0', '0', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_3', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_4', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_5', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_6', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8_7', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body9', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_2', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_1', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_3', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_4', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_5', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_6', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_7', '1', '1');
+        addToLVLI(destFile, e, coco_lace, 'ARMO', 'lacetop09smp_8', '1', '1');
+        e := newLVLI(e, destFile, 'coco_lace_body', '0', '0', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body3', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body4', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body5', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body6', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body7', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body8', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body9', '1', '1');
+    end;
+    if Assigned(coco_bikini) then begin
+        AddMasterIfMissing(destFile, GetFileName(coco_bikini));
+        e := newLVLI(e, destFile, 'coco_bikini3a', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03a_body', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03a_bellfur', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03a_handfur', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini03a_head', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini03a_tailsmp', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini3b', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03b_body', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03b_bellfur', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03b_handfur', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini03b_head', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini03b_tailsmp', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini5a', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05a_body', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05a_stock', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05a_arm', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05a_bra', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini5b', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05b_body', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05b_stock', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05b_arm', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini05b_bra', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini6a', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini06a_body', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini06a_low', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini6b', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini06b_body', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'BIKINI06b_lowDUPLICATE001', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini6c', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini06c_body', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini06c_low', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini7a', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini07a_body', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini07a_low', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini7b', '0', '1', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini07b_body', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini07b_low', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini8', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08a', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08bDUPLICATE001', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08cDUPLICATE001', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08dDUPLICATE001', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08eDUPLICATE001', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini08fDUPLICATE001', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini9', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini09a', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini09bDUPLICATE001', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini09cDUPLICATE001', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini1', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini01a', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini01bDUPLICATE001', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'bikini01cDUPLICATE001', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini2', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini02a', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini02bDUPLICATE001', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini4', '0', '0', '0', '0');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini04a', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini04bDUPLICATE001', '1', '1');
+        addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini04cDUPLICATE001', '1', '1');
+        e := newLVLI(e, destFile, 'coco_bikini', '0', '0', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini3a', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini3b', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini5a', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini5b', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini6a', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini6b', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini6c', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini7a', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini7b', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini8', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini9', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bikini4', '1', '1');
+    end;
+    if Assigned(hs2_bunny) then begin
+        AddMasterIfMissing(destFile, GetFileName(hs2_bunny));
+        e := newLVLI(e, destFile, 'bunny_leggings', '0', '0', '0', '0');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_BunnyLeggings', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_BunnyLeggings_normal', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings00', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings01', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings02', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings04', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings05', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings06', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings07', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings08', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Leggings09', '1', '1');
+        e := newLVLI(e, destFile, 'bunny_upper', '0', '0', '0', '0');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_BunnysuitUpperA', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_BunnysuitUpperB', '1', '1');
+        e := newLVLI(e, destFile, 'bunny_frontline', '80', '0', '0', '0');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_FrontLineA', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_FrontLineB', '1', '1');
+        e := newLVLI(e, destFile, 'bunny_full', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'bunny_leggings', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bunny_upper', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bunny_frontline', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Bunnytail', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_Bunnyribbon', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyhandcuff', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyshoes', '1', '1');
+        e := newLVLI(e, destFile, 'bunny_reverse', '0', '1', '0', '0');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyUpper', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyLeggings', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyribbon', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyhandcuff', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyshoes', '1', '1');
+        e := newLVLI(e, destFile, 'bunny_reverse_white', '0', '1', '0', '0');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyribbon', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyLeggingswhite', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_ReverseBunnyUpperwhie', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyhandcuff', '1', '1');
+        addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_bunnyshoes', '1', '1');
+        e := newLVLI(e, destFile, 'bunny_reverse_any', '0', '0', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'bunny_reverse', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bunny_reverse_white', '1', '1');
+        e := newLVLI(e, destFile, 'bunny', '50', '0', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'bunny_full', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'bunny_reverse_any', '1', '1');
+    end;
+    if Assigned(coco_lace) or Assigned(coco_lingerie) or Assigned(coco_bikini) or Assigned(hs2_bunny) then
+        e := newLVLI(e, destFile, 'any_lingerie', '0', '0', '0', '0');
+        if Assigned(coco_lace) then begin 
+            addToLVLI_(destFile, e, 'LVLI', 'coco_lace', '1', '1');
+            addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body', '1', '1');
+        end;
+        if Assigned(coco_lingerie) then addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie', '1', '1');
+        if Assigned(coco_bikini) then addToLVLI_(destFile, e, 'LVLI', 'coco_bikini', '1', '1');
+        if Assigned(hs2_bunny) then addToLVLI_(destFile, e, 'LVLI', 'bunny', '1', '1');
+    end;
+    if Assigned(modular_mage) then begin
+        AddMasterIfMissing(destFile, GetFileName(modular_mage));
+        e := GenerateModularMage(destFile, e);
+    end;
     if Assigned(tewoba) then begin
         AddMasterIfMissing(destFile, GetFileName(tewoba));
         e := newLVLI(e, destFile, 'TEW Ancient Nord Accessories', '0', '0', '1', '0');
@@ -1737,7 +1821,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panty-Bandits', '1', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
         e := newLVLI(e, destFile, 'TWA Hide Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00HBA_top', '1', '1');
         e := newLVLI(e, destFile, 'TWA Hide Helmet', '0', '0', '1', '0');
@@ -1773,7 +1857,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panty-Bandits', '1', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
         e := newLVLI(e, destFile, 'TWA Wolf Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00WBA_Bikini_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00WBA_Bikini_2', '1', '1');
@@ -2112,7 +2196,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Iron Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Iron Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Iron Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panty-Bandits', '1', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
         e := newLVLI(e, destFile, 'TWA Steel Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_bikini_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_bikini_2', '1', '1');
@@ -2206,7 +2290,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Steel Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Steel Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Steel Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panty-Bandits', '1', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
         e := newLVLI(e, destFile, 'TWA Nord Plate Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SPB_bikini_3', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SPB_bikini_4', '1', '1');
@@ -2294,7 +2378,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nord Plate Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nord Plate Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nord Plate Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panty-Bandits', '1', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
         e := newLVLI(e, destFile, 'TWA Nordic Carved Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00NordicCarvedBikini1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00NordicCarvedBikini2', '1', '1');
@@ -2345,7 +2429,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nordic Carved Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nordic Carved Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nordic Carved Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panty-Bandits', '1', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
         e := newLVLI(e, destFile, 'TWA Bandit Sets Body', '0', '0', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Bandit Leather Body', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Bandit Iron Body', '1', '1');
@@ -2414,16 +2498,75 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Elven Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Elven Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Elven Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panty-Elven', '1', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Elven', '1', '1');
         e := newLVLI(e, destFile, 'TWA Thalmor Body', '25', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00EVB_gorge_1tha', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00EVB_robe_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00EVB_thong_1tha', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panty-ThalmorArmor', '1', '1');
-        e := newLVLI(e, destFile, 'TWA Thalmor Leveled List', '0', '1', '0', '0');
-        addToLVLI(destFile, e, tawoba, 'ARMO', '00EVB_boots_1tha', '1', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-ThalmorArmor', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Thalmor Gauntlets', '25', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00Evb_gaunt_1tha', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Thalmor Body', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Thalmor Boots', '25', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00EVB_boots_1tha', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Blades Accessories', '70', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Gorget_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Gorget_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Gorget_3', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Blades Armors', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Bikini_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Bikini_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Bikini_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Bikini_4', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Breastplate', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Kunoichi', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Blades Boots', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_boots_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_boots_1s', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_boots_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_boots_2s', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_boots_3', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Blades Gauntlets', '30', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_gaunt_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_gaunt_2', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Blades Helmet', '50', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_helm', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_helmNH', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_circlet', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Blades Thongs', '0', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Thong_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Thong_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Thong_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Thong_4', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Blades Pauldron', '40', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_1_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_2_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_3_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_4_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_5_R', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_1_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_2_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_3_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_4_L', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_should_5_L', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Blades Thigh Tasset and Abs', '35', '0', '1', '0');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Thigh_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Thigh_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_abs_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_abs_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_abs_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Tasset_1', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Tasset_1alt', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Tasset_2', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Tasset_2alt', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Tasset_3', '1', '1');
+        addToLVLI(destFile, e, tawoba, 'ARMO', '00BBA_Tasset_3alt', '1', '1');
+        e := newLVLI(e, destFile, 'TWA Blades Body', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Blades Armors', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Blades Thongs', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Blades Pauldron', '2', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Blades Thigh Tasset and Abs', '4', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'TWA Blades Accessories', '3', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Blades', '1', '1');
         e := newLVLI(e, destFile, 'TWA Orcish Accessories', '70', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_gorget_1hv', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_gorget_1lg', '1', '1');
@@ -2469,7 +2612,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Orcish Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Orcish Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Orcish Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panty-Orcish', '1', '1');
+        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Orcish', '1', '1');
     end;
     if Assigned(e) then RemoveByIndex(e, 0, true);
 end;
@@ -2519,6 +2662,8 @@ begin
                 fileTEWOBA := f;
             end else if fname = 'slave girls SPID.esp' then begin
                 destinationFile := f;
+            end else if fname = 'Skyrim.esp' then begin
+                fileSkyrim := f;
             end;
         end;
         if not Assigned(destinationFile) then begin
@@ -2710,6 +2855,18 @@ begin
     end;
 end;
 
+function AddPanties(newItems: IwbElement; panties:string): IwbElement;
+var
+    newItem: IwbElement;
+begin
+    if Assigned(filePantiesofskyrim) then begin
+        newItem := MainRecordByEditorID(GroupBySignature(filePantiesofskyrim, 'LVLI'), 'Panties-'+panties);
+        if not Assigned(newItem) then raise Exception.Create("Panties not found: "+panties);
+        AddMessage('OTFT (panties) '+FullPath(newItems)+' -> '+EditorID(newItem));
+        Result := ElementAssign(newItems, HighInteger, newItem, false);    
+    end;
+end;
+
 function ModifyFemaleOutfit(oldOutfitRecord, newOutfitRecord: IwbElement): IwbElement;
 var
     isLVLI: Boolean;
@@ -2717,28 +2874,52 @@ var
     oldItemPrefix: string;
     tawobaItemId: string;
     pantiesItemId: string;
+    pantiesItemId: string;
     i: integer;
     oldOutfitRef: IwbElement;
     oldOutfitItems: IwbElement;
     oldOutfitItem: IwbElement;
     newOutfitItems: IwbElement;
     newOutfitItem: IwbElement;
+    newOutfitRef: IwbElement;
+    newOutfitId: string;
     femaleLVLI: IwbElement;
     recordSignature: string;
     recGrp: IwbGroupRecord;
-    hasPanties: Boolean;
-begin
-    hasPanties := false;      
+    removeOldItem: Boolean;
+    isBandit: Boolean;
+    isBanditBoss: Boolean;
+begin      
     (* CREATING NEW FEMALE-ONLY ARMOR BASED ON SOME RULES *)
     (* IT CHECKS WHAT ARMOR MODS ARE INSTALLED AND AUTOMATICALLY USES THEM *)
     recordSignature := Signature(oldOutfitRecord);
     isLVLI := recordSignature = 'LVLI';
+    newOutfitId := EditorID(newOutfitRecord);
+    isBandit := pos('Bandit', newOutfitId) > 0;
+    isBanditBoss := pos('Boss', newOutfitId) > 0;
     if isLVLI then begin
         oldOutfitItems := ElementByPath(oldOutfitRecord, 'Leveled List Entries');
         newOutfitItems := ElementByPath(newOutfitRecord, 'Leveled List Entries');
     end else begin
         oldOutfitItems := ElementByPath(oldOutfitRecord, 'INAM');
         newOutfitItems := ElementByPath(newOutfitRecord, 'INAM');
+
+        if StartsStr('Armor', newOutfitId) then begin
+            if StartsStr('ArmorStormcloak', newOutfitId) then begin
+                if StartsStr('ArmorStormcloakMarkarth', newOutfitId) then begin
+                    AddPanties(newOutfitItems, 'TheReach');    
+                end else if StartsStr('ArmorStormcloakRiften', newOutfitId) then begin
+                    AddPanties(newOutfitItems, 'TheRift');    
+                end else begin
+                    AddPanties(newOutfitItems, 'Stormcloak');    
+                end;
+            end else if StartsStr('ArmorHaafingar', newOutfitId) then begin
+                AddPanties(newOutfitItems, 'Haafingar');    
+            end else if StartsStr('ArmorSummerset', newOutfitId) then begin
+                AddPanties(newOutfitItems, 'Summerset');    
+            end;
+        else if StartsStr('Clothes', newOutfitId) then begin
+        end;
     end;
     
     for i := ElementCount(oldOutfitItems)-1 downto 0 do begin
@@ -2749,125 +2930,196 @@ begin
             oldOutfitRef := oldOutfitItem
         end;
         oldOutfitRef := LinksTo(oldOutfitRef);
+        newOutfitRef := nil;
+        removeOldItem := false;
         if Signature(oldOutfitRef) = 'LVLI' then begin
-            newOutfitItem := ElementByIndex(newOutfitItems, i);
-            if isLVLI then begin
-                newOutfitItem := ElementByPath(newOutfitItem, 'LVLO\Reference');
-            end;
-            femaleLVLI := RecursiveCopyLVLI(oldOutfitRef);
-            AddMessage('LVLI (recursive) '+GetEditValue(newOutfitItem)+' -> '+EditorID(femaleLVLI));
-            ElementAssign(newOutfitItem, LowInteger, femaleLVLI, false);
+            newOutfitRef := RecursiveCopyLVLI(oldOutfitRef);
         end else begin
             oldItemId := EditorID(oldOutfitRef);
+            pantiesItemId := nil;
+            tawobaItemId := nil;
             if StartsStr('Dremora', oldItemId) then begin
                 if StartsStr('DremoraDaedric', oldItemId) then begin    
                     oldItemPrefix := 'DremoraDaedric';
                 end else begin    
                     oldItemPrefix := 'Dremora';
                 end;
+                pantiesItemId := 'Panties-Daedric';
                 tawobaItemId := 'TEW Daedric ';
+            end else if StartsStr('DLC2', oldItemId) then begin
+                if StartsStr('DLC2ArmorNordicHeavy', oldItemId) then begin
+                    tawobaItemId := 'TWA Nordic Carved ';
+                    oldItemPrefix := 'DLC2ArmorNordicHeavy';
+                    pantiesItemId := 'Panties-Bandit-Boss';    
+                end;
             end else if StartsStr('Draugr', oldItemId) then begin
                 tawobaItemId := 'TEW Ancient Nord ';
                 oldItemPrefix := 'Draugr';
+                pantiesItemId := 'Panties-Draugr';
+            end else if StartsStr('EnchClothes', oldItemId) then begin
+                if StartsStr('EnchClothesRobesMage', oldItemId) then begin
+                    
+                end else if StartsStr('EnchClothesNecroRobes', oldItemId) then begin    
+                    if StartsStr('EnchClothesNecroRobesHooded', oldItemId) then begin    
+                    end else begin
+                    end;
+                end else if StartsStr('EnchClothesWarlockRobes', oldItemId) then begin    
+                    
+                end;
             end else if StartsStr('Clothes', oldItemId) then begin
                 if StartsStr('ClothesThalmor', oldItemId) then begin
                     oldItemPrefix := 'ClothesThalmor';
                     tawobaItemId := 'TWA Thalmor ';
+                    pantiesItemId := 'Panties-ThalmorArmor';
                 end else if StartsStr('ClothesRobes', oldItemId) then begin    
-                    oldItemPrefix := 'ArmorLeather';
-                    tawobaItemId := 'TWA Leather ';
+                    
                 end else if StartsStr('ClothesCollege', oldItemId) then begin    
-                    oldItemPrefix := 'ArmorLeather';
-                    tawobaItemId := 'TWA Leather ';
-                end
+                    
+                end;
             end else if StartsStr('Armor', oldItemId) then begin
                 if StartsStr('ArmorIron', oldItemId) then begin
-                    oldItemPrefix := 'ArmorIron';
-                    tawobaItemId := 'TWA Iron ';
+                    if isBandit then begin
+                        tawobaItemId := 'TWA Bandit Iron ';
+                        pantiesItemId := 'Panties-Bandits';
+                    end else begin
+                        tawobaItemId := 'TWA Iron ';
+                        pantiesItemId := 'Panties-Iron';
+                    end;
+                    if StartsStr('ArmorIronBanded', oldItemId) then begin
+                        oldItemPrefix := 'ArmorIronBanded';
+                    end else begin
+                        oldItemPrefix := 'ArmorIron';
+                    end;
                 end else if StartsStr('ArmorLeather', oldItemId) then begin    
+                    if isBandit then begin
+                        tawobaItemId := 'TWA Bandit Leather ';
+                        pantiesItemId := 'Panties-Bandits';
+                    end else begin
+                        tawobaItemId := 'TWA Leather ';
+                        pantiesItemId := 'Panties-LeatherArmor';
+                    end;
                     oldItemPrefix := 'ArmorLeather';
-                    tawobaItemId := 'TWA Leather ';
                 end else if StartsStr('ArmorCompanions', oldItemId) then begin    
                     oldItemPrefix := 'ArmorCompanions';
                     tawobaItemId := 'TWA Wolf ';
+                    pantiesItemId := 'Panties-Wolf';
                 end else if StartsStr('ArmorBandit', oldItemId) then begin    
-                    tawobaItemId := 'TWA Leather ';
+                    if isBanditBoss then begin
+                        tawobaItemId := 'TWA Leather ';
+                        pantiesItemId := 'Panties-Bandit-Boss';
+                    end else begin
+                        tawobaItemId := 'TWA Bandit Leather ';
+                        pantiesItemId := 'Panties-Bandits';
+                    end;
                     oldItemPrefix := 'ArmorBandit';
                 end else if StartsStr('ArmorBlades', oldItemId) then begin    
                     tawobaItemId := 'TWA Blades ';
                     oldItemPrefix := 'ArmorBlades';
+                    pantiesItemId := 'Panties-Blades';
                 end else if StartsStr('ArmorSteel', oldItemId) then begin    
+                    if StartsStr('ArmorSteelPlate', oldItemId) then begin    
+                        oldItemPrefix := 'ArmorSteelPlate';
+                    end else begin
+                        oldItemPrefix := 'ArmorSteel';
+                    end;
                     tawobaItemId := 'TWA Steel ';
-                    oldItemPrefix := 'ArmorSteel';
-                end else if StartsStr('ArmorElvenLight', oldItemId) then begin    
-                    tawobaItemId := 'TWA Elven ';
-                    oldItemPrefix := 'ArmorElvenLight';
+                    pantiesItemId := 'Panties-Steel';
                 end else if StartsStr('ArmorElven', oldItemId) then begin    
                     tawobaItemId := 'TWA Elven ';
-                    oldItemPrefix := 'ArmorElven';
+                    pantiesItemId := 'Panties-Elven';
+                    if StartsStr('ArmorElvenLight', oldItemId) then begin    
+                        oldItemPrefix := 'ArmorElvenLight';
+                    end else begin
+                        oldItemPrefix := 'ArmorElven';
+                    end;
                 end else if StartsStr('ArmorDaedric', oldItemId) then begin    
                     tawobaItemId := 'TEW Daedric ';
                     oldItemPrefix := 'ArmorDaedric';
+                    pantiesItemId := 'Panties-Daedric';
                 end else if StartsStr('ArmorDragonscale', oldItemId) then begin    
                     tawobaItemId := 'TEW Dragonscale ';
                     oldItemPrefix := 'ArmorDragonscale';
+                    pantiesItemId := 'Panties-Dragoncale';
                 end else if StartsStr('ArmorDragonplate', oldItemId) then begin    
                     tawobaItemId := 'TWA Dragon Bone ';
                     oldItemPrefix := 'ArmorDragonplate';
+                    pantiesItemId := 'Panties-DragonBone';
                 end else if StartsStr('ArmorDwarven', oldItemId) then begin    
                     tawobaItemId := 'TWA Dwarven ';
                     oldItemPrefix := 'ArmorDwarven';
+                    pantiesItemId := 'Panties-Dwarven';
                 end else if StartsStr('ArmorEbony', oldItemId) then begin    
                     tawobaItemId := 'TWA Ebony ';
                     oldItemPrefix := 'ArmorEbony';
+                    pantiesItemId := 'Panties-Ebony';
                 end else if StartsStr('ArmorHide', oldItemId) then begin    
                     tawobaItemId := 'TWA Hide ';
                     oldItemPrefix := 'ArmorHide';
+                    pantiesItemId := 'Panties-Hide';
                 end else if StartsStr('ArmorStudded', oldItemId) then begin    
                     tawobaItemId := 'TWA Hide ';
                     oldItemPrefix := 'ArmorStudded';
+                    pantiesItemId := 'Panties-Hide';
                 end else if StartsStr('ArmorScaled', oldItemId) then begin    
                     tawobaItemId := 'TEW Scaled ';
                     oldItemPrefix := 'ArmorScaled';
+                    pantiesItemId := 'Panties-Scaled';
                 end else if StartsStr('ArmorDraugr', oldItemId) then begin    
                     tawobaItemId := 'TEW Ancient Nord ';
                     oldItemPrefix := 'ArmorDraugr';
+                    pantiesItemId := 'Panties-Draugr';
                 end else if StartsStr('ArmorOrcish', oldItemId) then begin    
                     tawobaItemId := 'TWA Orcish ';
                     oldItemPrefix := 'ArmorOrcish';
-                end else if StartsStr('ArmorImperialLight', oldItemId) then begin    
-                    tawobaItemId := 'TEW Imperial Light ';
-                    oldItemPrefix := 'ArmorImperialLight';
+                    pantiesItemId := 'Panties-Orcish';
                 end else if StartsStr('ArmorImperial', oldItemId) then begin    
                     tawobaItemId := 'TEW Imperial Heavy ';
-                    oldItemPrefix := 'ArmorImperial';
-                end else begin
-                    tawobaItemId := nil;
+                    pantiesItemId := 'Panties-Imperial';
+                    if StartsStr('ArmorImperialLight', oldItemId) then begin    
+                        oldItemPrefix := 'ArmorImperialLight';
+                    end else begin
+                        oldItemPrefix := 'ArmorImperial';
+                    end;
                 end;
             end;
-            if Assigned(tawobaItemId) then begin
-                recGrp := lvliRecordGroup;
+            if (StartsStr('TAW ', tawobaItemId) and hasTAWOBA) or (StartsStr('TEW ', tawobaItemId) and hasTEWOBA) then begin
+                removeOldItem := true;
                 if StartsStr(oldItemPrefix+'Cuirass', oldItemId) then begin
-                    TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Body'), isLVLI);
+                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Body');
                 end else if StartsStr(oldItemPrefix+'Gauntlets', oldItemId) then begin    
-                    TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Gauntlets'), isLVLI);
+                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Gauntlets');
                 end else if StartsStr(oldItemPrefix+'Boots', oldItemId) then begin    
-                    TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Boots'), isLVLI);
+                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Boots');
                 end else if StartsStr(oldItemPrefix+'Helmet', oldItemId) then begin    
-                    TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, tawobaItemId+'Helmet'), isLVLI);
+                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Helmet');
                 end else begin
+                    removeOldItem := false;
                     tawobaItemId := nil;
                 end;
-            end;
-            if Assigned(pantiesItemId) and not hasPanties then begin
+            end else if Assigned(pantiesItemId) and hasPantiesofskyrim then begin
+                // add panties only if TAWOBA/TEWOBA hasn't added them already
                 recGrp := GroupBySignature(filePantiesofskyrim, 'LVLI');
-                TransferListElement(oldOutfitItem, newOutfitItems, MainRecordByEditorID(recGrp, pantiesItemId), isLVLI);
-                hasPanties := true;
-            end;
-            if Assigned(tawobaItemId) then begin
-                RemoveElement(newOutfitItems, ElementByIndex(newOutfitItems, i));
+                newOutfitRef := MainRecordByEditorID(recGrp, pantiesItemId);
             end;
         end;
+        if removeOldItem then begin
+            newOutfitItem := ElementByIndex(newOutfitItems, i);
+            if Assigned(newOutfitRef) then begin
+                if isLVLI then begin
+                    newOutfitItem := ElementByPath(newOutfitItem, 'LVLO\Reference');
+                end;
+                AddMessage('LVLI '+GetPath(newOutfitRecord)+': '+GetEditValue(newOutfitItem)+' -> '+EditorID(newOutfitRef));
+                ElementAssign(newOutfitItem, LowInteger, femaleLVLI, false);
+            end else begin
+                RemoveElement(newOutfitItems, newOutfitItem);
+            end;
+        end else begin
+            if Assigned(newOutfitRef) then begin
+                AddMessage('LVLI '+GetPath(newOutfitRecord)+' += '+EditorID(newOutfitRef)+' (like '+EditorID(oldOutfitItem)+')');
+                TransferListElement(oldOutfitItem, newOutfitItems, newOutfitRef, isLVLI);
+            end;
+        end;
+        
     end; 
 
 end;
