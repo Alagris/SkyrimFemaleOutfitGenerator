@@ -522,6 +522,7 @@ end;
 function generate(destFile: IwbFile): integer;
 var
     e:IwbElement;
+    otft:IwbElement;
     panties: IwbFile;
     coco_lingerie: IwbFile;
     coco_lace: IwbFile;
@@ -978,6 +979,13 @@ begin
         if Assigned(coco_lingerie) then begin addToLVLI_(destFile, e, 'LVLI', 'coco_lingerie', '1', '1'); end;
         if Assigned(coco_bikini) then begin addToLVLI_(destFile, e, 'LVLI', 'coco_bikini', '1', '1'); end;
         if Assigned(hs2_bunny) then begin addToLVLI_(destFile, e, 'LVLI', 'bunny', '1', '1'); end;
+        if not Assigned(MainRecordByEditorID(outfitRecordGroup, 'AnyLingerieOutfit')) then begin
+            otft := Add(outfitRecordGroup, 'OTFT', true);
+            SetEditorID(otft, 'AnyLingerieOutfit');
+            otft := Add(otft, 'INAM', true);
+            otft := Add(otft, 'Item', true);
+            SetEditValue(otft, Name(MainRecordByEditorID(GroupBySignature(destFile, 'LVLI'), 'any_lingerie')));
+        end;
     end;
     if Assigned(modular_mage) then begin
         AddMasterIfMissing(destFile, GetFileName(modular_mage));
@@ -2646,6 +2654,8 @@ begin
                     end else if StartsStr(oldItemPrefix+'Alteration', oldItemId) then begin    
                         oldItemPrefix:=oldItemPrefix+'Alteration';
                         magicType := 'Alteration';
+                    end else if StartsStr(oldItemPrefix+'Hood', oldItemId) then begin    
+                        removeOldItem := true;
                     end;
                 end;
                 if Assigned(magicType) then begin
@@ -2674,7 +2684,13 @@ begin
                     tawobaItemId := 'TWA Thalmor ';
                     pantiesItemId := 'Panties-ThalmorArmor';
                 end else if StartsStr('ClothesRobes', oldItemId) then begin    
-                    
+                end else if StartsStr('ClothesNecromancer', oldItemId) then begin    
+                    if StartsStr('ClothesNecromancerRobes', oldItemId) then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'MM_ApprenticeMageSetsMagickaRate');
+                        removeOldItem := true;
+                    end else if oldItemId = 'ClothesNecromancerBoots' then begin
+                        removeOldItem := true;
+                    end;
                 end else if StartsStr('ClothesCollege', oldItemId) then begin    
                 end else if StartsStr('ClothesFarm', oldItemId) then begin    
                     oldItemPrefix := 'ClothesFarm';  
@@ -2702,7 +2718,7 @@ begin
                     pantiesItemId := 'Panties-Big Vendor';
                 end else if StartsStr('ClothesPrisoner', oldItemId) then begin    
                 end else if StartsStr('ClothesWarlock', oldItemId) then begin    
-                    if oldItemId = 'ClothesWarlockRobes' then begin
+                    if StartsStr('ClothesWarlockRobes', oldItemId) then begin
                         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'MM_ApprenticeMageSetsMagickaRate');
                         removeOldItem := true;
                     end else if oldItemId = 'ClothesWarlockBoots' then begin
@@ -2888,42 +2904,72 @@ begin
 
 end;
 
+function isFemale(lvln: IwbElement): Boolean;
+var
+    i: integer;
+begin
+    if EndsStr('F', EditorID(lvln)) then begin
+        Result := true;
+        exit;
+    end;
+    if Signature(lvln) = 'NPC_' then begin
+        if GetElementEditValues(lvln, 'ACBS\Template Flags\Use Traits') = '1' then begin
+            Result := isFemale(LinksTo(ElementByPath(lvln, 'TPLT')));
+        end else begin
+            Result := GetElementEditValues(lvln, 'ACBS - Configuration\Flags\Female') = '1';
+        end;
+    end else if Signature(lvln) = 'LVLN' then begin
+        lvln := ElementByPath(lvln, 'Leveled List Entries');
+        for i := 0 to ElementCount(lvln)-1 do begin
+            if not isFemale(LinksTo(ElementByPath(ElementByIndex(lvln, i), 'LVLO\Reference'))) then begin
+                Result := false;
+                exit;
+            end;
+        end;
+        Result := true;
+    end;
+end;
+
 
 function RecursiveCopyNPC(selectedElement: IInterface; ignoreIfNotFemale:Boolean): IwbElement;
 var
-    recordSignature: string;
+    selectedElementId: string;
     newOutfitRecord: IwbElement;
     defaultOutfitElement: IwbElement;
     oldOutfitRecord: IwbElement;
     newOutfitRecordId: string;
     femaleFlag: string;
     templateLoopsBackToMale: Boolean;
+    i: integer;
 begin
-    recordSignature := Signature(selectedElement);
-    if recordSignature <> 'NPC_' then exit;
-    recordSignature := EditorID(selectedElement);
-    femaleFlag := GetElementEditValues(selectedElement, 'ACBS - Configuration\Flags\Female');
-    AddMessage('NPC '+EditorID(selectedElement)+':female='+femaleFlag);
-    if femaleFlag <> '1' then begin
-        if ignoreIfNotFemale then exit;
-        if EndsStr('M', recordSignature) then begin
-            recordSignature := copy(recordSignature, 1, length(recordSignature)-1);
+    selectedElementId := Signature(selectedElement);
+    if selectedElementId <> 'NPC_' then exit;
+    selectedElementId := EditorID(selectedElement);
+    
+    if not isFemale(selectedElement) then begin
+        if ignoreIfNotFemale then begin
+            AddMessage('NPC (ignore) '+EditorID(selectedElement)+' not female');
+            exit;
         end;
-        if not EndsStr('F', recordSignature) then begin
-            recordSignature := recordSignature+'F';
+        AddMessage('NPC '+EditorID(selectedElement)+' not female');
+        if EndsStr('M', selectedElementId) then begin
+            selectedElementId := copy(selectedElementId, 1, length(selectedElementId)-1);
         end;
-        newOutfitRecord := MainRecordByEditorID(npcRecordGroup, recordSignature);
+        if not EndsStr('F', selectedElementId) then begin
+            selectedElementId := selectedElementId+'F';
+        end;
+        newOutfitRecord := MainRecordByEditorID(npcRecordGroup, selectedElementId);
         if Assigned(newOutfitRecord) then begin            
             AddMessage('NPC (exists M2F) '+EditorID(selectedElement)+' -> '+EditorID(newOutfitRecord));
         end else begin
             newOutfitRecord := wbCopyElementToFileWithPrefix(selectedElement, destinationFile, true, true, '', '', '');
-            SetEditorID(newOutfitRecord, recordSignature);
+            SetEditorID(newOutfitRecord, selectedElementId);
             AddMessage('NPC (copied M2F) '+EditorID(selectedElement)+' -> '+EditorID(newOutfitRecord));
         end;
         selectedElement := newOutfitRecord;
     end;
     if GetFile(selectedElement) <> destinationFile then begin 
-        newOutfitRecord := MainRecordByEditorID(npcRecordGroup, recordSignature);
+        newOutfitRecord := MainRecordByEditorID(npcRecordGroup, selectedElementId);
         if not Assigned(newOutfitRecord) then begin
             newOutfitRecord := wbCopyElementToFileWithPrefix(selectedElement, destinationFile, false, true, '', '', '');
             AddMessage('NPC copied from '+GetFileName(GetFile(selectedElement))+' to '+destinationFile);
@@ -2932,7 +2978,7 @@ begin
     end;
     defaultOutfitElement := ElementByPath(selectedElement, 'TPLT');
     oldOutfitRecord := LinksTo(defaultOutfitElement);
-    templateLoopsBackToMale := EndsStr('M', EditorID(oldOutfitRecord)) and (EditorID(oldOutfitRecord) = copy(recordSignature, 1, length(recordSignature)-1)+'M');
+    templateLoopsBackToMale := EndsStr('M', EditorID(oldOutfitRecord)) and (EditorID(oldOutfitRecord) = copy(selectedElementId, 1, length(selectedElementId)-1)+'M');
     if templateLoopsBackToMale then begin
         defaultOutfitElement := ElementByPath(oldOutfitRecord, 'TPLT');
         oldOutfitRecord := LinksTo(defaultOutfitElement);
@@ -2962,6 +3008,11 @@ begin
         oldOutfitRecord := LinksTo(defaultOutfitElement);
         newOutfitRecord := CopyOutfit(oldOutfitRecord);
         AddMessage(EditorID(selectedElement)+':'+EditorID(oldOutfitRecord)+'->'+EditorID(newOutfitRecord)+'/'+Name(newOutfitRecord)); 
+        SetEditValue(defaultOutfitElement, Name(newOutfitRecord));
+    end else if StartsStr('hyd_', selectedElementId) then begin
+        defaultOutfitElement := Add(selectedElement, 'DOFT', true);
+        newOutfitRecord := MainRecordByEditorID(outfitRecordGroup, 'AnyLingerieOutfit');
+        AddMessage(FullPath(defaultOutfitElement)+': naked -> '+EditorID(newOutfitRecord)); 
         SetEditValue(defaultOutfitElement, Name(newOutfitRecord));
     end;
     Result := selectedElement;
