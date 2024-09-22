@@ -14,6 +14,7 @@ var
     fileUSSEP: IwbFile;
     fileCocoBikini: IwbFile;
     fileWizardHats: IwbFile;
+    fileWitchyHats: IwbFile;
     hasTAWOBA: Boolean;
     fileTAWOBA: IwbFile;
     fileTAWOBALeveledList: IwbFile;
@@ -551,8 +552,12 @@ begin
     if Assigned(panties) then begin
         AddMasterIfMissing(destFile, GetFileName(panties));
     end;
-    if Assigned(wizard_hats) then begin
-        AddMasterIfMissing(destFile, GetFileName(wizard_hats));
+    if Assigned(fileWizardHats) then begin
+        if not Assigned(fileWitchyHats) then begin
+            raise Exception.Create('You are using '+GetFileName(fileWizardHats)+' without '+GetFileName(fileWitchyHats)+'. Make sure to install both');
+        end;
+        AddMasterIfMissing(destFile, GetFileName(fileWizardHats));
+        AddMasterIfMissing(destFile, GetFileName(fileWitchyHats));
         e := newLVLI(e, destFile, 'MM_WizardHats', '0', '0', '1', '1');
         addToLVLI(destFile, e, wizard_hats, 'ARMO', 'sirwhoArmorWizardHatRedCirclet', '1', '1');
         addToLVLI(destFile, e, wizard_hats, 'ARMO', 'sirwhoArmorWizardHatBeigeCirclet', '1', '1');
@@ -2106,7 +2111,7 @@ begin
             end else if fname = '(Pumpkin)-TEWOBA-TheExpandedWorldofBikiniArmor.esp' then begin
                 hasTEWOBA := true;
                 fileTEWOBA := f;
-            end else if fname = 'slave girls SPID.esp' then begin
+            end else if fname = 'alagris_smash.esp' then begin
                 destinationFile := f;
             end else if fname = 'Skyrim.esm' then begin
                 fileSkyrim := f;
@@ -2114,8 +2119,10 @@ begin
                 fileUSSEP := f;
             end else if fname = '[COCO]Bikini Collection.esp' then begin
                 fileCocoBikini := f;
-            end else if fname = 'sirwho_Wizard_Hats-Simple.esp' then begin
+            end else if fname = 'sirwho_Wizard_Hats-Full.esp' then begin 
                 fileWizardHats := f;
+            end else if fname = 'sirwho_Witchy_Wizard_Hats-Full.esp' then begin 
+                fileWitchyHats := f;
             end;
         end;
         if not Assigned(destinationFile) then begin
@@ -2314,7 +2321,9 @@ var
 begin
     if Assigned(filePantiesofskyrim) then begin
         newItem := MainRecordByEditorID(GroupBySignature(filePantiesofskyrim, 'LVLI'), 'Panties-'+panties);
-        if not Assigned(newItem) then raise Exception.Create("Panties not found: "+panties);
+        if not Assigned(newItem) then begin
+            raise Exception.Create('Panties not found: '+panties);
+        end;
         AddMessage('OTFT (panties) '+FullPath(newItems)+' -> '+EditorID(newItem));
         Result := ElementAssign(newItems, HighInteger, newItem, false);    
     end;
@@ -2325,7 +2334,9 @@ var
 begin
     if Assigned(filePantiesofskyrim) then begin
         newItem := MainRecordByEditorID(GroupBySignature(filePantiesofskyrim, 'ARMO'), 'Panty-'+panties);
-        if not Assigned(newItem) then raise Exception.Create("Panty not found: "+panties);
+        if not Assigned(newItem) then begin 
+            raise Exception.Create('Panty not found: '+panties);
+        end;
         AddMessage('OTFT (panties) '+FullPath(newItems)+' -> '+EditorID(newItem));
         Result := ElementAssign(newItems, HighInteger, newItem, false);    
     end;
@@ -2342,10 +2353,10 @@ var
     oldOutfitRef: IwbElement;
     oldOutfitItems: IwbElement;
     oldOutfitItem: IwbElement;
+    oldOutfitId: string;
     newOutfitItems: IwbElement;
     newOutfitItem: IwbElement;
     newOutfitRef: IwbElement;
-    newOutfitId: string;
     femaleLVLI: IwbElement;
     recordSignature: string;
     recGrp: IwbGroupRecord;
@@ -2354,124 +2365,184 @@ var
     isBanditBoss: Boolean;
     magicType: string;
     magicLevel: string;
+    pantiesAdded:Boolean;
 begin      
     (* CREATING NEW FEMALE-ONLY ARMOR BASED ON SOME RULES *)
     (* IT CHECKS WHAT ARMOR MODS ARE INSTALLED AND AUTOMATICALLY USES THEM *)
     recordSignature := Signature(oldOutfitRecord);
     isLVLI := recordSignature = 'LVLI';
-    newOutfitId := EditorID(newOutfitRecord);
-    isBandit := pos('Bandit', newOutfitId) > 0;
-    isBanditBoss := pos('Boss', newOutfitId) > 0;
+    oldOutfitId := EditorID(oldOutfitRecord);
+    isBandit := pos('Bandit', oldOutfitId) > 0;
+    isBanditBoss := pos('Boss', oldOutfitId) > 0;
+    pantiesAdded := false;
     if isLVLI then begin
         oldOutfitItems := ElementByPath(oldOutfitRecord, 'Leveled List Entries');
         newOutfitItems := ElementByPath(newOutfitRecord, 'Leveled List Entries');
     end else begin
         oldOutfitItems := ElementByPath(oldOutfitRecord, 'INAM');
         newOutfitItems := ElementByPath(newOutfitRecord, 'INAM');
-
-        if StartsStr('Armor', newOutfitId) then begin
-            if StartsStr('ArmorStormcloak', newOutfitId) then begin
-                if StartsStr('ArmorStormcloakMarkarth', newOutfitId) then begin
+        if StartsStr('Armor', oldOutfitId) then begin
+            if StartsStr('ArmorStormcloak', oldOutfitId) then begin
+                if StartsStr('ArmorStormcloakMarkarth', oldOutfitId) then begin
                     AddPanties(newOutfitItems, 'TheReach');    
-                end else if StartsStr('ArmorStormcloakRiften', newOutfitId) then begin
+                    pantiesAdded := true;
+                end else if StartsStr('ArmorStormcloakRiften', oldOutfitId) then begin
                     AddPanties(newOutfitItems, 'TheRift');    
+                    pantiesAdded := true;
                 end else begin
                     AddPanties(newOutfitItems, 'Stormcloak');    
+                    pantiesAdded := true;
                 end;
-            end else if StartsStr('ArmorHaafingar', newOutfitId) then begin
+            end else if StartsStr('ArmorHaafingar', oldOutfitId) then begin
                 AddPanties(newOutfitItems, 'Haafingar');    
-            end else if StartsStr('ArmorSummerset', newOutfitId) then begin
+                pantiesAdded := true;
+            end else if StartsStr('ArmorSummerset', oldOutfitId) then begin
                 AddPanties(newOutfitItems, 'Summerset');    
+                pantiesAdded := true;
             end;
-        end else if StartsStr('Guard', newOutfitId) then begin
-            if StartsStr('GuardFalkreath', newOutfitId) then begin
-                AddPanties(newOutfitItems, 'Falkreath');
-            else if StartsStr('GuardPale', newOutfitId) then begin
-                AddPanties(newOutfitItems, 'ThePale');
-            else if StartsStr('Whiterun', newOutfitId) then begin
-                AddPanties(newOutfitItems, 'Whiterun');
-            else if StartsStr('Winterhold', newOutfitId) then begin
-                AddPanties(newOutfitItems, 'Winterhold');
-            else if StartsStr('GuardSons', newOutfitId) then begin
-                AddPanties(newOutfitItems, 'Stormcloak');
-            else if StartsStr('GuardOutfit', newOutfitId) then begin
-                if StartsStr('GuardOutfitHjaalmarch', newOutfitId) then begin
-                    AddPanties(newOutfitItems, 'Hjaalmarch');
-                else if StartsStr('GuardOutfitRift', newOutfitId) then begin
-                    AddPanties(newOutfitItems, 'TheRift');
-                end;
-            end;
-        end else if StartsStr('DLC1', newOutfitId) then begin
-            if newOutfitId = 'DLC1LD_KatriaOutfit' then begin
-                AddPanties(newOutfitItems, 'Steel');    
-            end else if newOutfitId = 'DLC1OutfitSorine' then begin
-                AddPanties(newOutfitItems, 'Panties-Dawnguard-Light');
-            end else if StartsStr('DLC1OutfitDawnguard', newOutfitId) then begin
-                if EndsStr('Heavy', newOutfitId) then begin
-                    AddPanties(newOutfitItems, 'Panties-Dawnguard-Heavy');
+        end else if StartsStr('hyd_', oldOutfitId) then begin
+            newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'any_lingerie');
+            if Assigned(newOutfitRef) then begin
+                if ElementCount(oldOutfitItems) = 0 then begin
+                    removeOldItem := true;
                 end else begin
-                    AddPanties(newOutfitItems, 'Panties-Dawnguard-Light');
+                    for i := ElementCount(oldOutfitItems)-1 downto 0 do begin
+                        oldOutfitItem := ElementByIndex(oldOutfitItems, i);
+                        removeOldItem := false; // checking if this is a slave 
+                        oldItemId := GetEditValue(oldOutfitItem);
+                        if StartsStr('zbf', oldItemId)  then begin
+                            removeOldItem := true;
+                            Break;
+                        end;
+                    end;
+                end;
+                if removeOldItem then begin
+                    ElementAssign(newOutfitItems, HighInteger, newOutfitRef, false);  
+                    exit;  
                 end;
             end;
-        end else if StartsStr('CidhnaMineGuardOutfit', newOutfitId) then begin
+        end else if StartsStr('Guard', oldOutfitId) then begin
+            if StartsStr('GuardFalkreath', oldOutfitId) then begin
+                AddPanties(newOutfitItems, 'Falkreath');
+                pantiesAdded := true;
+            end else if StartsStr('GuardPale', oldOutfitId) then begin
+                AddPanties(newOutfitItems, 'ThePale');
+                pantiesAdded := true;
+            end else if StartsStr('Whiterun', oldOutfitId) then begin
+                AddPanties(newOutfitItems, 'Whiterun');
+                pantiesAdded := true;
+            end else if StartsStr('Winterhold', oldOutfitId) then begin
+                AddPanties(newOutfitItems, 'Winterhold');
+                pantiesAdded := true;
+            end else if StartsStr('GuardSons', oldOutfitId) then begin
+                AddPanties(newOutfitItems, 'Stormcloak');
+                pantiesAdded := true;
+            end else if StartsStr('GuardOutfit', oldOutfitId) then begin
+                if StartsStr('GuardOutfitHjaalmarch', oldOutfitId) then begin
+                    AddPanties(newOutfitItems, 'Hjaalmarch');
+                    pantiesAdded := true;
+                end else if StartsStr('GuardOutfitRift', oldOutfitId) then begin
+                    AddPanties(newOutfitItems, 'TheRift');
+                    pantiesAdded := true;
+                end;
+            end;
+        end else if StartsStr('DLC1', oldOutfitId) then begin
+            if oldOutfitId = 'DLC1LD_KatriaOutfit' then begin
+                AddPanties(newOutfitItems, 'Steel');    
+                pantiesAdded := true;
+            end else if oldOutfitId = 'DLC1OutfitSorine' then begin
+                AddPanties(newOutfitItems, 'Dawnguard-Light');
+                pantiesAdded := true;
+            end else if StartsStr('DLC1OutfitDawnguard', oldOutfitId) then begin
+                if EndsStr('Heavy', oldOutfitId) then begin
+                    AddPanties(newOutfitItems, 'Dawnguard-Heavy');
+                    pantiesAdded := true;
+                end else begin
+                    AddPanties(newOutfitItems, 'Dawnguard-Light');
+                    pantiesAdded := true;
+                end;
+            end;
+        end else if StartsStr('CidhnaMineGuardOutfit', oldOutfitId) then begin
             AddPanties(newOutfitItems, 'TheReach');    
-        end else if StartsStr('ReachHoldGuardOutfit', newOutfitId) then begin
+            pantiesAdded := true;
+        end else if StartsStr('ReachHoldGuardOutfit', oldOutfitId) then begin
             AddPanties(newOutfitItems, 'TheReach');    
-        end else if StartsStr('Clothes', newOutfitId) then begin
-        end else if StartsStr('CW', newOutfitId) then begin
-            if pos('Sons', newOutfitId) > 0 then begin
+            pantiesAdded := true;
+        end else if StartsStr('Clothes', oldOutfitId) then begin
+        end else if StartsStr('CW', oldOutfitId) then begin
+            if pos('Sons', oldOutfitId) > 0 then begin
                 AddPanties(newOutfitItems, 'Stormcloak');    
-            end else if newOutfitId = 'CWSiegeArmorImperialWhiterunOutfit' then begin
+                pantiesAdded := true;
+            end else if oldOutfitId = 'CWSiegeArmorImperialWhiterunOutfit' then begin
                 AddPanties(newOutfitItems, 'Whiterun');    
+                pantiesAdded := true;
             end;
-        end else if newOutfitId = 'MavenBlackBriarOutfit' then begin
+        end else if oldOutfitId = 'MavenBlackBriarOutfit' then begin
             AddPanty(newOutfitItems, 'Tangang-Maven-1');    
-        end else if StartsStr('Jarl', newOutfitId) then begin
-            if StartsStr('JarlClothesElisif', newOutfitId) then begin
+            pantiesAdded := true;
+        end else if StartsStr('Jarl', oldOutfitId) then begin
+            if StartsStr('JarlClothesElisif', oldOutfitId) then begin
                 AddPanty(newOutfitItems, 'Control-Elisif-1');    
-            end else if StartsStr('JarlClothesLaila', newOutfitId) then begin
+                pantiesAdded := true;
+            end else if StartsStr('JarlClothesLaila', oldOutfitId) then begin
                 AddPanty(newOutfitItems, 'Tangang-Laila-1');    
+                pantiesAdded := true;
             end;
-
-        end else if StartsStr('PlayerHousecarlOutfit', newOutfitId) then begin
-            AddPanties(newOutfitItems, 'Panties-Housecarl');    
-        end else if StartsStr('Hunter', newOutfitId) then begin
+        end else if StartsStr('PlayerHousecarlOutfit', oldOutfitId) then begin
+            AddPanties(newOutfitItems, 'Housecarl');    
+            pantiesAdded := true;
+        end else if StartsStr('Hunter', oldOutfitId) then begin
             AddPanties(newOutfitItems, 'Hunter');    
-        end else if StartsStr('ThievesGuild', newOutfitId) then begin
-            if newOutfitId='ThievesGuildKarliahOutfit' then begin
-                AddPanties(newOutfitItems, 'Panties-TG-Karliah');    
-            end else if newOutfitId='ThievesGuildSapphireOutfit' then begin
-                AddPanties(newOutfitItems, 'Panties-TG-Sapphire');    
-            end else if newOutfitId='ThievesGuildToniliaOutfit' then begin
-                AddPanties(newOutfitItems, 'Panties-TG-Tonilia');    
-            end else if newOutfitId='ThievesGuildVexOutfit' then begin
-                AddPanties(newOutfitItems, 'Panties-TG-Vex');   
+            pantiesAdded := true;
+        end else if StartsStr('ThievesGuild', oldOutfitId) then begin
+            if oldOutfitId='ThievesGuildKarliahOutfit' then begin
+                AddPanties(newOutfitItems, 'TG-Karliah');    
+                pantiesAdded := true;
+            end else if oldOutfitId='ThievesGuildSapphireOutfit' then begin
+                AddPanties(newOutfitItems, 'TG-Sapphire');    
+                pantiesAdded := true;
+            end else if oldOutfitId='ThievesGuildToniliaOutfit' then begin
+                AddPanties(newOutfitItems, 'TG-Tonilia');    
+                pantiesAdded := true;
+            end else if oldOutfitId='ThievesGuildVexOutfit' then begin  
+                AddPanties(newOutfitItems, 'TG-Vex');   
+                pantiesAdded := true;
             end;
-        end else if StartsStr('MonkOutfit', newOutfitId) then begin
+        end else if StartsStr('MonkOutfit', oldOutfitId) then begin
             AddPanties(newOutfitItems, 'Monk-1-Basic');    
-        end else if StartsStr('DA05Hunter', newOutfitId) then begin
+            pantiesAdded := true;
+        end else if StartsStr('DA05Hunter', oldOutfitId) then begin
             AddPanties(newOutfitItems, 'Hunter');    
-        end else if StartsStr('Dawnguard', newOutfitId) then begin
-            AddPanties(newOutfitItems, 'Dawnguard');    
-        end else if StartsStr('DB', newOutfitId) then begin
-            if newOutfitId = 'DBWeddingOutfit' then begin
+            pantiesAdded := true;
+        end else if StartsStr('Dawnguard', oldOutfitId) then begin
+            AddPanties(newOutfitItems, 'Dawnguard-Light');    
+            pantiesAdded := true;
+        end else if StartsStr('DB', oldOutfitId) then begin
+            if oldOutfitId = 'DBWeddingOutfit' then begin
                 AddPanty(newOutfitItems, 'Thongsimple-Bride-1');    
+                pantiesAdded := true;
             end else begin
                 AddPanties(newOutfitItems, 'DB');    
+                pantiesAdded := true;
             end;
-        end else if StartsStr('DA13', newOutfitId) then begin
-            if (newOutfitId = 'DA13HeavyOutfit') or newOutfitId = 'DA13LightOutfit' then begin
+        end else if StartsStr('DA13', oldOutfitId) then begin
+            if (oldOutfitId = 'DA13HeavyOutfit') or (oldOutfitId = 'DA13LightOutfit') then begin
                 AddPanties(newOutfitItems, 'Bandits');    
-            end else if (newOutfitId = 'DA13MissileOutfit') or (newOutfitId = 'DA13RobeOutfit') then begin
+                pantiesAdded := true;
+            end else if (oldOutfitId = 'DA13MissileOutfit') or (oldOutfitId = 'DA13RobeOutfit') then begin
                 AddPanties(newOutfitItems, 'Afflicted');    
+                pantiesAdded := true;
             end;
-        end else if StartsStr('DLC2', newOutfitId) then begin    
-            if StartsStr('DLC2SV02Thalmor', newOutfitId) then begin    
+        end else if StartsStr('DLC2', oldOutfitId) then begin    
+            if StartsStr('DLC2SV02Thalmor', oldOutfitId) then begin    
                 AddPanties(newOutfitItems, 'ThalmorArmor');    
-            end else if ('DLC2dunFrostmoonOutfitHjordis' = newOutfitId) or ('DLC2dunFrostmoonOutfitRakel' = newOutfitId) then begin    
+                pantiesAdded := true;
+            end else if ('DLC2dunFrostmoonOutfitHjordis' = oldOutfitId) or ('DLC2dunFrostmoonOutfitRakel' = oldOutfitId) then begin    
                 AddPanties(newOutfitItems, 'Forsworn');
-            end else if 'DLC2MoragTongOutfit' = newOutfitId then begin    
+                pantiesAdded := true;
+            end else if 'DLC2MoragTongOutfit' = oldOutfitId then begin    
                 AddPanties(newOutfitItems, 'MoragTong');
+                pantiesAdded := true;
             end;
         end;
     end;
@@ -2503,6 +2574,7 @@ begin
                 tawobaItemId := 'TEW Daedric ';
             end else if StartsStr('DA16VaerminaRobes', oldItemId) then begin
                 AddPanties(newOutfitItems, 'Monk-Vaermina');
+                pantiesAdded := true;
             end else if StartsStr('DLC2', oldItemId) then begin
                 if StartsStr('DLC2ArmorNordicHeavy', oldItemId) then begin
                     tawobaItemId := 'TWA Nordic Carved ';
@@ -2535,6 +2607,11 @@ begin
             end else if StartsStr('EnchClothes', oldItemId) then begin
                 if StartsStr('EnchClothesRobesMage', oldItemId) then begin
                     oldItemPrefix := 'EnchClothesRobesMage';
+                end else if StartsStr('EnchClothesMageRobes', oldItemId) then begin    
+                    oldItemPrefix := 'EnchClothesMageRobes';
+                    if StartsStr('EnchClothesMageRobesApp', oldItemId) then begin 
+                        oldItemPrefix := 'EnchClothesMageRobesApp';
+                    end;
                 end else if StartsStr('EnchClothesNecroRobes', oldItemId) then begin    
                     oldItemPrefix := 'EnchClothesNecroRobes';
                     if StartsStr('EnchClothesNecroRobesHooded', oldItemId) then begin 
@@ -2549,16 +2626,25 @@ begin
                 magicType := nil;
                 if Assigned(oldItemPrefix) then begin
                     if StartsStr(oldItemPrefix+'Illusion', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Illusion';
                         magicType := 'Illusion';
                     end else if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Destruction';
                         magicType := 'Destruction';
+                    end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'MagickaRate';
+                        magicType := 'MagickaRate';
                     end else if StartsStr(oldItemPrefix+'Regen', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Regen';
                         magicType := 'MagickaRate';
                     end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Conjuration';
                         magicType := 'Conjuration';
                     end else if StartsStr(oldItemPrefix+'Restoration', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Restoration';
                         magicType := 'Restoration';
                     end else if StartsStr(oldItemPrefix+'Alteration', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Alteration';
                         magicType := 'Alteration';
                     end;
                 end;
@@ -2578,10 +2664,10 @@ begin
                         magicLevel := 'Master'; // TODO: Add support for minor, major, peerless, etc. robes
                     end;
                     if Assigned(magicLevel) then begin
+                        removeOldItem := true;
                         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'MM_'+magicLevel+'MageSets'+magicType);
                     end;
                 end;
-
             end else if StartsStr('Clothes', oldItemId) then begin
                 if StartsStr('ClothesThalmor', oldItemId) then begin
                     oldItemPrefix := 'ClothesThalmor';
@@ -2590,12 +2676,47 @@ begin
                 end else if StartsStr('ClothesRobes', oldItemId) then begin    
                     
                 end else if StartsStr('ClothesCollege', oldItemId) then begin    
+                end else if StartsStr('ClothesFarm', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesFarm';  
+                    pantiesItemId := 'Panties-TheNine';
+                end else if StartsStr('ClothesFine', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesFine';  
+                    pantiesItemId := 'Panties-TheNine';
+                end else if StartsStr('ClothesWench', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesWench';  
+                    pantiesItemId := 'Panties-TheNine';
+                end else if StartsStr('ClothesMiner', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesMiner';  
+                    pantiesItemId := 'Panties-TheNine';
+                end else if StartsStr('ClothesJarl', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesJarl';  
+                    pantiesItemId := 'Panties-Ebony';
+                end else if StartsStr('ClothesBlackSmith', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesBlackSmith';  
+                    pantiesItemId := 'Panties-TheNine';
+                end else if StartsStr('ClothesBarKeeper', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesBarKeeper';  
+                    pantiesItemId := 'Panties-General-Vendor';
+                end else if StartsStr('ClothesMerchant', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesMerchant';  
+                    pantiesItemId := 'Panties-Big Vendor';
                 end else if StartsStr('ClothesPrisoner', oldItemId) then begin    
-                    
+                end else if StartsStr('ClothesWarlock', oldItemId) then begin    
+                    if oldItemId = 'ClothesWarlockRobes' then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'MM_ApprenticeMageSetsMagickaRate');
+                        removeOldItem := true;
+                    end else if oldItemId = 'ClothesWarlockBoots' then begin
+                        removeOldItem := true;
+                    end;
                 end else if StartsStr('ClothesMG', oldItemId) then begin    
-                    if 'ClothesMG' = oldItemId then begin    
+                    if 'ClothesMGBoots' = oldItemId then begin    
                         removeOldItem := true;
                     end;    
+                end;
+                if Assigned(oldItemPrefix) and Assigned(pantiesItemId) then begin
+                    if StartsStr(oldItemPrefix+'Boots', oldItemId) or StartsStr(oldItemPrefix+'Hat', oldItemId) or StartsStr(oldItemPrefix+'Gloves', oldItemId) then begin
+                        pantiesItemId := nil;
+                    end;
                 end;
             end else if StartsStr('dun', oldItemId) then begin
             end else if StartsStr('Forsworn', oldItemId) then begin
@@ -2723,9 +2844,9 @@ begin
             end;
             if (StartsStr('TWA ', tawobaItemId) and hasTAWOBA) or (StartsStr('TEW ', tawobaItemId) and hasTEWOBA) then begin
                 removeOldItem := true;
-                if StartsStr(oldItemPrefix+'Cuirass', oldItemId) then begin
+                if StartsStr(oldItemPrefix+'Cuirass', oldItemId) or StartsStr(oldItemPrefix+'robes', oldItemId) then begin
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Body');
-                end else if StartsStr(oldItemPrefix+'Gauntlets', oldItemId) then begin    
+                end else if StartsStr(oldItemPrefix+'Gauntlets', oldItemId) or StartsStr(oldItemPrefix+'Gloves', oldItemId) then begin    
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Gauntlets');
                 end else if StartsStr(oldItemPrefix+'Boots', oldItemId) then begin    
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Boots');
@@ -2735,12 +2856,11 @@ begin
                     removeOldItem := false;
                     tawobaItemId := nil;
                 end;
-            end else if Assigned(pantiesItemId) and hasPantiesofskyrim then begin
+            end else if not pantiesAdded and Assigned(pantiesItemId) and hasPantiesofskyrim then begin
                 // add panties only if TAWOBA/TEWOBA hasn't added them already
-                if StartsStr(oldItemPrefix+'Cuirass', oldItemId) then begin
-                    recGrp := GroupBySignature(filePantiesofskyrim, 'LVLI');
-                    newOutfitRef := MainRecordByEditorID(recGrp, pantiesItemId);
-                end;
+                pantiesAdded := true;
+                recGrp := GroupBySignature(filePantiesofskyrim, 'LVLI');
+                newOutfitRef := MainRecordByEditorID(recGrp, pantiesItemId);
             end;
         end;
         if removeOldItem then begin
@@ -2752,12 +2872,15 @@ begin
                 AddMessage('LVLI '+FullPath(newOutfitRecord)+': '+GetEditValue(newOutfitItem)+' -> '+EditorID(newOutfitRef));
                 ElementAssign(newOutfitItem, LowInteger, newOutfitRef, false);
             end else begin
+                AddMessage('LVLI '+FullPath(newOutfitRecord)+' -= '+GetEditValue(newOutfitItem));
                 RemoveElement(newOutfitItems, newOutfitItem);
             end;
         end else begin
             if Assigned(newOutfitRef) then begin
-                AddMessage('LVLI '+FullPath(newOutfitRecord)+' += '+EditorID(newOutfitRef)+' (like '+EditorID(oldOutfitItem)+')');
+                AddMessage('LVLI '+FullPath(newOutfitRecord)+' += '+EditorID(newOutfitRef)+' (like '+FullPath(oldOutfitItem)+')');
                 TransferListElement(oldOutfitItem, newOutfitItems, newOutfitRef, isLVLI);
+            end else begin
+                AddMessage('LVLI '+FullPath(newOutfitRecord)+' == '+EditorID(oldOutfitRef));
             end;
         end;
         
@@ -2774,6 +2897,7 @@ var
     oldOutfitRecord: IwbElement;
     newOutfitRecordId: string;
     femaleFlag: string;
+    templateLoopsBackToMale: Boolean;
 begin
     recordSignature := Signature(selectedElement);
     if recordSignature <> 'NPC_' then exit;
@@ -2807,8 +2931,13 @@ begin
         selectedElement := newOutfitRecord;
     end;
     defaultOutfitElement := ElementByPath(selectedElement, 'TPLT');
-    if Assigned(defaultOutfitElement) then begin
+    oldOutfitRecord := LinksTo(defaultOutfitElement);
+    templateLoopsBackToMale := EndsStr('M', EditorID(oldOutfitRecord)) and (EditorID(oldOutfitRecord) = copy(recordSignature, 1, length(recordSignature)-1)+'M');
+    if templateLoopsBackToMale then begin
+        defaultOutfitElement := ElementByPath(oldOutfitRecord, 'TPLT');
         oldOutfitRecord := LinksTo(defaultOutfitElement);
+    end;
+    if Assigned(defaultOutfitElement) then begin
         AddMessage(EditorID(selectedElement)+' calls RecursiveCopyLVLN('+Name(oldOutfitRecord)+')');
         newOutfitRecord := RecursiveCopyLVLN(oldOutfitRecord);
         AddMessage(FullPath(defaultOutfitElement)+'='+Name(LinksTo(defaultOutfitElement))+' -> '+Name(newOutfitRecord));
@@ -2820,7 +2949,15 @@ begin
     (*if GetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory') = '1' then begin
       SetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory', '0');
     end;*)
-    defaultOutfitElement := ElementByPath(selectedElement, 'DOFT');
+    
+    if templateLoopsBackToMale then begin
+        defaultOutfitElement := ElementByPath(oldOutfitRecord, 'DOFT');
+        if not Assigned(defaultOutfitElement) then begin
+            defaultOutfitElement := ElementByPath(selectedElement, 'DOFT');
+        end;
+    end else begin
+        defaultOutfitElement := ElementByPath(selectedElement, 'DOFT');
+    end;
     if Assigned(defaultOutfitElement) then begin
         oldOutfitRecord := LinksTo(defaultOutfitElement);
         newOutfitRecord := CopyOutfit(oldOutfitRecord);
