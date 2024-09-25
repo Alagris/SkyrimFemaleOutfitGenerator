@@ -35,6 +35,11 @@ var
     fileChristineBlackMagic: IwbFile;
     fileChristineDeadlyDesire: IwbFile;
     fileChristinePriestess: IwbFile;
+    fileSkimpyMaid: IwbFile;
+    fileShinoSchool: IwbFile;
+    fileDXFI: IwbFile;
+    fileDXFII: IwbFile;
+    fileDXsT: IwbFile;
     AnyMagePrefix: string;
     AnyNecromancerPrefix: string;
     AnyWarlockPrefix: string;
@@ -138,13 +143,15 @@ end;
 /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
-
-function GenerateEnchantedItemMaybe(destFile, originalFile: IwbFile;oldItemId, newItemId, magic_type, ench:string): IwbMainRecord;
+function GenerateEnchantedItemMaybe_(destFile, originalFile: IwbFile;oldItemId, newItemId, newName, ench:string): IwbMainRecord;
 var
     template: IwbMainRecord;
     enchR: IwbMainRecord;
 begin
-    Result := MainRecordByEditorID(GroupBySignature(destFile, 'ARMO'), newItemId+magic_type);
+    if oldItemId = newItemId then begin 
+        raise Exception.Create('old and new id is the same: '+oldItemId);
+    end;
+    Result := MainRecordByEditorID(GroupBySignature(destFile, 'ARMO'), newItemId);
     if not Assigned(Result) then begin
         template := MainRecordByEditorID(GroupBySignature(originalFile, 'ARMO'), oldItemId);
         if Assigned(template) then begin
@@ -153,23 +160,32 @@ begin
                 raise Exception.Create('Undefined enchantment '+ench);
             end;
             Result := wbCopyElementToFileWithPrefix(template, destFile, true, true, '', '', '');
-            SetEditorID(Result, newItemId+magic_type);
+            SetEditorID(Result, newItemId);
             SetElementEditValues(Result, 'TNAM', Name(template));
             SetElementEditValues(Result, 'EITM', Name(enchR));
-            if magic_type = 'MagickaRate' then begin
-                magic_type := '';
-            end else begin
-                magic_type := ' of '+magic_type;
-            end;
-            newItemId := GetElementEditValues(template, 'FULL');
             AddMessage('ENCH '+EditorID(Result)+' from '+FullPath(template));
-            SetElementEditValues(Result, 'FULL', newItemId+magic_type);
+            SetElementEditValues(Result, 'FULL', GetElementEditValues(template, 'FULL')+newName);
         end;
+    end;
+end;
+function GenerateEnchantedItemMaybe(destFile, originalFile: IwbFile;oldItemId, newItemId, magic_type, ench:string): IwbMainRecord;
+begin
+    if magic_type = 'MagickaRate' then begin
+        Result := GenerateEnchantedItemMaybe_(destFile, originalFile, oldItemId, newItemId+magic_type, '', ench);
+    end else begin
+        Result := GenerateEnchantedItemMaybe_(destFile, originalFile, oldItemId, newItemId+magic_type, ' of '+magic_type, ench);
     end;
 end;
 function GenerateEnchantedItem(destFile, originalFile: IwbFile;oldItemId, newItemId, magic_type, ench:string): IwbMainRecord;
 begin
     Result := GenerateEnchantedItemMaybe(destFile, originalFile, oldItemId, newItemId, magic_type, ench);
+    if not Assigned(Result) then begin 
+        raise Exception.Create('Armor '+oldItemId+' not found in '+GetFileName(originalFile));
+    end;
+end;
+function GenerateEnchantedItem_(destFile, originalFile: IwbFile;oldItemId, newItemId, newName, ench:string): IwbMainRecord;
+begin
+    Result := GenerateEnchantedItemMaybe_(destFile, originalFile, oldItemId, newItemId, newName, ench);
     if not Assigned(Result) then begin 
         raise Exception.Create('Armor '+oldItemId+' not found in '+GetFileName(originalFile));
     end;
@@ -808,6 +824,35 @@ begin
     addToLVLI_(destFile, e, 'LVLI', 'COCO witch3'+magic_type+lvl, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'COCO witch4'+magic_type+lvl, '1', '1');
 end;
+function GenerateDeadlyDesire(destFile: IwbFile; e:IwbElement): IwbElement;
+begin
+    e := GenerateDeadlyDesireForLevel(destFile, e, 'Minor', 1);
+    e := GenerateDeadlyDesireForLevel(destFile, e, 'Common', 2);
+    e := GenerateDeadlyDesireForLevel(destFile, e, 'Major', 3);
+    e := GenerateDeadlyDesireForLevel(destFile, e, 'Eminent', 4);
+    e := GenerateDeadlyDesireForLevel(destFile, e, 'Extreme', 5);
+    e := GenerateDeadlyDesireForLevel(destFile, e, 'Peerless', 6);
+    Result := e;
+end;
+function GenerateDeadlyDesireForLevel(destFile: IwbFile; e:IwbElement; level: string; levelNum:integer): IwbElement;
+begin
+    e := GenerateDeadlyDesireForTypeAndLevel(destFile, e, level, 'Conjuration', levelNum);
+    e := GenerateDeadlyDesireForTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
+    e := GenerateDeadlyDesireForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    Result := e;
+end;
+function GenerateDeadlyDesireForTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
+var
+    s:string;
+begin
+    s := IntToStr(levelNum);
+    GenerateEnchantedItem_(destFile, fileChristineDeadlyDesire, '00DDPanty', '00DDPanty'+magic_type+s, '', 'EnchRobesFortify'+magic_type+'0'+s);
+    e := newLVLI(e, destFile, 'CHDD Set Ench'+magic_type+s, '0', '1', '0', '0');
+    addToLVLI_(destFile, e, 'LVLI', 'CHDD Upper', '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'CHDD Shoulder', '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'CHDD Boots', '1', '1');
+    addToLVLI_(destFile, e, 'ARMO', '00DDPanty'+magic_type+s, '1', '1');
+end;
 /////// HERE IS A NICE TEMPLATE FOR MAKING MORE WARLOCK ENCHANTED STUFF IN THE FUTURE ////////
 // function GenerateCocoDemon(destFile: IwbFile; e:IwbElement): IwbElement;
 // begin
@@ -892,6 +937,257 @@ begin
     if Assigned(panties) then begin
         AddMasterIfMissing(destFile, GetFileName(panties));
     end;
+    if Assigned(fileSkimpyMaid) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileSkimpyMaid));
+        e := newLVLI(e, destFile, 'SkimpyMaidSet', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileSkimpyMaid, 'ARMO', 'xxxSkimpyMaidShoes', '1', '1');
+        addToLVLI(destFile, e, fileSkimpyMaid, 'ARMO', 'xxxSkimpyMaidCloth', '1', '1');
+        addToLVLI(destFile, e, fileSkimpyMaid, 'ARMO', 'xxxSkimpyMaidHead', '1', '1');
+    end;
+    if Assigned(fileDXFI) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileDXFI));
+        e := newLVLI(e, destFile, 'DXCallMeYoursTop', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursTop1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursTopGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursNonetTop1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursNonetTopGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursSocks1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursSocksGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursHeels1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursHeelsGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursHeelsChrome1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursChoker1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursChokerGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCatMask1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCatMaskGold1', '1', '1');
+        e := newLVLI(e, destFile, 'DXTooHotForYou', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXTooHotForYouBodystocking1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXTooHotForYoutop1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXTooHotForYoutopGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXTooHotForYouBodystockingFishnet1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXTooHotForYouHeels1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXTooHotForYouHeelsGold1', '1', '1');
+        e := newLVLI(e, destFile, 'DXFireMeUp', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireMeUpTop1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireMeUpTopGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireMeUpHeels1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireMeUpHeelsGold1', '1', '1');
+        e := newLVLI(e, destFile, 'DXFireYourDesire', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireEarringsSMPGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireBalls1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireBallsGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireNavelBall1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireNavelBallGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireBracers1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireBracersGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireHearts1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireHeartsGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesirePanty1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireRings1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireRingsGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireNavelRing1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireNavelRingGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireNoseRing1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireNoseRingGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireBowRing1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireBowRingGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireStrapsBottom1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireStrapsBottomGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireStrapsTop1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireStrapsTopGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireXs1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireXsGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXFireYourDesireEarrings1', '1', '1');
+    end;
+    if Assigned(fileDXFII) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileDXFII));
+        e := newLVLI(e, destFile, 'DXFIIWildDreams', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsGloves1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsGlovesBelts1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsPiercing1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsStocking1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsOutfit1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsMask1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsCollar1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsGlovesGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsGlovesBeltsGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsPiercingGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsAllbutBra_Panty1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsOutfitGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsStockingGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsBra_Panty1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsBra_PantyGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsAllbutBra_PantyGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsCollarGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsArmlets1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsArmletsGold1', '1', '1');
+        e := newLVLI(e, destFile, 'DXFIIExoticNights', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsAnkleChain1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsEarrings1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsHeartEarrings1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsGarter1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsMonokini1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsHeels1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsSnakeArmlet1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsBracer1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsMonokiniwithoutChains1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsAnkleChainGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsEarringsGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsHeartEarringsGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsGarterGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsMonokiniGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsMonokiniwithoutChainsGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsHeelsGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNights16HeelsGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNights16Heels1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsSnakeArmletGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIExoticNightsBracerGold1', '1', '1');
+        e := newLVLI(e, destFile, 'DXFIIBegForIt', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIBegForItBracers1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIBegForItSocks1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIBegForItMiniFishnet1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIBegForItOutfitGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIBegForItBracersGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIBegForItSocksGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIBegForIt16Socks1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIBegForIt16SocksGold1', '1', '1');
+        addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIBegForItOutfit1', '1', '1');
+    end;
+    if Assigned(fileDXsT) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileDXsT));
+        e := newLVLI(e, destFile, 'DXsT', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileDXsT, 'ARMO', 'DXStLouisDress1', '1', '1');
+        addToLVLI(destFile, e, fileDXsT, 'ARMO', 'DXStLouisBracelet1', '1', '1');
+        addToLVLI(destFile, e, fileDXsT, 'ARMO', 'DXStLouisHeels1', '1', '1');
+        addToLVLI(destFile, e, fileDXsT, 'ARMO', 'DXStLouisNecklace1', '1', '1');
+        addToLVLI(destFile, e, fileDXsT, 'ARMO', 'DXStLouisEarrings1', '1', '1');
+        addToLVLI(destFile, e, fileDXsT, 'ARMO', 'DXStLouisPearlThong1', '1', '1');
+        addToLVLI(destFile, e, fileDXsT, 'ARMO', 'DXStLouisArmlet1', '1', '1');
+    end;
+    // if Assigned(fileShinoSchool) then begin
+    //     AddMasterIfMissing(destFile, GetFileName(fileShinoSchool));
+    //     e := newLVLI(e, destFile, 'SkimpyMaidSet', '0', '1', '0', '0');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_pantyhose', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_a', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_b', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_c', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_d', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_e', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_f', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_sexy', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_stocking', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_socks', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_shoe', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1a', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2a_sexy', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_todo_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_todo_az_con_ro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_todo_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_todo_az_con_ro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_todo_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_todo_az_con_ro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_todo_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_todo_az_con_ro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_verde', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_VER', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_RO', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_AZ', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_aZ', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_RO', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_VER', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_RO', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_VER', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_AZ', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_RO', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_VER', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_AZ', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_RO', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_VER', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_ro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_short', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_short_real', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_rojo', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_rojo', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_short_rojo', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_short_real_rojo', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_rojo', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_sexy_rojo', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_rosa', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_rosa', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_rosa', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_rosa', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_rosa', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy_rosa', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon_rosa', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon_rojo', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon_blanco', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_blanco', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_blanco2', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_blanco', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_blanco', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_blanco2', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_blanco', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_blanco2', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1_rojo', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1_rosa', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2_rojo', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2_rosa', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_blanco2', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_socks_az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_stocking_Az', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_a', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1b', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_b', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_short_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_short_real_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_sexy_nergro', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_blanco', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy_blanco', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1c', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_c', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1d', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_D', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2b', '1', '1');
+    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2b_sexy', '1', '1');
+    // end;
     if Assigned(fileWizardHats) then begin
         if not Assigned(fileWitchyHats) then begin
             raise Exception.Create('You are using '+GetFileName(fileWizardHats)+' without '+GetFileName(fileWitchyHats)+'. Make sure to install both');
@@ -2388,119 +2684,81 @@ begin
     end;
     if Assigned(fileCocoAssassin) then begin
         AddMasterIfMissing(destFile, GetFileName(fileCocoAssassin));
-        e := newLVLI(e, destFile, 'COCO assassin1', '0', '1', '0', '0');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_heels1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_horn1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklace1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_legbelt1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_underwear1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex1', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp1b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti1c', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp1b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask1b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti1b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex1b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove1b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset1b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots1b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex1b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex1b', '1', '1');
-        e := newLVLI(e, destFile, 'COCO assassin2', '0', '1', '0', '0');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp2b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti2c', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp2b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask2b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti2b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex2b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove2b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset2b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots2b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex2b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex2b', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_heels2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_horn2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklace2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_legbelt2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_underwear2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex2', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex2', '1', '1');
-        e := newLVLI(e, destFile, 'COCO assassin3', '0', '1', '0', '0');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_heels3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_horn3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklace3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_legbelt3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_underwear3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex3', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex3', '1', '1');
-        e := newLVLI(e, destFile, 'COCO assassin4', '0', '1', '0', '0');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_heels4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_horn4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklace4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_legbelt4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_underwear4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex4', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots4b', '1', '1');
-        e := newLVLI(e, destFile, 'COCO assassin5', '0', '1', '0', '0');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_heels5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_horn5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklace5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_legbelt5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_underwear5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex5', '1', '1');
-        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex5', '1', '1');
+        for i := 1 to 5 do begin
+            s := IntToStr(i);
+
+            e := newLVLI(e, destFile, 'COCO assassin'+s+' corset', '0', '0', '1', '0');
+            addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp'+s, '1', '1');
+            addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex'+s, '1', '1');
+            if i < 5 then begin
+                    e := newLVLI(e, destFile, 'COCO assassin'+s+' corsetb', '0', '0', '1', '0');
+                    addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp'+s+'b', '1', '1');
+                    addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex'+s+'b', '1', '1');
+            end;
+            e := newLVLI(e, destFile, 'COCO assassin'+s+' mask', '0', '0', '1', '0');
+            addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask'+s, '1', '1');
+            addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex'+s, '1', '1');
+            if i < 5 then begin
+                    e := newLVLI(e, destFile, 'COCO assassin'+s+' maskb', '0', '0', '1', '0');
+                    addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask'+s+'b', '1', '1');
+                    addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex'+s+'b', '1', '1');
+            end;
+            e := newLVLI(e, destFile, 'COCO assassin'+s+' panti', '0', '0', '1', '0');
+            addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti'+s, '1', '1');
+            addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex'+s, '1', '1');
+            addToLVLIMaybe(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti'+s+'c', '1', '1');
+            if i < 5 then begin
+                e := newLVLI(e, destFile, 'COCO assassin'+s+' pantib', '0', '0', '1', '0');
+                addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti'+s+'b', '1', '1');
+                addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex'+s+'b', '1', '1');
+                addToLVLIMaybe(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti'+s+'c', '1', '1');
+            end;
+            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_underwear'+s, 'EnchAssassin_underwear'+s, '', 'DBEnchantShrouded');
+            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_horn'+s, 'EnchAssassin_horn'+s, '', 'DBEnchantGloves');
+            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_heels'+s, 'EnchAssassin_heels'+s, '', 'EnchArmorFortifyMarksman02');
+            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_legbelt'+s, 'EnchAssassin_legbelt'+s, '', 'EnchArmorMuffle');
+            e := newLVLI(e, destFile, 'COCO assassin'+s, '0', '1', '0', '0');
+            addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp'+s, '1', '1');
+            addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp'+s, '1', '1');
+            addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' panti', '1', '1');
+            addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' mask', '1', '1');
+            addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' corset', '1', '1');
+            addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove'+s, '1', '1');
+            addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_legbelt'+s, '1', '1');
+            addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_underwear'+s, '1', '1');
+            addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots'+s, '1', '1');
+            addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_legbelt'+s, '1', '1');
+            addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_horn'+s, '1', '1');
+            if i < 5 then begin
+                e := newLVLI(e, destFile, 'COCO assassin'+s+'b', '0', '1', '0', '0');
+                addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp'+s, '1', '1');
+                addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp1b', '1', '1');
+                addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' pantib', '1', '1');
+                if not Assigned(addToLVLIMaybe_(destFile, e, 'LVLI', 'COCO assassin'+s+' maskb', '1', '1')) then begin
+                    addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' mask', '1', '1');
+                end;
+                addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' corsetb', '1', '1');
+                if not Assigned(addToLVLIMaybe(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove'+s+'b', '1', '1')) then begin
+                    addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove'+s, '1', '1');
+                end;
+                addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_legbelt'+s, '1', '1');
+                addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_underwear'+s, '1', '1');
+                if not Assigned(addToLVLIMaybe(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots'+s+'b', '1', '1')then begin
+                    addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots'+s, '1', '1');
+                end;
+                addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_legbelt'+s, '1', '1');
+                addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_horn'+s, '1', '1');
+            end;
+        end;
         e := newLVLI(e, destFile, 'COCO assassin', '0', '0', '1', '0');
         addToLVLI_(destFile, e, 'LVLI', 'COCO assassin1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO assassin1b', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO assassin2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO assassin2b', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO assassin3', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO assassin3b', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO assassin4', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO assassin4b', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO assassin5', '1', '1');
     end;
     if Assigned(fileChristineUndead) then begin
@@ -2514,6 +2772,37 @@ begin
     end;
     if Assigned(fileChristineNocturnal) then begin
         AddMasterIfMissing(destFile, GetFileName(fileChristineNocturnal));
+        GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbraceBoots', 'Ench00NocturnalEmbraceBoots', '', 'TGArmorFortifyPickpocket');
+        GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbraceBelt', 'Ench00NocturnalEmbraceBelt', '', 'TGArmorFortifyCarry');
+        GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbracePanty1', 'Ench00NocturnalEmbracePanty1', '', 'TGArmorFortifySpeechcraft');
+        GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbracePanty2', 'Ench00NocturnalEmbracePanty2', '', 'TGArmorFortifySpeechcraft');
+        GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbracePanty1Damage', 'Ench00NocturnalEmbracePanty1Damage', '', 'TGArmorFortifySpeechcraft');
+        GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbracePanty2Damage', 'Ench00NocturnalEmbracePanty2Damage', '', 'TGArmorFortifySpeechcraft');
+        GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbraceLower1', 'Ench00NocturnalEmbraceLower1', '', 'TGArmorFortifyLockpicking');
+        GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbraceLower2', 'Ench00NocturnalEmbraceLower2', '', 'TGArmorFortifyLockpicking');
+        GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbraceLower1Damage', 'Ench00NocturnalEmbraceLower1Damage', '', 'TGArmorFortifyLockpicking');
+        GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbraceLower2Damage', 'Ench00NocturnalEmbraceLower2Damage', '', 'TGArmorFortifyLockpicking');
+        e := newLVLI(e, destFile, 'CHNE Upper', '0', '0', '1', '0');
+        addToLVLI(destFile, e, fileChristineNocturnal, 'ARMO', '00NocturnalEmbraceUpper'+s, '1', '1');
+        addToLVLI(destFile, e, fileChristineNocturnal, 'ARMO', '00NocturnalEmbraceUpper1', '1', '1');
+        addToLVLI(destFile, e, fileChristineNocturnal, 'ARMO', '00NocturnalEmbraceUpper1Damage', '1', '1');
+        addToLVLI(destFile, e, fileChristineNocturnal, 'ARMO', '00NocturnalEmbraceUpper2Damage', '1', '1');
+        e := newLVLI(e, destFile, 'CHNE Panty', '0', '0', '1', '0');
+        addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbracePanty1', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbracePanty2', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbracePanty1Damage', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbracePanty2Damage', '1', '1');
+        e := newLVLI(e, destFile, 'CHNE Lower', '0', '0', '1', '0');
+        addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbraceLower1', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbraceLower2', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbraceLower1Damage', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbraceLower2Damage', '1', '1');
+        e := newLVLI(e, destFile, 'CHNE Set', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'CHNE Lower', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHNE Upper', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHNE Panty', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbraceBoots', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbraceBelt', '1', '1');
     end;
     if Assigned(fileChristineBlackMagic) then begin
         AddMasterIfMissing(destFile, GetFileName(fileChristineBlackMagic));
@@ -2531,11 +2820,18 @@ begin
         addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDBootsSluttyA', '1', '1');
         addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDBootsB', '1', '1');
         addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDBootsSluttyB', '1', '1');
+        GenerateEnchantedItem_(destFile, fileChristineDeadlyDesire, '00DDPanty', '00DDEnchPanty', '', 'EnchRobesCollegeMagickaRate04');
         e := newLVLI(e, destFile, 'CHDD Set', '0', '1', '0', '0');
         addToLVLI_(destFile, e, 'LVLI', 'CHDD Upper', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'CHDD Shoulder', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'CHDD Boots', '1', '1');
         addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDPanty', '1', '1');
+        e := newLVLI(e, destFile, 'CHDD Set Ench', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'CHDD Upper', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHDD Shoulder', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHDD Boots', '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', '00DDEnchPanty', '1', '1');
+        e := GenerateDeadlyDesire(destFile, e);
     end;
     if Assigned(fileChristinePriestess) then begin
         AddMasterIfMissing(destFile, GetFileName(fileChristinePriestess));
@@ -2639,6 +2935,14 @@ begin
                 fileHS2Bunny := f;
             end else if fname = 'KSO Mage Robes.esp' then begin 
                 fileKSOMage := f;
+            end else if fname = 'ID_Skimpy Maid Outfits.esp' then begin 
+                fileSkimpyMaid := f;
+            end else if fname = 'DX Fetish Fashion Volume 1 SE.esp' then begin 
+                fileDXFI := f;
+            end else if fname = 'DX FetishFashion II.esp' then begin 
+                fileDXFII := f;
+            end else if fname = 'DX StLouis SE.esp' then begin 
+                fileDXsT := f;
             end;
         end;
         if not Assigned(destinationFile) then begin
@@ -3172,9 +3476,13 @@ begin
                 end else if StartsStr('ClothesFine', oldItemId) then begin    
                     oldItemPrefix := 'ClothesFine';  
                     pantiesItemId := 'Panties-TheNine';
-                end else if StartsStr('ClothesWench', oldItemId) then begin    
+                end else if StartsStr('ClothesWench', oldItemId) then begin  
                     oldItemPrefix := 'ClothesWench';  
                     pantiesItemId := 'Panties-TheNine';
+                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'SkimpyMaidSet');
+                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                    if Assigned(fileSkimpyMaid) <> Assigned(newOutfitRef) then begin raise Exception.Create('SkimpyMaidSet not found'); end;
+                    removeOldItem := Assigned(newOutfitRef);
                 end else if StartsStr('ClothesMiner', oldItemId) then begin    
                     oldItemPrefix := 'ClothesMiner';  
                     pantiesItemId := 'Panties-TheNine';
@@ -3232,13 +3540,97 @@ begin
                     end;
                 end;
             end else if StartsStr('dun', oldItemId) then begin
+            end else if StartsStr('DB', oldItemId) then begin
+                if StartsStr('DBArmor', oldItemId) then begin
+                    if (oldItemId = 'DBArmor') or (oldItemId = 'DBArmorShortSleeve') then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'COCO assassin');
+                        if Assigned(fileCocoAssassin) <> Assigned(newOutfitRef) then begin raise Exception.Create('COCO assassin not found'); end;
+                        removeOldItem := Assigned(newOutfitRef);
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
+                    end else begin
+                        removeOldItem := Assigned(fileCocoAssassin);
+                    end;
+                end else if StartsStr('DBClothes', oldItemId) then begin
+                end;
             end else if StartsStr('Forsworn', oldItemId) then begin
                 oldItemPrefix := 'Forsworn';
                 pantiesItemId := 'Panties-Forsworn';
-            end else if StartsStr('DLC1Armor', oldItemId) then begin
-                if StartsStr('DLC1ArmorVampire', oldItemId) then begin
-                    oldItemPrefix := 'DLC1ArmorVampire';
-                    pantiesItemId := 'Panties-VampireBasicBlack';
+            end else if StartsStr('DLC1', oldItemId) then begin
+                if StartsStr('DLC1Armor', oldItemId) then begin
+                    if StartsStr('DLC1ArmorVampire', oldItemId) then begin
+                        oldItemPrefix := 'DLC1ArmorVampire';
+                        pantiesItemId := 'Panties-VampireBasicBlack';
+                        if StartsStr('DLC1ArmorVampireArmor', oldItemId) then begin
+                            oldItemPrefix := 'DLC1ArmorVampireArmor';
+                            if (oldItemId = 'DLC1ArmorVampireArmorValerica') or (oldItemId = 'DLC1ArmorVampireArmorRoyalRed') then begin
+                                newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHDD Set Ench');
+                            end else begin
+                                newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHDD Set');
+                            end;
+                            if Assigned(fileChristineDeadlyDesire) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHDD Set not found'); end;
+                            removeOldItem := Assigned(newOutfitRef);
+                            if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        end else begin
+                            removeOldItem := Assigned(fileChristineDeadlyDesire);
+                        end; 
+                    end;
+                end else if StartsStr('DLC1ClothesVampireLord', oldItemId) then begin
+                    oldItemPrefix := 'DLC1ClothesVampireLord';
+                    if StartsStr('DLC1ClothesVampireLordRoyal', oldItemId) then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHDD Set Ench');
+                    end else begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHDD Set');
+                    end;
+                    if Assigned(fileChristineDeadlyDesire) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHDD Set not found'); end;
+                    removeOldItem := Assigned(newOutfitRef);
+                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                end else if StartsStr('DLC1EnchClothesVampireRobes', oldItemId) then begin
+                    if Assigned(fileChristineDeadlyDesire) then begin
+                        oldItemPrefix := 'DLC1EnchClothesVampireRobes';
+                        if Assigned(magicType) then begin
+                            if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
+                                magicType := 'Destruction';
+                            end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
+                                magicType := 'MagickaRate';
+                            end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
+                                magicType := 'Conjuration';
+                            end else begin
+                                magicType := nil;
+                            end;
+                        end;
+                        if not Assigned(magicType) then begin
+                            raise Exception.Create('Couldn''t parse magic type: '+oldItemId);
+                        end;
+                        oldItemPrefix:=oldItemPrefix+magicType;
+                        magicLevel := nil;
+                        if StartsStr(oldItemPrefix+'01', oldItemId) then begin    
+                            magicLevel := '1';
+                        end else if StartsStr(oldItemPrefix+'02', oldItemId) then begin    
+                            magicLevel := '2';
+                        end else if StartsStr(oldItemPrefix+'03', oldItemId) then begin    
+                            magicLevel := '3';
+                        end else if StartsStr(oldItemPrefix+'04', oldItemId) then begin    
+                            magicLevel := '4';
+                        end else if StartsStr(oldItemPrefix+'05', oldItemId) then begin    
+                            magicLevel := '5';
+                        end else if StartsStr(oldItemPrefix+'06', oldItemId) then begin    
+                            magicLevel := '6'; 
+                        end;
+                        if not Assigned(magicLevel) then begin
+                            raise Exception.Create('Couldn''t parse magic level: '+oldItemId);
+                        end;
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHDD Set Ench'+magic_type+magicLevel);
+                        removeOldItem := true;
+                        if not Assigned(newOutfitRef) then begin raise Exception.Create('CHDD Set Ench'+magic_type+magicLevel+' not found'); end;
+                        pantiesFinal := 'skip';
+                    end;
+                end;
+            end else if StartsStr('DlC01ClothesVampire', oldItemId) then begin
+                if oldItemId = 'DlC01ClothesVampire' then begin
+                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHDD Set');
+                    if Assigned(fileChristineDeadlyDesire) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHDD Set not found'); end;
+                end else begin
+                    removeOldItem := Assigned(fileChristineDeadlyDesire);
                 end;
             end else if StartsStr('Armor', oldItemId) then begin
                 if StartsStr('ArmorIron', oldItemId) then begin
@@ -3257,6 +3649,18 @@ begin
                 end else if StartsStr('ArmorThievesGuild', oldItemId) then begin
                     oldItemPrefix := 'ArmorThievesGuild';
                     pantiesItemId := 'Panties-TG-Basic';
+                    // we don't want to replace the armor that is given to player, because we can't assume the player's gender
+                    if (pos('Player', oldItemId) = 0) and (pos('Leader', oldItemId) = 0) then begin 
+                        if pos('Cuirass', oldItemId) = 0 then begin
+                            removeOldItem := Assigned(fileChristineNocturnal);
+                        end else begin
+                            newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHNE Set');
+                            removeOldItem := Assigned(newOutfitRef);
+                            if Assigned(fileChristineNocturnal) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHNE Set'+magic_type+magicLevel+' not found'); end;
+                            if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        end;
+                        
+                    end;
                 end else if StartsStr('ArmorLeather', oldItemId) then begin    
                     if isBandit then begin
                         tawobaItemId := 'TWA Bandit Leather ';
