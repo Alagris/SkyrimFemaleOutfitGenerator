@@ -23,7 +23,21 @@ var
     hasModularMage: Boolean;
     fileModularMage: IwbFile;
     fileSkyrim: IwbFile;
-
+    fileCocoWitch: IwbFile;
+    fileCocoDemon: IwbFile;
+    fileCocoLingerie: IwbFile;
+    fileCocoLace: IwbFile;
+    fileHS2Bunny: IwbFile;
+    fileKSOMage: IwbFile;
+    fileCocoAssassin: IwbFile;
+    fileChristineUndead: IwbFile;
+    fileChristineNocturnal: IwbFile;
+    fileChristineBlackMagic: IwbFile;
+    fileChristineDeadlyDesire: IwbFile;
+    fileChristinePriestess: IwbFile;
+    AnyMagePrefix: string;
+    AnyNecromancerPrefix: string;
+    AnyWarlockPrefix: string;
 
 function FileByName(fn: string): IwbFile;
 var
@@ -125,22 +139,21 @@ end;
 /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
 
-
-function GenerateModularMagePanty(destFile: IwbFile; e:IwbElement; templateSuffix, level, magic_type, ench:string): IwbMainRecord;
+function GenerateEnchantedItemMaybe(destFile, originalFile: IwbFile;oldItemId, newItemId, magic_type, ench:string): IwbMainRecord;
 var
     template: IwbMainRecord;
     enchR: IwbMainRecord;
 begin
-    Result := MainRecordByEditorID(GroupBySignature(destFile, 'ARMO'), '_ModularMage'+level+templateSuffix+magic_type);
+    Result := MainRecordByEditorID(GroupBySignature(destFile, 'ARMO'), newItemId+magic_type);
     if not Assigned(Result) then begin
-        template := MainRecordByEditorID(GroupBySignature(fileModularMage, 'ARMO'), '_ModularMage'+level+templateSuffix);
+        template := MainRecordByEditorID(GroupBySignature(originalFile, 'ARMO'), oldItemId);
         if Assigned(template) then begin
             enchR := MainRecordByEditorID(GroupBySignature(fileSkyrim, 'ENCH'), ench);
-            if not Assigned(enchR) then begin // \ [00] Skyrim.esm \ [16] GRUP Top "ENCH" \ [95] EnchRobesCollegeConjuration01 "Fortify Conjuration" [ENCH:0010E300] \ [0] Record Header
+            if not Assigned(enchR) then begin 
                 raise Exception.Create('Undefined enchantment '+ench);
             end;
             Result := wbCopyElementToFileWithPrefix(template, destFile, true, true, '', '', '');
-            SetEditorID(Result, '_ModularMage'+level+templateSuffix+magic_type);
+            SetEditorID(Result, newItemId+magic_type);
             SetElementEditValues(Result, 'TNAM', Name(template));
             SetElementEditValues(Result, 'EITM', Name(enchR));
             if magic_type = 'MagickaRate' then begin
@@ -148,9 +161,23 @@ begin
             end else begin
                 magic_type := ' of '+magic_type;
             end;
-            SetElementEditValues(Result, 'FULL', level+' '+templateSuffix+magic_type);
+            newItemId := GetElementEditValues(template, 'FULL');
+            AddMessage('ENCH '+EditorID(Result)+' from '+FullPath(template));
+            SetElementEditValues(Result, 'FULL', newItemId+magic_type);
         end;
     end;
+end;
+function GenerateEnchantedItem(destFile, originalFile: IwbFile;oldItemId, newItemId, magic_type, ench:string): IwbMainRecord;
+begin
+    Result := GenerateEnchantedItemMaybe(destFile, originalFile, oldItemId, newItemId, magic_type, ench);
+    if not Assigned(Result) then begin 
+        raise Exception.Create('Armor '+oldItemId+' not found in '+GetFileName(originalFile));
+    end;
+end;
+
+function GenerateModularMagePanty(destFile: IwbFile; templateSuffix, level, magic_type, ench:string): IwbMainRecord;
+begin
+    Result := GenerateEnchantedItemMaybe(destFile, fileModularMage, '_ModularMage'+level+templateSuffix, '_ModularMage'+level+templateSuffix, magic_type, ench);
 end;
 
 function GenerateModularMagePantiesForMagicTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type, ench:string): IwbElement;
@@ -159,20 +186,20 @@ var
     newEnchanted: IwbMainRecord;
 begin
     e := newLVLI(e, destFile, 'MM_'+level+'MagePanties'+magic_type, '0', '0', '1', '1');
-    newEnchanted := GenerateModularMagePanty(destFile, e, 'StringThong', level, magic_type, ench);
+    newEnchanted := GenerateModularMagePanty(destFile, 'StringThong', level, magic_type, ench);
     if not Assigned(newEnchanted) then begin
         raise Exception.Create('Couldn''t find _ModularMage'+level+'StringThong in '+GetFileName(fileModularMage));
     end;
     assignToLVLI(e, newEnchanted, '1', '1');
     for i:= 1 to 8 do begin
-        newEnchanted := GenerateModularMagePanty(destFile, e, 'Panties'+IntToStr(i), level, magic_type, ench);
+        newEnchanted := GenerateModularMagePanty(destFile, 'Panties'+IntToStr(i), level, magic_type, ench);
         if Assigned(newEnchanted) then begin
             assignToLVLI(e, newEnchanted, '1', '1');
         end;
     end;
     e := newLVLI(e, destFile, 'MM_'+level+'MageSkirtCurtain'+magic_type, '0', '0', '1', '1');
     for  i:= 1 to 3 do begin
-        newEnchanted := GenerateModularMagePanty(destFile, e, 'Skirt'+IntToStr(i), level, magic_type, ench);
+        newEnchanted := GenerateModularMagePanty(destFile, 'Skirt'+IntToStr(i), level, magic_type, ench);
         if Assigned(newEnchanted) then begin
             assignToLVLI(e, newEnchanted, '1', '1');
         end;
@@ -180,6 +207,72 @@ begin
     Result := e;
 end;
 
+function GenerateKSOEnchantedItem(destFile: IwbFile; oldItemId, magic_type, ench:string): IwbMainRecord;
+begin
+    Result := GenerateEnchantedItem(destFile, fileKSOMage, oldItemId, 'KSO'+oldItemId, magic_type, ench);
+end;
+
+function GenerateKSOForMagicTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
+var
+    enchItem: IwbMainRecord;
+begin
+    e := newLVLI(e, destFile, 'KSO_'+level+'Robes'+magic_type, '0', '0', '1', '1');
+    enchItem := GenerateKSOEnchantedItem(destFile, '_TemplateClothesRobesMage'+level+'UltraSkimpy', magic_type, 'EnchRobesCollege'+magic_type+'0'+IntToStr(levelNum));
+    addToLVLI_(destFile, e, 'ARMO', EditorID(enchItem), '1', '1');
+    enchItem := GenerateKSOEnchantedItem(destFile, '_TemplateClothesRobesMage'+level+'UltraSkimpy2', magic_type, 'EnchRobesCollege'+magic_type+'0'+IntToStr(levelNum));
+    addToLVLI_(destFile, e, 'ARMO', EditorID(enchItem), '1', '1');
+
+    e := newLVLI(e, destFile, 'KSO_'+magic_type+IntToStr(levelNum), '0', '1', '0', '0');
+    addToLVLIMaybe_(destFile, e, 'LVLI', 'KSO_'+level+'Hood', '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'KSO_'+level+'Robes'+magic_type, '1', '1');
+    if Assigned(fileModularMage) then begin
+        addToLVLI_(destFile, e, 'LVLI', 'MM_JourneymanHH', '1', '1');
+    end else begin
+        addToLVLI_(destFile, e, 'LVLI', 'ClothesMGBoots', '1', '1');
+    end;
+    Result := e;
+end;
+function GenerateKSOForMagicType(destFile: IwbFile; e:IwbElement; magic_type:string): IwbElement;
+begin
+    e := GenerateKSOForMagicTypeAndLevel(destFile, e, 'Novice', magic_type, 1);
+    e := GenerateKSOForMagicTypeAndLevel(destFile, e, 'Apprentice', magic_type, 2);
+    e := GenerateKSOForMagicTypeAndLevel(destFile, e, 'Adept', magic_type, 3);
+    e := GenerateKSOForMagicTypeAndLevel(destFile, e, 'Expert', magic_type, 4);
+    e := GenerateKSOForMagicTypeAndLevel(destFile, e, 'Master', magic_type, 5);
+end;
+function GenerateKSOHood(destFile: IwbFile; e:IwbElement; level, levelNum:string): IwbElement;
+var
+    newEnch: IwbMainRecord;
+    s: string;
+begin
+    
+    
+    e := newLVLI(e, destFile, 'KSO_'+level+'Hood', '50', '0', '1', '1');
+    newEnch := GenerateKSOEnchantedItem(destFile, '_TemplateClothesRobesMage'+level+'Hood', 'MagickaRate', 'EnchArmorFortifyMagicka'+levelNum);
+    addToLVLI_(destFile, e, 'ARMO', EditorID(newEnch), '1', '1');
+    if level = 'Adept' then begin s := '' end else begin s := 'e' end; // typo in original mod
+    newEnch := GenerateKSOEnchantedItem(destFile, '_TemplateClothesRobesMage'+level+'HoodLower'+s+'d', 'MagickaRate', 'EnchArmorFortifyMagicka'+levelNum);
+    addToLVLI_(destFile, e, 'ARMO', EditorID(newEnch), '1', '1');
+    Result := e;
+end;
+function GenerateKSO(destFile: IwbFile; e:IwbElement): IwbElement;
+begin
+    e:=GenerateKSOHood(destFile, e, 'Adept', '04');
+    e:=GenerateKSOHood(destFile, e, 'Apprentice', '03');
+    e:=GenerateKSOHood(destFile, e, 'Novice', '02');
+    GenerateKSOEnchantedItem(destFile, '_ClothesMGRobesArchmage', 'MagickaRate', 'MGArchMageRobeEnchant');
+    GenerateKSOEnchantedItem(destFile, '_ClothesMGRobesArchmage1Hooded', 'MagickaRate', 'MGArchMageRobeHoodedEnchant');
+    e := newLVLI(e, destFile, 'KSO_Archmage', '0', '0', '1', '1');
+    addToLVLI(destFile, e, fileKSOMage, 'ARMO', '_ClothesMGRobesArchmage', '1', '1');
+    addToLVLI(destFile, e, fileKSOMage, 'ARMO', '_ClothesMGRobesArchmage1Hooded', '1', '1');
+    e := GenerateKSOForMagicType(destFile, e, 'Conjuration');
+    e := GenerateKSOForMagicType(destFile, e, 'Restoration');
+    e := GenerateKSOForMagicType(destFile, e, 'Destruction');
+    e := GenerateKSOForMagicType(destFile, e, 'Illusion');
+    e := GenerateKSOForMagicType(destFile, e, 'Alteration');
+    e := GenerateKSOForMagicType(destFile, e, 'MagickaRate');
+    Result := e;
+end;
 function GenerateModularMage(destFile: IwbFile; e:IwbElement): IwbElement;
 begin
     e := newLVLI(e, destFile, 'MM_JourneymanHH', '0', '0', '1', '1');
@@ -511,7 +604,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3Arms'+magic_type, '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3Coat'+magic_type, '1', '1');
     end;
-    e := newLVLI(e, destFile, 'MM_'+level+'MageSets'+magic_type, '0', '0', '1', '1');
+    e := newLVLI(e, destFile, 'MM_'+magic_type+IntToStr(levelNum), '0', '0', '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet1'+magic_type, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet2'+magic_type, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'MM_'+level+'MageSet3'+magic_type, '1', '1');
@@ -519,8 +612,254 @@ begin
 end;
 
 
+function GenerateAnyMage(destFile: IwbFile; e:IwbElement): IwbElement;
+begin
+    e := GenerateAnyMageForLevel(destFile, e, 'Novice', 1);
+    e := GenerateAnyMageForLevel(destFile, e, 'Apprentice', 2);
+    e := GenerateAnyMageForLevel(destFile, e, 'Adept', 3);
+    e := GenerateAnyMageForLevel(destFile, e, 'Expert', 4);
+    e := GenerateAnyMageForLevel(destFile, e, 'Master', 5);
+    Result := e;
+end;
+function GenerateAnyMageForLevel(destFile: IwbFile; e:IwbElement; level: string; levelNum:integer): IwbElement;
+begin
+    e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'Conjuration', levelNum);
+    e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'Restoration', levelNum);
+    e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
+    e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'Illusion', levelNum);
+    e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'Alteration', levelNum);
+    e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    Result := e;
+end;
+function GenerateAnyMageForTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
+begin
+    e := newLVLI(e, destFile, 'AnyMage'+magic_type+IntToStr(levelNum), '0', '0', '1', '0');
+    if Assigned(fileKSOMage) then begin
+        addToLVLI_(destFile, e, 'LVLI', 'KSO_'+magic_type+IntToStr(levelNum), '1', '1');
+    end;
+    if Assigned(modular_mage) then begin
+        addToLVLI_(destFile, e, 'LVLI', 'MM_'+magic_type+IntToStr(levelNum), '1', '1');
+    end;
+    Result := e;
+end;
+function GenerateCocoDemon(destFile: IwbFile; e:IwbElement): IwbElement;
+var
+    s:string;
+begin
+    for i := 1 to 6 do begin 
+        s := IntToStr(i);
+        e := newLVLI(e, destFile, 'COCO demon'+s+' hair80', '80', '0', '1', '0');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_hairsmp'+s, '1', '1');
+        e := newLVLI(e, destFile, 'COCO demon'+s+' mask60', '70', '0', '1', '0');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_mask'+s, '1', '1');
+    end;
+    e := GenerateCocoDemonForLevel(destFile, e, 'Minor', 1);
+    e := GenerateCocoDemonForLevel(destFile, e, 'Common', 2);
+    e := GenerateCocoDemonForLevel(destFile, e, 'Major', 3);
+    e := GenerateCocoDemonForLevel(destFile, e, 'Eminent', 4);
+    e := GenerateCocoDemonForLevel(destFile, e, 'Extreme', 5);
+    e := GenerateCocoDemonForLevel(destFile, e, 'Peerless', 6);
+    Result := e;
+end;
+function GenerateCocoDemonForLevel(destFile: IwbFile; e:IwbElement; level: string; levelNum:integer): IwbElement;
+begin
+    e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Conjuration', levelNum);
+    e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Restoration', levelNum);
+    e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
+    e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Illusion', levelNum);
+    e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Alteration', levelNum);
+    e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    Result := e;
+end;
+function GenerateCocoDemonForTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
+var
+    s:string;
+    lvl:string;
+    ei: IwbMainRecord;
+    ench:string;
+begin
+    lvl := IntToStr(levelNum);
+    ench :='EnchRobesFortify'+magic_type+'0'+lvl;
+    for i := 1 to 5 do begin 
+        s := IntToStr(i);
+        e := newLVLI(e, destFile, 'COCO demon'+s+' modular '+magic_type+lvl, '0', '1', '0', '0');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_bra'+s, '1', '1');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_glove'+s, '1', '1');
+        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_panties'+s, 'Demon_panties'+s+magic_type+lvl, magic_type, ench);
+        addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_heels'+s, '1', '1');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_stock'+s, '1', '1');
+        e := newLVLI(e, destFile, 'COCO demon'+s+' two parts '+magic_type+lvl, '0', '1', '0', '0');
+        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodybra'+s, 'Demon_bodybra'+s+magic_type+lvl, magic_type, ench);
+        addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_bodystock'+s, '1', '1');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_heels'+s, '1', '1');
+        e := newLVLI(e, destFile, 'COCO demon'+s+' full body'+magic_type+lvl, '0', '0', '1', '0');
+        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodyfucool'+s, 'Demon_bodyfucool'+s+magic_type+lvl, magic_type, ench);
+        addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
+        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodyfu'+s, 'Demon_bodyfu'+s+magic_type+lvl, magic_type, ench);
+        addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
+        e := newLVLI(e, destFile, 'COCO demon body'+s+magic_type+lvl, '0', '0', '1', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' full body'+magic_type+lvl, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' two parts'+magic_type+lvl, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' modular'+magic_type+lvl, '1', '1');
+        e := newLVLI(e, destFile, 'COCO demon'+s+magic_type+lvl, '0', '1', '0', '0');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_horn'+s, '1', '1');
+        //addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_hair'+s, '1', '1');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_tail'+s, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' mask60', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' hair80', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO demon body'+s+magic_type+lvl, '1', '1');
+    end;
+    e := newLVLI(e, destFile, 'COCO demon'+magic_type+lvl, '0', '0', '1', '0');
+    addToLVLI_(destFile, e, 'LVLI', 'COCO demon1'+magic_type+lvl, '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'COCO demon2'+magic_type+lvl, '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'COCO demon3'+magic_type+lvl, '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'COCO demon4'+magic_type+lvl, '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'COCO demon5'+magic_type+lvl, '1', '1');
+end;
+
+function GenerateCocoWitch(destFile: IwbFile; e:IwbElement): IwbElement;
+var
+    s:string;
+begin
+    for i := 1 to 4 do begin
+        s := IntToStr(i);
+        e := newLVLI(e, destFile, 'COCO witch'+s+' neck', '0', '0', '1', '0');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_neckA'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_neckB'+s, '1', '1');
+        e := newLVLI(e, destFile, 'COCO witch'+s+' stock', '0', '0', '1', '0');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_stockB'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_stockA'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_stockB'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_stockA'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_stockA5', '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_stockA6', '1', '1'); 
+        e := newLVLI(e, destFile, 'COCO witch'+s+' skirt', '0', '0', '1', '0');
+        addToLVLIMaybe(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_skirt'+s+'tou', '1', '1');
+        addToLVLIMaybe(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_skirt'+s+'po', '1', '1');
+        addToLVLIMaybe(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_skirt'+s, '1', '1');
+        e := newLVLI(e, destFile, 'COCO witch'+s+' belt', '0', '0', '1', '0');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_beltlow'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_beltup'+s, '1', '1');
+        e := newLVLI(e, destFile, 'COCO witch'+s+' bra', '0', '0', '1', '0');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_bra'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_bra'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_bra'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_bra5', '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_bra6', '1', '1');
+    end;
+    e := GenerateCocoWitchForLevel(destFile, e, 'Minor', 1);
+    e := GenerateCocoWitchForLevel(destFile, e, 'Common', 2);
+    e := GenerateCocoWitchForLevel(destFile, e, 'Major', 3);
+    e := GenerateCocoWitchForLevel(destFile, e, 'Eminent', 4);
+    e := GenerateCocoWitchForLevel(destFile, e, 'Extreme', 5);
+    e := GenerateCocoWitchForLevel(destFile, e, 'Peerless', 6);
+    Result := e;
+end;
+function GenerateCocoWitchForLevel(destFile: IwbFile; e:IwbElement; level: string; levelNum:integer): IwbElement;
+begin
+    e := GenerateCocoWitchForTypeAndLevel(destFile, e, level, 'Conjuration', levelNum);
+    e := GenerateCocoWitchForTypeAndLevel(destFile, e, level, 'Restoration', levelNum);
+    e := GenerateCocoWitchForTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
+    e := GenerateCocoWitchForTypeAndLevel(destFile, e, level, 'Illusion', levelNum);
+    e := GenerateCocoWitchForTypeAndLevel(destFile, e, level, 'Alteration', levelNum);
+    e := GenerateCocoWitchForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    Result := e;
+end;
+function GenerateCocoWitchForTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
+var
+    s:string;
+    lvl:string;
+    ei: IwbMainRecord;
+    ench:string;
+begin
+    lvl := IntToStr(levelNum);
+    ench :='EnchRobesFortify'+magic_type+'0'+lvl;
+    GenerateEnchantedItem(destFile, fileCocoWitch, 'Witchi_pants5', 'Witchi_pants5'+magic_type+lvl, magic_type, ench);
+    GenerateEnchantedItem(destFile, fileCocoWitch, 'Witchi_pants6', 'Witchi_pants6'+magic_type+lvl, magic_type, ench);
+    for i := 1 to 4 do begin
+        s := IntToStr(i);
+        e := newLVLI(e, destFile, 'COCO witch'+s+' pants'+magic_type+lvl, '0', '0', '1', '0');
+        GenerateEnchantedItem(destFile, fileCocoWitch, 'Witchi_pants'+s, 'Witchi_pants'+s+magic_type+lvl, magic_type, ench);
+        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants'+s+magic_type+lvl, '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants'+s+magic_type+lvl, '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants'+s+magic_type+lvl, '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants5'+magic_type+lvl, '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants6'+magic_type+lvl, '1', '1');
+        e := newLVLI(e, destFile, 'COCO witch'+s+magic_type+lvl, '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'WitchiRing1', '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_shoes'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_skirt'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_glovel'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_knee'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_sho'+s, '1', '1');
+        addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_glover'+s, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI',  'COCO witch'+s+' bra', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI',  'COCO witch'+s+' pants'+magic_type+lvl, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI',  'COCO witch'+s+' neck', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI',  'COCO witch'+s+' stock', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI',  'COCO witch'+s+' skirt', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI',  'COCO witch'+s+' belt', '1', '1');
+    end;
+    e := newLVLI(e, destFile, 'COCO witch'+magic_type+lvl, '0', '0', '1', '0');
+    addToLVLI_(destFile, e, 'LVLI', 'COCO witch1'+magic_type+lvl, '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'COCO witch2'+magic_type+lvl, '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'COCO witch3'+magic_type+lvl, '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'COCO witch4'+magic_type+lvl, '1', '1');
+end;
+/////// HERE IS A NICE TEMPLATE FOR MAKING MORE WARLOCK ENCHANTED STUFF IN THE FUTURE ////////
+// function GenerateCocoDemon(destFile: IwbFile; e:IwbElement): IwbElement;
+// begin
+//     e := GenerateCocoDemonForLevel(destFile, e, 'Minor', 1);
+//     e := GenerateCocoDemonForLevel(destFile, e, 'Common', 2);
+//     e := GenerateCocoDemonForLevel(destFile, e, 'Major', 3);
+//     e := GenerateCocoDemonForLevel(destFile, e, 'Eminent', 4);
+//     e := GenerateCocoDemonForLevel(destFile, e, 'Extreme', 5);
+//     e := GenerateCocoDemonForLevel(destFile, e, 'Peerless', 6);
+//     Result := e;
+// end;
+// function GenerateCocoDemonForLevel(destFile: IwbFile; e:IwbElement; level: string; levelNum:integer): IwbElement;
+// begin
+//     e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Conjuration', levelNum);
+//     e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Restoration', levelNum);
+//     e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
+//     e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Illusion', levelNum);
+//     e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Alteration', levelNum);
+//     e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+//     Result := e;
+// end;
+// function GenerateCocoDemonForTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
+// begin
+// end;
+/////// HERE IS A NICE TEMPLATE FOR MAKING MORE MAGE ENCHANTED STUFF IN THE FUTURE ////////
+//
+// function GenerateAnyMage(destFile: IwbFile; e:IwbElement): IwbElement;
+// begin
+//     e := GenerateAnyMageForLevel(destFile, e, 'Novice', 1);
+//     e := GenerateAnyMageForLevel(destFile, e, 'Apprentice', 2);
+//     e := GenerateAnyMageForLevel(destFile, e, 'Adept', 3);
+//     e := GenerateAnyMageForLevel(destFile, e, 'Expert', 4);
+//     e := GenerateAnyMageForLevel(destFile, e, 'Master', 5);
+//     Result := e;
+// end;
+// function GenerateAnyMageForLevel(destFile: IwbFile; e:IwbElement; level: string; levelNum:integer): IwbElement;
+// begin
+//     e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'Conjuration', levelNum);
+//     e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'Restoration', levelNum);
+//     e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
+//     e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'Illusion', levelNum);
+//     e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'Alteration', levelNum);
+//     e := GenerateAnyMageForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+//     Result := e;
+// end;
+// function GenerateAnyMageForTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
+// begin
+// end;
 function generate(destFile: IwbFile): integer;
 var
+    s: string;
+    i: integer;
     e:IwbElement;
     otft:IwbElement;
     panties: IwbFile;
@@ -536,10 +875,10 @@ var
     tawoba_list: IwbFile;
 begin
     panties := filePantiesofskyrim;
-    coco_lingerie := FileByName('[COCO]Lingerie.esp');
-    coco_lace := FileByName('[COCO] Lace Lingerie Pack.esp');
+    coco_lingerie := fileCocoLingerie;
+    coco_lace := fileCocoLace;
     coco_bikini := fileCocoBikini;
-    hs2_bunny := FileByName('HS2_bunyCostume.esp');
+    hs2_bunny := fileHS2Bunny;
     modular_mage := fileModularMage;
     ussep := fileUSSEP;
     wizard_hats := fileWizardHats;
@@ -548,7 +887,7 @@ begin
     tawoba_list := fileTAWOBALeveledList;
     if Assigned(tawoba_list) then begin
         //TODO uncomment this
-        //raise Exception.Create('You should disable "'+GetFileName(tawoba_list)+'" to avoid conflicts!');
+        raise Exception.Create('You should disable '''+GetFileName(tawoba_list)+''' to avoid conflicts!');
     end;
     if Assigned(panties) then begin
         AddMasterIfMissing(destFile, GetFileName(panties));
@@ -571,6 +910,24 @@ begin
         addToLVLI(destFile, e, wizard_hats, 'ARMO', 'sirwhoArmorWizardHatPurpleCirclet', '1', '1');
         addToLVLI(destFile, e, wizard_hats, 'ARMO', 'sirwhoArmorWizardHatWhiteCirclet', '1', '1');
         addToLVLI(destFile, e, wizard_hats, 'ARMO', 'sirwhoArmorWizardHatYellowCirclet', '1', '1');
+    end;
+    if Assigned(modular_mage) then begin
+        AddMasterIfMissing(destFile, GetFileName(modular_mage));
+        e := GenerateModularMage(destFile, e);
+        AnyMagePrefix := 'MM_';
+    end;
+    if Assigned(fileKSOMage) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileKSOMage));
+        e := GenerateKSO(destFile, e);
+        if Assigned(AnyMagePrefix) then begin
+            AnyMagePrefix := 'multiple';
+        end else begin
+            AnyMagePrefix := 'KSO_';
+        end;
+    end;
+    if AnyMagePrefix = 'multiple' then begin
+        GenerateAnyMageForTypeAndLevel(destFile, e);
+        AnyMagePrefix := 'AnyMage';
     end;
     if Assigned(coco_lingerie) then begin
         AddMasterIfMissing(destFile, GetFileName(coco_lingerie));
@@ -987,10 +1344,7 @@ begin
             SetEditValue(otft, Name(MainRecordByEditorID(GroupBySignature(destFile, 'LVLI'), 'any_lingerie')));
         end;
     end;
-    if Assigned(modular_mage) then begin
-        AddMasterIfMissing(destFile, GetFileName(modular_mage));
-        e := GenerateModularMage(destFile, e);
-    end;
+
     if Assigned(tewoba) then begin
         AddMasterIfMissing(destFile, GetFileName(tewoba));
         e := newLVLI(e, destFile, 'TEW Ancient Nord Accessories', '0', '0', '1', '0');
@@ -1035,7 +1389,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TEW Ancient Nord Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Ancient Nord Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Ancient Nord Thongs', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Draugr', '1', '1');
         e := newLVLI(e, destFile, 'TEW Daedric Accessories', '0', '0', '1', '0');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'Daedric45', '1', '1');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'Daedric46', '1', '1');
@@ -1073,7 +1426,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TEW Daedric Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Daedric Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Daedric Thongs', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Daedric', '1', '1');
         e := newLVLI(e, destFile, 'TEW Dragonscale Accessories', '0', '0', '1', '0');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'Dragonscale45-01', '1', '1');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'Dragonscale46-01', '1', '1');
@@ -1109,7 +1461,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TEW Dragonscale Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Dragonscale Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Dragonscale Thongs', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Dragonscale', '1', '1');
         e := newLVLI(e, destFile, 'TEW Glass Accessories', '0', '0', '1', '0');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'Glass45', '1', '1');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'Glass46', '1', '1');
@@ -1140,7 +1491,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TEW Glass Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Glass Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Glass Thongs', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Glass', '1', '1');
         e := newLVLI(e, destFile, 'TEW Imperial Heavy Accessories', '0', '0', '1', '0');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'ImperialHeavy45-01', '1', '1');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'ImperialHeavy46-01', '1', '1');
@@ -1168,7 +1518,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TEW Imperial Heavy Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Imperial Heavy Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Imperial Heavy Thongs', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Imperial', '1', '1');
         e := newLVLI(e, destFile, 'TEW Imperial Light Accessories', '0', '0', '1', '0');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'ImperialLight45-01', '1', '1');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'ImperialLight46-01', '1', '1');
@@ -1195,7 +1544,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TEW Imperial Light Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Imperial Light Thigh Tasset and Abs', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Imperial Light Thongs', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Imperial', '1', '1');
         e := newLVLI(e, destFile, 'TEW Scaled Accessories', '0', '0', '1', '0');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'Scaled45-01', '1', '1');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'Scaled46-01', '1', '1');
@@ -1229,7 +1577,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TEW Scaled Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Scaled Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TEW Scaled Thongs', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Scaled', '1', '1');
     end;
     if Assigned(tawoba) then begin
         AddMasterIfMissing(destFile, GetFileName(tawoba));
@@ -1276,14 +1623,12 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-LeatherArmor', '1', '1');
         e := newLVLI(e, destFile, 'TWA Bandit Leather Body', '0', '1', '0', '0');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Armors', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Thongs', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
         e := newLVLI(e, destFile, 'TWA Hide Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00HBA_top', '1', '1');
         e := newLVLI(e, destFile, 'TWA Hide Helmet', '0', '0', '1', '0');
@@ -1312,14 +1657,12 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Hide', '1', '1');
         e := newLVLI(e, destFile, 'TWA Bandit Hide Body', '0', '1', '0', '0');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Armors', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Thongs', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
         e := newLVLI(e, destFile, 'TWA Wolf Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00WBA_Bikini_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00WBA_Bikini_2', '1', '1');
@@ -1383,7 +1726,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Wolf Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Wolf Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Wolf Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Wolf', '1', '1');
         e := newLVLI(e, destFile, 'TWA Dragon Bone Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Bikini_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DBA_Bikini_2', '1', '1');
@@ -1441,7 +1783,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Dragon Bone Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Dragon Bone Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Dragon Bone Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-DragonBone', '1', '1');
         e := newLVLI(e, destFile, 'TWA Ebony Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_Bikini_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00EBA_Bikini_2', '1', '1');
@@ -1488,7 +1829,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Ebony Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Ebony Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Ebony Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Ebony', '1', '1');
         e := newLVLI(e, destFile, 'TWA Dwarven Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_bikini_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00DWA_bikini_2', '1', '1');
@@ -1553,7 +1893,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Dwarven Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Dwarven Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Dwarven Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Dwarven', '1', '1');
         e := newLVLI(e, destFile, 'TWA Iron Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_Bikini_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00BIB_Bikini_2', '1', '1');
@@ -1647,14 +1986,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Iron Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Iron Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Iron Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Iron', '1', '1');
-        e := newLVLI(e, destFile, 'TWA Bandit Iron Body', '0', '1', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Iron Armors', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Iron Thongs', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Iron Pauldron', '2', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Iron Thigh Tasset and Abs', '4', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Iron Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
         e := newLVLI(e, destFile, 'TWA Steel Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_bikini_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SBA_bikini_2', '1', '1');
@@ -1741,14 +2072,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Steel Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Steel Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Steel Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Steel', '1', '1');
-        e := newLVLI(e, destFile, 'TWA Bandit Steel Body', '0', '1', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Steel Armors', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Steel Thongs', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Steel Pauldron', '2', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Steel Thigh Tasset and Abs', '4', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Steel Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
         e := newLVLI(e, destFile, 'TWA Nord Plate Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SPB_bikini_3', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00SPB_bikini_4', '1', '1');
@@ -1829,14 +2152,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nord Plate Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nord Plate Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nord Plate Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'ARMO', 'Panty-ThongOpenFur-Nordic_Carved', '1', '1');
-        e := newLVLI(e, destFile, 'TWA Bandit Nord Plate Body', '0', '1', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Nord Plate Armors', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Nord Plate Thongs', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Nord Plate Pauldron', '2', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Nord Plate Thigh Tasset and Abs', '4', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Nord Plate Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
         e := newLVLI(e, destFile, 'TWA Nordic Carved Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00NordicCarvedBikini1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00NordicCarvedBikini2', '1', '1');
@@ -1880,20 +2195,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nordic Carved Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nordic Carved Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Nordic Carved Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'ARMO', 'Panty-ThongOpenFur-Nordic_Carved', '1', '1');
-        e := newLVLI(e, destFile, 'TWA Bandit Nordic Carved Body', '0', '1', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Nordic Carved Armors', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Nordic Carved Thongs', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Nordic Carved Pauldron', '2', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Nordic Carved Thigh Tasset and Abs', '4', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Nordic Carved Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Bandits', '1', '1');
-        e := newLVLI(e, destFile, 'TWA Bandit Sets Body', '0', '0', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Bandit Leather Body', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Bandit Iron Body', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Bandit Steel Body', '1', '5');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Bandit Nord Plate Body', '1', '14');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Bandit Nordic Carved Body', '1', '25');
         e := newLVLI(e, destFile, 'TWA Elven Accessories', '70', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00EVB_gorge_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00EVB_gorge_2', '1', '1');
@@ -1956,12 +2257,10 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Elven Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Elven Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Elven Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Elven', '1', '1');
         e := newLVLI(e, destFile, 'TWA Thalmor Body', '25', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00EVB_gorge_1tha', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00EVB_robe_1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00EVB_thong_1tha', '1', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-ThalmorArmor', '1', '1');
         e := newLVLI(e, destFile, 'TWA Thalmor Gauntlets', '25', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00Evb_gaunt_1tha', '1', '1');
         e := newLVLI(e, destFile, 'TWA Thalmor Boots', '25', '0', '1', '0');
@@ -2024,7 +2323,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Blades Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Blades Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Blades Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Blades', '1', '1');
         e := newLVLI(e, destFile, 'TWA Orcish Accessories', '70', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_gorget_1hv', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00OCA_gorget_1lg', '1', '1');
@@ -2069,7 +2367,193 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Orcish Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Orcish Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Orcish Accessories', '3', '1');
-        if Assigned(panties) then addToLVLI(destFile, e, panties, 'LVLI', 'Panties-Orcish', '1', '1');
+    end;
+    if Assigned(fileCocoDemon) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileCocoDemon)); 
+        e := GenerateCocoDemon(destFile, e);
+        if Assigned(AnyNecromancerPrefix) then begin
+            AnyNecromancerPrefix := 'multiple';
+        end else begin 
+            AnyNecromancerPrefix := 'COCO demon';
+        end;
+    end;
+    if Assigned(fileCocoWitch) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileCocoWitch)); 
+        e := GenerateCocoWitch(destFile, e);
+        if Assigned(AnyWarlockPrefix) then begin
+            AnyWarlockPrefix := 'multiple';
+        end else begin 
+            AnyWarlockPrefix := 'COCO witch';
+        end;
+    end;
+    if Assigned(fileCocoAssassin) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileCocoAssassin));
+        e := newLVLI(e, destFile, 'COCO assassin1', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_heels1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_horn1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklace1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_legbelt1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_underwear1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp1b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti1c', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp1b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask1b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti1b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex1b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove1b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset1b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots1b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex1b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex1b', '1', '1');
+        e := newLVLI(e, destFile, 'COCO assassin2', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp2b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti2c', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp2b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask2b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti2b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex2b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove2b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset2b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots2b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex2b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex2b', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_heels2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_horn2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklace2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_legbelt2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_underwear2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex2', '1', '1');
+        e := newLVLI(e, destFile, 'COCO assassin3', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_heels3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_horn3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklace3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_legbelt3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_underwear3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex3', '1', '1');
+        e := newLVLI(e, destFile, 'COCO assassin4', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_heels4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_horn4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklace4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_legbelt4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_underwear4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex4', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots4b', '1', '1');
+        e := newLVLI(e, destFile, 'COCO assassin5', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_heels5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_horn5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklace5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_legbelt5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_underwear5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corset5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex5', '1', '1');
+        addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex5', '1', '1');
+        e := newLVLI(e, destFile, 'COCO assassin', '0', '0', '1', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO assassin1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO assassin2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO assassin3', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO assassin4', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO assassin5', '1', '1');
+    end;
+    if Assigned(fileChristineUndead) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileChristineUndead));
+        e := newLVLI(e, destFile, 'CHUD Upper', '0', '0', '1', '0');
+        addToLVLI(destFile, e, fileChristineUndead, 'ARMO', '00DSChosenUndeadUpperDM', '1', '1');
+        addToLVLI(destFile, e, fileChristineUndead, 'ARMO', '00DSChosenUndeadUpper', '1', '1');
+        e := newLVLI(e, destFile, 'CHUD Set', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'CHUD Upper', '1', '1');
+        addToLVLI(destFile, e, fileChristineUndead, 'ARMO', '00DSChosenUndeadLower', '1', '1');
+    end;
+    if Assigned(fileChristineNocturnal) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileChristineNocturnal));
+    end;
+    if Assigned(fileChristineBlackMagic) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileChristineBlackMagic));
+    end;
+    if Assigned(fileChristineDeadlyDesire) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileChristineDeadlyDesire));
+        e := newLVLI(e, destFile, 'CHDD Upper', '0', '0', '1', '0');
+        addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDUpper', '1', '1');
+        addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDUpperSlutty', '1', '1');
+        e := newLVLI(e, destFile, 'CHDD Shoulder', '0', '0', '1', '0');
+        addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDShoulderA', '1', '1');
+        addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDShoulderB', '1', '1');
+        e := newLVLI(e, destFile, 'CHDD Boots', '0', '0', '1', '0');
+        addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDBootsA', '1', '1');
+        addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDBootsSluttyA', '1', '1');
+        addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDBootsB', '1', '1');
+        addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDBootsSluttyB', '1', '1');
+        e := newLVLI(e, destFile, 'CHDD Set', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'CHDD Upper', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHDD Shoulder', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHDD Boots', '1', '1');
+        addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDPanty', '1', '1');
+    end;
+    if Assigned(fileChristinePriestess) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileChristinePriestess));
+        for i := 1 to 7 do begin
+            s := IntToStr(i);
+            e := newLVLI(e, destFile, 'CHHP priestess'+s, '0', '1', '0', '0');
+            addToLVLI(destFile, e, fileChristinePriestess, 'ARMO', '00HPBBelly0'+s, '1', '1');
+            addToLVLI(destFile, e, fileChristinePriestess, 'ARMO', '00HPBLower0'+s, '1', '1');
+            addToLVLI(destFile, e, fileChristinePriestess, 'ARMO', '00HPBUpper0'+s, '1', '1');
+        end;
+        e := newLVLI(e, destFile, 'CHHP priestess', '0', '0', '1', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess1', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess2', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess3', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess4', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess5', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess6', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess7', '1', '1');
     end;
     if Assigned(e) then RemoveByIndex(e, 0, true);
 end;
@@ -2131,6 +2615,30 @@ begin
                 fileWizardHats := f;
             end else if fname = 'sirwho_Witchy_Wizard_Hats-Full.esp' then begin 
                 fileWitchyHats := f;
+            end else if fname = '[COCO]Lingerie.esp' then begin 
+                fileCocoLingerie := f;
+            end else if fname = '[COCO] Lace Lingerie Pack.esp' then begin 
+                fileCocoLace := f;
+            end else if fname = '[COCO] Witchiness.esp' then begin 
+                fileCocoWitch := f;
+            end else if fname = '[COCO] Demon Shade.esp' then begin   
+                fileCocoDemon := f;
+            end else if fname = '[COCO] Shadow Assassin.esp' then begin   
+                fileCocoAssassin := f;
+            end else if fname = '[Christine] DS Chosen Undead.esp' then begin   
+                fileChristineUndead := f;
+            end else if fname = '[Christine] Nocturnal''s Embrace.esp' then begin   
+                fileChristineNocturnal := f;
+            end else if fname = '[Christine] Black Magic Grove.esp' then begin   
+                fileChristineBlackMagic := f;
+            end else if fname = '[Christine] Deadly Desire.esp' then begin   
+                fileChristineDeadlyDesire := f;
+            end else if fname = '[Christine] High Priestess Bikini.esp' then begin   
+                fileChristinePriestess := f;
+            end else if fname = 'HS2_bunyCostume.esp' then begin 
+                fileHS2Bunny := f;
+            end else if fname = 'KSO Mage Robes.esp' then begin 
+                fileKSOMage := f;
             end;
         end;
         if not Assigned(destinationFile) then begin
@@ -2323,32 +2831,6 @@ begin
     end;
 end;
 
-function AddPanties(newItems: IwbElement; panties:string): IwbElement;
-var
-    newItem: IwbElement;
-begin
-    if Assigned(filePantiesofskyrim) then begin
-        newItem := MainRecordByEditorID(GroupBySignature(filePantiesofskyrim, 'LVLI'), 'Panties-'+panties);
-        if not Assigned(newItem) then begin
-            raise Exception.Create('Panties not found: '+panties);
-        end;
-        AddMessage('OTFT (panties) '+FullPath(newItems)+' -> '+EditorID(newItem));
-        Result := ElementAssign(newItems, HighInteger, newItem, false);    
-    end;
-end;
-function AddPanty(newItems: IwbElement; panties:string): IwbElement;
-var
-    newItem: IwbElement;
-begin
-    if Assigned(filePantiesofskyrim) then begin
-        newItem := MainRecordByEditorID(GroupBySignature(filePantiesofskyrim, 'ARMO'), 'Panty-'+panties);
-        if not Assigned(newItem) then begin 
-            raise Exception.Create('Panty not found: '+panties);
-        end;
-        AddMessage('OTFT (panties) '+FullPath(newItems)+' -> '+EditorID(newItem));
-        Result := ElementAssign(newItems, HighInteger, newItem, false);    
-    end;
-end;
 
 function ModifyFemaleOutfit(oldOutfitRecord, newOutfitRecord: IwbElement): IwbElement;
 var
@@ -2373,7 +2855,7 @@ var
     isBanditBoss: Boolean;
     magicType: string;
     magicLevel: string;
-    pantiesAdded:Boolean;
+    pantiesFinal: string;
 begin      
     (* CREATING NEW FEMALE-ONLY ARMOR BASED ON SOME RULES *)
     (* IT CHECKS WHAT ARMOR MODS ARE INSTALLED AND AUTOMATICALLY USES THEM *)
@@ -2382,7 +2864,7 @@ begin
     oldOutfitId := EditorID(oldOutfitRecord);
     isBandit := pos('Bandit', oldOutfitId) > 0;
     isBanditBoss := pos('Boss', oldOutfitId) > 0;
-    pantiesAdded := false;
+    pantiesFinal := nil;
     if isLVLI then begin
         oldOutfitItems := ElementByPath(oldOutfitRecord, 'Leveled List Entries');
         newOutfitItems := ElementByPath(newOutfitRecord, 'Leveled List Entries');
@@ -2392,21 +2874,16 @@ begin
         if StartsStr('Armor', oldOutfitId) then begin
             if StartsStr('ArmorStormcloak', oldOutfitId) then begin
                 if StartsStr('ArmorStormcloakMarkarth', oldOutfitId) then begin
-                    AddPanties(newOutfitItems, 'TheReach');    
-                    pantiesAdded := true;
+                    pantiesItemId := 'Panties-TheReach';    
                 end else if StartsStr('ArmorStormcloakRiften', oldOutfitId) then begin
-                    AddPanties(newOutfitItems, 'TheRift');    
-                    pantiesAdded := true;
+                    pantiesItemId := 'Panties-TheRift';    
                 end else begin
-                    AddPanties(newOutfitItems, 'Stormcloak');    
-                    pantiesAdded := true;
+                    pantiesItemId := 'Panties-Stormcloak';    
                 end;
             end else if StartsStr('ArmorHaafingar', oldOutfitId) then begin
-                AddPanties(newOutfitItems, 'Haafingar');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Haafingar';    
             end else if StartsStr('ArmorSummerset', oldOutfitId) then begin
-                AddPanties(newOutfitItems, 'Summerset');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Summerset';    
             end;
         end else if StartsStr('hyd_', oldOutfitId) then begin
             newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'any_lingerie');
@@ -2429,138 +2906,107 @@ begin
                     exit;  
                 end;
             end;
+        end else if StartsStr('College', oldOutfitId) then begin
         end else if StartsStr('Guard', oldOutfitId) then begin
             if StartsStr('GuardFalkreath', oldOutfitId) then begin
-                AddPanties(newOutfitItems, 'Falkreath');
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Falkreath';
             end else if StartsStr('GuardPale', oldOutfitId) then begin
-                AddPanties(newOutfitItems, 'ThePale');
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-ThePale';
             end else if StartsStr('Whiterun', oldOutfitId) then begin
-                AddPanties(newOutfitItems, 'Whiterun');
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Whiterun';
             end else if StartsStr('Winterhold', oldOutfitId) then begin
-                AddPanties(newOutfitItems, 'Winterhold');
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Winterhold';
             end else if StartsStr('GuardSons', oldOutfitId) then begin
-                AddPanties(newOutfitItems, 'Stormcloak');
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Stormcloak';
             end else if StartsStr('GuardOutfit', oldOutfitId) then begin
                 if StartsStr('GuardOutfitHjaalmarch', oldOutfitId) then begin
-                    AddPanties(newOutfitItems, 'Hjaalmarch');
-                    pantiesAdded := true;
+                    pantiesItemId := 'Panties-Hjaalmarch';
                 end else if StartsStr('GuardOutfitRift', oldOutfitId) then begin
-                    AddPanties(newOutfitItems, 'TheRift');
-                    pantiesAdded := true;
+                    pantiesItemId := 'Panties-TheRift';
                 end;
             end;
         end else if StartsStr('DLC1', oldOutfitId) then begin
             if oldOutfitId = 'DLC1LD_KatriaOutfit' then begin
-                AddPanties(newOutfitItems, 'Steel');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Steel';    
             end else if oldOutfitId = 'DLC1OutfitSorine' then begin
-                AddPanties(newOutfitItems, 'Dawnguard-Light');
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Dawnguard-Light';
             end else if StartsStr('DLC1OutfitDawnguard', oldOutfitId) then begin
                 if EndsStr('Heavy', oldOutfitId) then begin
-                    AddPanties(newOutfitItems, 'Dawnguard-Heavy');
-                    pantiesAdded := true;
+                    pantiesItemId := 'Panties-Dawnguard-Heavy';
                 end else begin
-                    AddPanties(newOutfitItems, 'Dawnguard-Light');
-                    pantiesAdded := true;
+                    pantiesItemId := 'Panties-Dawnguard-Light';
                 end;
             end;
         end else if StartsStr('CidhnaMineGuardOutfit', oldOutfitId) then begin
-            AddPanties(newOutfitItems, 'TheReach');    
-            pantiesAdded := true;
+            pantiesItemId := 'Panties-TheReach';    
         end else if StartsStr('ReachHoldGuardOutfit', oldOutfitId) then begin
-            AddPanties(newOutfitItems, 'TheReach');    
-            pantiesAdded := true;
+            pantiesItemId := 'Panties-TheReach';    
         end else if StartsStr('Clothes', oldOutfitId) then begin
         end else if StartsStr('CW', oldOutfitId) then begin
             if pos('Sons', oldOutfitId) > 0 then begin
-                AddPanties(newOutfitItems, 'Stormcloak');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Stormcloak';    
             end else if oldOutfitId = 'CWSiegeArmorImperialWhiterunOutfit' then begin
-                AddPanties(newOutfitItems, 'Whiterun');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Whiterun';    
             end;
         end else if oldOutfitId = 'MavenBlackBriarOutfit' then begin
-            AddPanty(newOutfitItems, 'Tangang-Maven-1');    
-            pantiesAdded := true;
+            pantiesItemId := 'Panty-Tangang-Maven-1';    
         end else if StartsStr('Jarl', oldOutfitId) then begin
             if StartsStr('JarlClothesElisif', oldOutfitId) then begin
-                AddPanty(newOutfitItems, 'Control-Elisif-1');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panty-Control-Elisif-1';    
             end else if StartsStr('JarlClothesLaila', oldOutfitId) then begin
-                AddPanty(newOutfitItems, 'Tangang-Laila-1');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panty-Tangang-Laila-1';    
             end;
         end else if StartsStr('PlayerHousecarlOutfit', oldOutfitId) then begin
-            AddPanties(newOutfitItems, 'Housecarl');    
-            pantiesAdded := true;
+            pantiesItemId := 'Panties-Housecarl';    
         end else if StartsStr('Hunter', oldOutfitId) then begin
-            AddPanties(newOutfitItems, 'Hunter');    
-            pantiesAdded := true;
+            pantiesItemId := 'Panties-Hunter';    
         end else if StartsStr('ThievesGuild', oldOutfitId) then begin
             if oldOutfitId='ThievesGuildKarliahOutfit' then begin
-                AddPanties(newOutfitItems, 'TG-Karliah');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-TG-Karliah';    
             end else if oldOutfitId='ThievesGuildSapphireOutfit' then begin
-                AddPanties(newOutfitItems, 'TG-Sapphire');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-TG-Sapphire';    
             end else if oldOutfitId='ThievesGuildToniliaOutfit' then begin
-                AddPanties(newOutfitItems, 'TG-Tonilia');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-TG-Tonilia';    
             end else if oldOutfitId='ThievesGuildVexOutfit' then begin  
-                AddPanties(newOutfitItems, 'TG-Vex');   
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-TG-Vex';   
             end;
         end else if StartsStr('MonkOutfit', oldOutfitId) then begin
-            AddPanties(newOutfitItems, 'Monk-1-Basic');    
-            pantiesAdded := true;
+            pantiesItemId := 'Panties-Monk-1-Basic';    
         end else if StartsStr('DA05Hunter', oldOutfitId) then begin
-            AddPanties(newOutfitItems, 'Hunter');    
-            pantiesAdded := true;
+            pantiesItemId := 'Panties-Hunter';    
         end else if StartsStr('Dawnguard', oldOutfitId) then begin
-            AddPanties(newOutfitItems, 'Dawnguard-Light');    
-            pantiesAdded := true;
+            pantiesItemId := 'Panties-Dawnguard-Light';    
         end else if StartsStr('DB', oldOutfitId) then begin
             if oldOutfitId = 'DBWeddingOutfit' then begin
-                AddPanty(newOutfitItems, 'Thongsimple-Bride-1');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panty-Thongsimple-Bride-1';    
             end else begin
-                AddPanties(newOutfitItems, 'DB');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-DB';    
             end;
         end else if StartsStr('DA13', oldOutfitId) then begin
             if (oldOutfitId = 'DA13HeavyOutfit') or (oldOutfitId = 'DA13LightOutfit') then begin
-                AddPanties(newOutfitItems, 'Bandits');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Bandits';    
             end else if (oldOutfitId = 'DA13MissileOutfit') or (oldOutfitId = 'DA13RobeOutfit') then begin
-                AddPanties(newOutfitItems, 'Afflicted');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Afflicted';    
             end;
         end else if StartsStr('DLC2', oldOutfitId) then begin    
             if StartsStr('DLC2SV02Thalmor', oldOutfitId) then begin    
-                AddPanties(newOutfitItems, 'ThalmorArmor');    
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-ThalmorArmor';    
             end else if ('DLC2dunFrostmoonOutfitHjordis' = oldOutfitId) or ('DLC2dunFrostmoonOutfitRakel' = oldOutfitId) then begin    
-                AddPanties(newOutfitItems, 'Forsworn');
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Forsworn';
             end else if 'DLC2MoragTongOutfit' = oldOutfitId then begin    
-                AddPanties(newOutfitItems, 'MoragTong');
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-MoragTong';
             end;
         end;
     end;
-    
+    if Assigned(pantiesItemId) then begin
+        pantiesFinal := pantiesItemId;
+    end;
     for i := ElementCount(oldOutfitItems)-1 downto 0 do begin
         oldOutfitItem := ElementByIndex(oldOutfitItems, i);
         if isLVLI then begin
             oldOutfitRef := ElementByPath(oldOutfitItem, 'LVLO\Reference');
         end else begin
-            oldOutfitRef := oldOutfitItem
+            oldOutfitRef := oldOutfitItem;
         end;
         oldOutfitRef := LinksTo(oldOutfitRef);
         newOutfitRef := nil;
@@ -2581,8 +3027,7 @@ begin
                 pantiesItemId := 'Panties-Daedric';
                 tawobaItemId := 'TEW Daedric ';
             end else if StartsStr('DA16VaerminaRobes', oldItemId) then begin
-                AddPanties(newOutfitItems, 'Monk-Vaermina');
-                pantiesAdded := true;
+                pantiesItemId := 'Panties-Monk-Vaermina';
             end else if StartsStr('DLC2', oldItemId) then begin
                 if StartsStr('DLC2ArmorNordicHeavy', oldItemId) then begin
                     tawobaItemId := 'TWA Nordic Carved ';
@@ -2613,69 +3058,79 @@ begin
                 oldItemPrefix := 'Draugr';
                 pantiesItemId := 'Panties-Draugr';
             end else if StartsStr('EnchClothes', oldItemId) then begin
+                magicType := nil;
                 if StartsStr('EnchClothesRobesMage', oldItemId) then begin
                     oldItemPrefix := 'EnchClothesRobesMage';
+                    magicType := AnyMagePrefix;
                 end else if StartsStr('EnchClothesMageRobes', oldItemId) then begin    
                     oldItemPrefix := 'EnchClothesMageRobes';
                     if StartsStr('EnchClothesMageRobesApp', oldItemId) then begin 
                         oldItemPrefix := 'EnchClothesMageRobesApp';
                     end;
+                    magicType := AnyMagePrefix;
                 end else if StartsStr('EnchClothesNecroRobes', oldItemId) then begin    
                     oldItemPrefix := 'EnchClothesNecroRobes';
                     if StartsStr('EnchClothesNecroRobesHooded', oldItemId) then begin 
                         oldItemPrefix := 'EnchClothesNecroRobesHooded';
                     end;
+                    magicType := AnyNecromancerPrefix;
                 end else if StartsStr('EnchClothesWarlockRobes', oldItemId) then begin    
                     oldItemPrefix := 'EnchClothesWarlockRobes';
                     if StartsStr('EnchClothesWarlockRobesHooded', oldItemId) then begin 
                         oldItemPrefix := 'EnchClothesWarlockRobesHooded';
                     end;
+                    magicType := AnyWarlockPrefix;
                 end;
-                magicType := nil;
-                if Assigned(oldItemPrefix) then begin
+                
+                if Assigned(magicType) then begin
                     if StartsStr(oldItemPrefix+'Illusion', oldItemId) then begin    
                         oldItemPrefix:=oldItemPrefix+'Illusion';
-                        magicType := 'Illusion';
+                        magicType := magicType+'Illusion';
                     end else if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
                         oldItemPrefix:=oldItemPrefix+'Destruction';
-                        magicType := 'Destruction';
+                        magicType := magicType+'Destruction';
                     end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
                         oldItemPrefix:=oldItemPrefix+'MagickaRate';
-                        magicType := 'MagickaRate';
+                        magicType := magicType+'MagickaRate';
                     end else if StartsStr(oldItemPrefix+'Regen', oldItemId) then begin    
                         oldItemPrefix:=oldItemPrefix+'Regen';
-                        magicType := 'MagickaRate';
+                        magicType := magicType+'MagickaRate';
                     end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
                         oldItemPrefix:=oldItemPrefix+'Conjuration';
-                        magicType := 'Conjuration';
+                        magicType := magicType+'Conjuration';
                     end else if StartsStr(oldItemPrefix+'Restoration', oldItemId) then begin    
                         oldItemPrefix:=oldItemPrefix+'Restoration';
-                        magicType := 'Restoration';
+                        magicType := magicType+'Restoration';
                     end else if StartsStr(oldItemPrefix+'Alteration', oldItemId) then begin    
                         oldItemPrefix:=oldItemPrefix+'Alteration';
-                        magicType := 'Alteration';
+                        magicType := magicType+'Alteration';
                     end else if StartsStr(oldItemPrefix+'Hood', oldItemId) then begin    
                         removeOldItem := true;
+                        magicType := nil;
+                    end else begin
+                        magicType := nil;
                     end;
                 end;
                 if Assigned(magicType) then begin
                     magicLevel := nil;
                     if StartsStr(oldItemPrefix+'01', oldItemId) then begin    
-                        magicLevel := 'Novice';
+                        magicLevel := '1';
                     end else if StartsStr(oldItemPrefix+'02', oldItemId) then begin    
-                        magicLevel := 'Apprentice';
+                        magicLevel := '2';
                     end else if StartsStr(oldItemPrefix+'03', oldItemId) then begin    
-                        magicLevel := 'Adept';
+                        magicLevel := '3';
                     end else if StartsStr(oldItemPrefix+'04', oldItemId) then begin    
-                        magicLevel := 'Expert';
+                        magicLevel := '4';
                     end else if StartsStr(oldItemPrefix+'05', oldItemId) then begin    
-                        magicLevel := 'Master';
+                        magicLevel := '5';
                     end else if StartsStr(oldItemPrefix+'06', oldItemId) then begin    
-                        magicLevel := 'Master'; // TODO: Add support for minor, major, peerless, etc. robes
+                        magicLevel := '6'; 
                     end;
                     if Assigned(magicLevel) then begin
                         removeOldItem := true;
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'MM_'+magicLevel+'MageSets'+magicType);
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, magicType+magicLevel);
+                        if not Assigned(newOutfitRef) then begin raise Exception.Create(magicType+magicLevel+' not found'); end;
+                        pantiesFinal := 'skip';
                     end;
                 end;
             end else if StartsStr('Clothes', oldItemId) then begin
@@ -2684,12 +3139,31 @@ begin
                     tawobaItemId := 'TWA Thalmor ';
                     pantiesItemId := 'Panties-ThalmorArmor';
                 end else if StartsStr('ClothesRobes', oldItemId) then begin    
+                end else if StartsStr('ClothesMonkRobes', oldItemId) then begin 
+                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHHP priestess');
+                    if Assigned(fileChristinePriestess) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHHP priestess not found'); end;
+                    removeOldItem := Assigned(newOutfitRef);
+                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
+                    if not Assigned(newOutfitRef) then begin
+                        if StartsStr('ClothesMonkRobesColorRed', oldItemId) then begin
+                            pantiesItemId := 'Panties-Monk-1-Basic';
+                        end else if StartsStr('ClothesMonkRobesColorBrown', oldItemId) then begin
+                            pantiesItemId := 'Panties-Monk-2-Brown';
+                        end else if StartsStr('ClothesMonkRobesColorGrey', oldItemId) then begin
+                            pantiesItemId := 'Panties-Monk-3-Grey';
+                        end else begin
+                            pantiesItemId := 'Panties-Monk-4-White';
+                        end;
+                    end;
+                    //panties := 'Panties-Monk-5-Green';
                 end else if StartsStr('ClothesNecromancer', oldItemId) then begin    
                     if StartsStr('ClothesNecromancerRobes', oldItemId) then begin
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'MM_ApprenticeMageSetsMagickaRate');
-                        removeOldItem := true;
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyNecromancerPrefix);
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        if Assigned(AnyNecromancerPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHHP priestess not found'); end;
+                        removeOldItem := Assigned(newOutfitRef);
                     end else if oldItemId = 'ClothesNecromancerBoots' then begin
-                        removeOldItem := true;
+                        removeOldItem := Assigned(AnyNecromancerPrefix);
                     end;
                 end else if StartsStr('ClothesCollege', oldItemId) then begin    
                 end else if StartsStr('ClothesFarm', oldItemId) then begin    
@@ -2716,17 +3190,40 @@ begin
                 end else if StartsStr('ClothesMerchant', oldItemId) then begin    
                     oldItemPrefix := 'ClothesMerchant';  
                     pantiesItemId := 'Panties-Big Vendor';
-                end else if StartsStr('ClothesPrisoner', oldItemId) then begin    
+                end else if StartsStr('ClothesBeggar', oldItemId) then begin
+                    if oldItemId = 'ClothesBeggarRags' then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
+                        removeOldItem := Assigned(newOutfitRef);
+                    end else if oldItemId = 'ClothesBeggarHat' then begin
+                    end else if oldItemId = 'ClothesBeggarBoots' then begin   
+                    end;
+                end else if StartsStr('ClothesPrisoner', oldItemId) then begin
+                    if oldItemId = 'ClothesPrisonerRags' then begin
+                        newOutfitRef := MainRecordByEditorID(GroupBySignature(fileChristineUndead, 'ARMO'), '00DSChosenUndeadLower');
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('00DSChosenUndeadLower not found'); end;
+                        removeOldItem := Assigned(newOutfitRef);
+                    end else if oldItemId = 'ClothesPrisonerTunic' then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
+                        removeOldItem := Assigned(newOutfitRef);
+                    end else if oldItemId = 'ClothesPrisonerShoes' then begin   
+                    end;
                 end else if StartsStr('ClothesWarlock', oldItemId) then begin    
                     if StartsStr('ClothesWarlockRobes', oldItemId) then begin
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'MM_ApprenticeMageSetsMagickaRate');
-                        removeOldItem := true;
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyWarlockPrefix+'MagickaRate3');
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        if Assigned(AnyWarlockPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
+                        removeOldItem := Assigned(newOutfitRef);
                     end else if oldItemId = 'ClothesWarlockBoots' then begin
-                        removeOldItem := true;
+                        removeOldItem := Assigned(AnyWarlockPrefix);
                     end;
                 end else if StartsStr('ClothesMG', oldItemId) then begin    
                     if 'ClothesMGBoots' = oldItemId then begin    
-                        removeOldItem := true;
+                        removeOldItem := Assigned(AnyMagePrefix);
                     end;    
                 end;
                 if Assigned(oldItemPrefix) and Assigned(pantiesItemId) then begin
@@ -2862,6 +3359,7 @@ begin
                 removeOldItem := true;
                 if StartsStr(oldItemPrefix+'Cuirass', oldItemId) or StartsStr(oldItemPrefix+'robes', oldItemId) then begin
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Body');
+                    pantiesFinal := 'skip';
                 end else if StartsStr(oldItemPrefix+'Gauntlets', oldItemId) or StartsStr(oldItemPrefix+'Gloves', oldItemId) then begin    
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Gauntlets');
                 end else if StartsStr(oldItemPrefix+'Boots', oldItemId) then begin    
@@ -2872,11 +3370,9 @@ begin
                     removeOldItem := false;
                     tawobaItemId := nil;
                 end;
-            end else if not pantiesAdded and Assigned(pantiesItemId) and hasPantiesofskyrim then begin
-                // add panties only if TAWOBA/TEWOBA hasn't added them already
-                pantiesAdded := true;
-                recGrp := GroupBySignature(filePantiesofskyrim, 'LVLI');
-                newOutfitRef := MainRecordByEditorID(recGrp, pantiesItemId);
+            end;
+            if Assigned(pantiesItemId) and not Assigned(pantiesFinal) then begin
+                pantiesFinal := pantiesItemId;
             end;
         end;
         if removeOldItem then begin
@@ -2899,11 +3395,50 @@ begin
                 AddMessage('LVLI '+FullPath(newOutfitRecord)+' == '+EditorID(oldOutfitRef));
             end;
         end;
-        
-    end; 
+    end;
 
+    if isLVLI then begin
+        if GetElementEditValues(newOutfitRecord, 'LVLF\Use All') <> '1' then begin
+            pantiesFinal := nil;
+        end;
+    end;
+    
+    if Assigned(pantiesFinal) and Assigned(filePantiesofskyrim) and (pantiesFinal <> 'skip') then begin
+        if StartsStr('Panties-', pantiesFinal) then begin
+            newOutfitRef := MainRecordByEditorID(GroupBySignature(filePantiesofskyrim, 'LVLI'), pantiesFinal);
+        end else begin
+            newOutfitRef := MainRecordByEditorID(GroupBySignature(filePantiesofskyrim, 'ARMO'), pantiesFinal);
+        end;
+        if not Assigned(newOutfitRef) then begin raise Exception.Create('Panties not found: '+pantiesFinal);end;
+        if not Assigned(newOutfitItems) then begin raise Exception.Create('reached unreachable code. Items: '+FullPath(newOutfitItems));end;
+        newOutfitItem := ElementAssign(newOutfitItems, HighInteger, nil, false); 
+        if not Assigned(newOutfitItem) then begin raise Exception.Create('reached unreachable code3. Items: '+FullPath(newOutfitRecord));end;
+        if isLVLI then begin
+            AddMessage('LVLI (panties) '+FullPath(newOutfitRecord)+' += '+EditorID(newOutfitRef));
+            SetElementNativeValues(newOutfitItem, 'LVLO\Count', '1');
+            SetElementNativeValues(newOutfitItem, 'LVLO\Level', '1');
+            newOutfitItem := ElementByPath(newOutfitItem, 'LVLO\Reference');
+            if not Assigned(newOutfitItem) then begin
+                raise Exception.Create('reached unreachable code2. Items: '+FullPath(newOutfitItems));
+            end;
+        end else begin
+            AddMessage('OTFT (panties) '+FullPath(newOutfitRecord)+' += '+EditorID(newOutfitRef));
+        end;
+        ElementAssign(newOutfitItem, LowInteger, newOutfitRef, false);
+    end;
 end;
-
+function MoveToTop(e: IwbElement):integer;
+begin
+    while CanMoveUp(e) do begin
+        MoveUp(e);
+    end;
+end;
+function MoveToBottom(e: IwbElement):integer;
+begin
+    while CanMoveDown(e) do begin
+        MoveDown(e);
+    end;
+end;
 function isFemale(lvln: IwbElement): Boolean;
 var
     i: integer;
@@ -2927,6 +3462,25 @@ begin
             end;
         end;
         Result := true;
+    end;
+end;
+
+function isInFaction(npc: IwbMainRecord; faction:string): Boolean;
+var
+    i:integer;
+    f: string;
+begin
+    Result := false;
+    npc := ElementByPath(npc, 'Factions');
+    for i:= 1 to ElementCount(npc) do begin
+        f := EditorID(LinksTo(ElementByPath(ElementByIndex(npc, i), 'Faction')));
+        if not Assigned(f) then begin
+            raise Exception.Create('Error in isInFaction for '+FullPath(npc)+' at '+IntToStr(i));
+        end;
+        if f = faction then begin
+            Result := true;
+            exit;
+        end;
     end;
 end;
 
@@ -2976,44 +3530,50 @@ begin
         end;
         selectedElement := newOutfitRecord;
     end;
-    defaultOutfitElement := ElementByPath(selectedElement, 'TPLT');
-    oldOutfitRecord := LinksTo(defaultOutfitElement);
-    templateLoopsBackToMale := EndsStr('M', EditorID(oldOutfitRecord)) and (EditorID(oldOutfitRecord) = copy(selectedElementId, 1, length(selectedElementId)-1)+'M');
-    if templateLoopsBackToMale then begin
-        defaultOutfitElement := ElementByPath(oldOutfitRecord, 'TPLT');
+    if GetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory') = '1' then begin
+        defaultOutfitElement := ElementByPath(selectedElement, 'TPLT');
         oldOutfitRecord := LinksTo(defaultOutfitElement);
-    end;
-    if Assigned(defaultOutfitElement) then begin
-        AddMessage(EditorID(selectedElement)+' calls RecursiveCopyLVLN('+Name(oldOutfitRecord)+')');
-        newOutfitRecord := RecursiveCopyLVLN(oldOutfitRecord);
-        AddMessage(FullPath(defaultOutfitElement)+'='+Name(LinksTo(defaultOutfitElement))+' -> '+Name(newOutfitRecord));
-        if Assigned(newOutfitRecord) then begin
-            SetEditValue(defaultOutfitElement, Name(newOutfitRecord));
+        if not Assigned(oldOutfitRecord) then begin
+            raise Exception.Create('Use Inventory = 1 despite having no template '+FullPath(selectedElement));
         end;
-    end;
-    
-    (*if GetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory') = '1' then begin
-      SetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory', '0');
-    end;*)
-    
-    if templateLoopsBackToMale then begin
-        defaultOutfitElement := ElementByPath(oldOutfitRecord, 'DOFT');
-        if not Assigned(defaultOutfitElement) then begin
-            defaultOutfitElement := ElementByPath(selectedElement, 'DOFT');
+        templateLoopsBackToMale := EndsStr('M', EditorID(oldOutfitRecord)) and (EditorID(oldOutfitRecord) = copy(selectedElementId, 1, length(selectedElementId)-1)+'M');
+        if templateLoopsBackToMale then begin
+            defaultOutfitElement := ElementByPath(oldOutfitRecord, 'TPLT');
+            oldOutfitRecord := LinksTo(defaultOutfitElement);
+        end;
+        if Assigned(defaultOutfitElement) then begin
+            AddMessage(EditorID(selectedElement)+' calls RecursiveCopyLVLN('+Name(oldOutfitRecord)+')');
+            newOutfitRecord := RecursiveCopyLVLN(oldOutfitRecord);
+            AddMessage(FullPath(defaultOutfitElement)+'='+Name(LinksTo(defaultOutfitElement))+' -> '+Name(newOutfitRecord));
+            if Assigned(newOutfitRecord) then begin
+                SetEditValue(defaultOutfitElement, Name(newOutfitRecord));
+            end;
         end;
     end else begin
+    // if GetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory') = '1' then begin
+    //   SetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory', '0');
+    // end;
+    
+    // if templateLoopsBackToMale then begin
+    //     defaultOutfitElement := ElementByPath(oldOutfitRecord, 'DOFT');
+    //     if not Assigned(defaultOutfitElement) then begin
+    //         defaultOutfitElement := ElementByPath(selectedElement, 'DOFT');
+    //     end;
+    // end else begin
+    //     defaultOutfitElement := ElementByPath(selectedElement, 'DOFT');
+    // end;
         defaultOutfitElement := ElementByPath(selectedElement, 'DOFT');
-    end;
-    if Assigned(defaultOutfitElement) then begin
-        oldOutfitRecord := LinksTo(defaultOutfitElement);
-        newOutfitRecord := CopyOutfit(oldOutfitRecord);
-        AddMessage(EditorID(selectedElement)+':'+EditorID(oldOutfitRecord)+'->'+EditorID(newOutfitRecord)+'/'+Name(newOutfitRecord)); 
-        SetEditValue(defaultOutfitElement, Name(newOutfitRecord));
-    end else if StartsStr('hyd_', selectedElementId) then begin
-        defaultOutfitElement := Add(selectedElement, 'DOFT', true);
-        newOutfitRecord := MainRecordByEditorID(outfitRecordGroup, 'AnyLingerieOutfit');
-        AddMessage(FullPath(defaultOutfitElement)+': naked -> '+EditorID(newOutfitRecord)); 
-        SetEditValue(defaultOutfitElement, Name(newOutfitRecord));
+        if Assigned(defaultOutfitElement) then begin
+            oldOutfitRecord := LinksTo(defaultOutfitElement);
+            newOutfitRecord := CopyOutfit(oldOutfitRecord);
+            AddMessage(EditorID(selectedElement)+':'+EditorID(oldOutfitRecord)+'->'+EditorID(newOutfitRecord)+'/'+Name(newOutfitRecord)); 
+            SetEditValue(defaultOutfitElement, Name(newOutfitRecord));
+        end else if isInFaction(selectedElement, 'zbfFactionSlave') then begin
+            defaultOutfitElement := Add(selectedElement, 'DOFT', true);
+            newOutfitRecord := MainRecordByEditorID(outfitRecordGroup, 'AnyLingerieOutfit');
+            AddMessage(FullPath(defaultOutfitElement)+': naked -> '+EditorID(newOutfitRecord)); 
+            SetEditValue(defaultOutfitElement, Name(newOutfitRecord));
+        end;
     end;
     Result := selectedElement;
 end;
