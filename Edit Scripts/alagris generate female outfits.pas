@@ -651,14 +651,14 @@ begin
 end;
 
 
-function GenerateAnyMage(destFile: IwbFile; numOfLevels: integer; newPrefix, combinedPrefixes: string): string;
+function GenerateAnyMage(destFile: IwbFile; numOfLevels: integer; newPrefix, combinedPrefixes: string; minMagRateLvl, maxMagRateLvl:integer): string;
 var
     i: integer;
     e: IwbMainRecord;
 begin
     AddMessage('Combining (Mage prefixes) '+combinedPrefixes+' into '+newPrefix);
     for i := 1 to numOfLevels do begin
-        e := GenerateAnyMageForLevel(destFile, newPrefix, combinedPrefixes, i);
+        e := GenerateAnyMageForLevel(destFile, newPrefix, combinedPrefixes, i, minMagRateLvl, maxMagRateLvl);
     end;
     if StartsStr(newPrefix, EditorID(e)) then begin
         Result := newPrefix;
@@ -668,13 +668,13 @@ begin
         if pos('#', Result) <> 0 then begin raise Exception.Create('unreachable: '+combinedPrefixes+' -> '+newPrefix+', Result='+Result+', e='+FullPath(e)); end;
     end;
 end;
-function GenerateAnyMageForLevel(destFile: IwbFile; newPrefix, combinedPrefixes: string; levelNum:integer): IwbMainRecord;
+function GenerateAnyMageForLevel(destFile: IwbFile; newPrefix, combinedPrefixes: string; levelNum, minMagRateLvl, maxMagRateLvl:integer): IwbMainRecord;
 begin
     GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Conjuration', levelNum);
     GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Restoration', levelNum);
     GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Destruction', levelNum);
     GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Illusion', levelNum);
-    if (levelNum > 1) and (levelNum < 6) then begin
+    if (levelNum > minMagRateLvl) and (levelNum < maxMagRateLvl) then begin
         GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'MagickaRate', levelNum);
     end;
     Result := GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Alteration', levelNum);
@@ -3075,13 +3075,13 @@ begin
         AnyMonkId := EditorID(AnyMonk);
     end;
     if Assigned(AnyMagePrefix) then begin
-        AnyMagePrefix := GenerateAnyMage(destFile, 5, 'AnyMage_', AnyMagePrefix);
+        AnyMagePrefix := GenerateAnyMage(destFile, 5, 'AnyMage_', AnyMagePrefix, 0, 6);
     end;
     if Assigned(AnyNecromancerPrefix) then begin
-        AnyNecromancerPrefix := GenerateAnyMage(destFile, 6, 'AnyNecro_', AnyNecromancerPrefix);
+        AnyNecromancerPrefix := GenerateAnyMage(destFile, 6, 'AnyNecro_', AnyNecromancerPrefix, 1, 6);
     end;
     if Assigned(AnyWarlockPrefix) then begin
-        AnyWarlockPrefix := AnyWarlockPrefix(destFile, 6, 'AnyWarlock_', AnyWarlockPrefix);
+        AnyWarlockPrefix := AnyWarlockPrefix(destFile, 6, 'AnyWarlock_', AnyWarlockPrefix, 1, 6);
     end;
     if Assigned(KitchenLingerieId) then begin
         KitchenLingerie := combineLVLI(destFile, 'any_lingerie_kitchen', KitchenLingerieId, '');
@@ -3092,7 +3092,10 @@ begin
     //     KitchenLingerieId := AnyLingerieId;
     //     KitchenLingerieOutfit := AnyLingerieOutfit;
     end;
-
+    if pos('#', AnyMagePrefix) <> 0 then begin raise Exception.Create(AnyMagePrefix+' is invalid') end;
+    if pos('#', AnyVampirePrefix) <> 0 then begin raise Exception.Create(AnyVampirePrefix+' is invalid') end;
+    if pos('#', AnyWarlockPrefix) <> 0 then begin raise Exception.Create(AnyWarlockPrefix+' is invalid') end;
+    if pos('#', AnyNecromancerPrefix) <> 0 then begin raise Exception.Create(AnyNecromancerPrefix+' is invalid') end;
     if Assigned(e) then RemoveByIndex(e, 0, true);
 end;
 function makeSingletonOutfit(destFile: IwbFile; otftId: string; lvli: IwbMainRecord): IwbMainRecord;
@@ -3644,219 +3647,219 @@ begin
             end else if StartsStr('DA16VaerminaRobes', oldItemId) then begin
                 pantiesItemId := 'Panties-Monk-Vaermina';
             end else if StartsStr('DLC2', oldItemId) then begin
-                // if StartsStr('DLC2ArmorNordicHeavy', oldItemId) then begin
-                //     tawobaItemId := 'TWA Nordic Carved ';
-                //     oldItemPrefix := 'DLC2ArmorNordicHeavy';
-                //     pantiesItemId := 'Panties-Bandit-Boss';
-                // end else if StartsStr('DLC2EnchArmorChitin', oldItemId) then begin    
-                //     oldItemPrefix := 'DLC2EnchArmorChitin';
-                //     pantiesItemId := 'Panties-Chitin';
-                //     if StartsStr('DLC2EnchArmorChitinLight', oldItemId) then begin    
-                //         oldItemPrefix := 'DLC2EnchArmorChitinLight';
-                //     end else if StartsStr('DLC2EnchArmorChitinHeavy', oldItemId) then begin    
-                //         oldItemPrefix := 'DLC2EnchArmorChitinHeavy';
-                //     end;
-                // end else if StartsStr('DLC2ArmorChitin', oldItemId) then begin    
-                //     oldItemPrefix := 'DLC2ArmorChitin';
-                //     pantiesItemId := 'Panties-Chitin';
-                //     if StartsStr('DLC2ArmorChitinLight', oldItemId) then begin    
-                //         oldItemPrefix := 'DLC2ArmorChitinLight';
-                //     end else if StartsStr('DLC2ArmorChitinHeavy', oldItemId) then begin    
-                //         oldItemPrefix := 'DLC2ArmorChitinHeavy';
-                //     end;
-                // end else if StartsStr('DLC2ArmorBonemold', oldItemId) then begin    
-                //     oldItemPrefix := 'DLC2ArmorBonemold';
-                //     pantiesItemId := 'Panties-Bonemold';
-                // end;
+                if StartsStr('DLC2ArmorNordicHeavy', oldItemId) then begin
+                    tawobaItemId := 'TWA Nordic Carved ';
+                    oldItemPrefix := 'DLC2ArmorNordicHeavy';
+                    pantiesItemId := 'Panties-Bandit-Boss';
+                end else if StartsStr('DLC2EnchArmorChitin', oldItemId) then begin    
+                    oldItemPrefix := 'DLC2EnchArmorChitin';
+                    pantiesItemId := 'Panties-Chitin';
+                    if StartsStr('DLC2EnchArmorChitinLight', oldItemId) then begin    
+                        oldItemPrefix := 'DLC2EnchArmorChitinLight';
+                    end else if StartsStr('DLC2EnchArmorChitinHeavy', oldItemId) then begin    
+                        oldItemPrefix := 'DLC2EnchArmorChitinHeavy';
+                    end;
+                end else if StartsStr('DLC2ArmorChitin', oldItemId) then begin    
+                    oldItemPrefix := 'DLC2ArmorChitin';
+                    pantiesItemId := 'Panties-Chitin';
+                    if StartsStr('DLC2ArmorChitinLight', oldItemId) then begin    
+                        oldItemPrefix := 'DLC2ArmorChitinLight';
+                    end else if StartsStr('DLC2ArmorChitinHeavy', oldItemId) then begin    
+                        oldItemPrefix := 'DLC2ArmorChitinHeavy';
+                    end;
+                end else if StartsStr('DLC2ArmorBonemold', oldItemId) then begin    
+                    oldItemPrefix := 'DLC2ArmorBonemold';
+                    pantiesItemId := 'Panties-Bonemold';
+                end;
             end else if StartsStr('Draugr', oldItemId) then begin
                 tawobaItemId := 'TEW Ancient Nord ';
                 oldItemPrefix := 'Draugr';
                 pantiesItemId := 'Panties-Draugr';
             end else if StartsStr('EnchClothes', oldItemId) then begin
-                // magicType := nil;
-                // if StartsStr('EnchClothesRobesMage', oldItemId) then begin
-                //     oldItemPrefix := 'EnchClothesRobesMage';
-                //     magicType := AnyMagePrefix;
-                // end else if StartsStr('EnchClothesMageRobes', oldItemId) then begin    
-                //     oldItemPrefix := 'EnchClothesMageRobes';
-                //     if StartsStr('EnchClothesMageRobesApp', oldItemId) then begin 
-                //         oldItemPrefix := 'EnchClothesMageRobesApp';
-                //     end;
-                //     magicType := AnyMagePrefix;
-                // end else if StartsStr('EnchClothesNecroRobes', oldItemId) then begin    
-                //     oldItemPrefix := 'EnchClothesNecroRobes';
-                //     if StartsStr('EnchClothesNecroRobesHooded', oldItemId) then begin 
-                //         oldItemPrefix := 'EnchClothesNecroRobesHooded';
-                //     end;
-                //     magicType := AnyNecromancerPrefix;
-                // end else if StartsStr('EnchClothesWarlockRobes', oldItemId) then begin    
-                //     oldItemPrefix := 'EnchClothesWarlockRobes';
-                //     if StartsStr('EnchClothesWarlockRobesHooded', oldItemId) then begin 
-                //         oldItemPrefix := 'EnchClothesWarlockRobesHooded';
-                //     end;
-                //     magicType := AnyWarlockPrefix;
-                // end;
+                magicType := nil;
+                if StartsStr('EnchClothesRobesMage', oldItemId) then begin
+                    oldItemPrefix := 'EnchClothesRobesMage';
+                    magicType := AnyMagePrefix;
+                end else if StartsStr('EnchClothesMageRobes', oldItemId) then begin    
+                    oldItemPrefix := 'EnchClothesMageRobes';
+                    if StartsStr('EnchClothesMageRobesApp', oldItemId) then begin 
+                        oldItemPrefix := 'EnchClothesMageRobesApp';
+                    end;
+                    magicType := AnyMagePrefix;
+                end else if StartsStr('EnchClothesNecroRobes', oldItemId) then begin    
+                    oldItemPrefix := 'EnchClothesNecroRobes';
+                    if StartsStr('EnchClothesNecroRobesHooded', oldItemId) then begin 
+                        oldItemPrefix := 'EnchClothesNecroRobesHooded';
+                    end;
+                    magicType := AnyNecromancerPrefix;
+                end else if StartsStr('EnchClothesWarlockRobes', oldItemId) then begin    
+                    oldItemPrefix := 'EnchClothesWarlockRobes';
+                    if StartsStr('EnchClothesWarlockRobesHooded', oldItemId) then begin 
+                        oldItemPrefix := 'EnchClothesWarlockRobesHooded';
+                    end;
+                    magicType := AnyWarlockPrefix;
+                end;
                 
-                // if Assigned(magicType) then begin
-                //     if StartsStr(oldItemPrefix+'Illusion', oldItemId) then begin    
-                //         oldItemPrefix:=oldItemPrefix+'Illusion';
-                //         magicType := magicType+'Illusion';
-                //     end else if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
-                //         oldItemPrefix:=oldItemPrefix+'Destruction';
-                //         magicType := magicType+'Destruction';
-                //     end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
-                //         oldItemPrefix:=oldItemPrefix+'MagickaRate';
-                //         magicType := magicType+'MagickaRate';
-                //     end else if StartsStr(oldItemPrefix+'Regen', oldItemId) then begin    
-                //         oldItemPrefix:=oldItemPrefix+'Regen';
-                //         magicType := magicType+'MagickaRate';
-                //     end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
-                //         oldItemPrefix:=oldItemPrefix+'Conjuration';
-                //         magicType := magicType+'Conjuration';
-                //     end else if StartsStr(oldItemPrefix+'Restoration', oldItemId) then begin    
-                //         oldItemPrefix:=oldItemPrefix+'Restoration';
-                //         magicType := magicType+'Restoration';
-                //     end else if StartsStr(oldItemPrefix+'Alteration', oldItemId) then begin    
-                //         oldItemPrefix:=oldItemPrefix+'Alteration';
-                //         magicType := magicType+'Alteration';
-                //     end else if StartsStr(oldItemPrefix+'Hood', oldItemId) then begin    
-                //         removeOldItem := true;
-                //         magicType := nil;
-                //     end else begin
-                //         magicType := nil;
-                //     end;
-                // end;
-                // if Assigned(magicType) then begin
-                //     magicLevel := nil;
-                //     if StartsStr(oldItemPrefix+'01', oldItemId) then begin    
-                //         magicLevel := '1';
-                //     end else if StartsStr(oldItemPrefix+'02', oldItemId) then begin    
-                //         magicLevel := '2';
-                //     end else if StartsStr(oldItemPrefix+'03', oldItemId) then begin    
-                //         magicLevel := '3';
-                //     end else if StartsStr(oldItemPrefix+'04', oldItemId) then begin    
-                //         magicLevel := '4';
-                //     end else if StartsStr(oldItemPrefix+'05', oldItemId) then begin    
-                //         magicLevel := '5';
-                //     end else if StartsStr(oldItemPrefix+'06', oldItemId) then begin    
-                //         magicLevel := '6'; 
-                //     end;
-                //     if Assigned(magicLevel) then begin
-                //         removeOldItem := true;
-                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, magicType+magicLevel);
-                //         if not Assigned(newOutfitRef) then begin raise Exception.Create(magicType+magicLevel+' not found'); end;
-                //         pantiesFinal := 'skip';
-                //     end;
-                // end;
+                if Assigned(magicType) then begin
+                    if StartsStr(oldItemPrefix+'Illusion', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Illusion';
+                        magicType := magicType+'Illusion';
+                    end else if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Destruction';
+                        magicType := magicType+'Destruction';
+                    end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'MagickaRate';
+                        magicType := magicType+'MagickaRate';
+                    end else if StartsStr(oldItemPrefix+'Regen', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Regen';
+                        magicType := magicType+'MagickaRate';
+                    end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Conjuration';
+                        magicType := magicType+'Conjuration';
+                    end else if StartsStr(oldItemPrefix+'Restoration', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Restoration';
+                        magicType := magicType+'Restoration';
+                    end else if StartsStr(oldItemPrefix+'Alteration', oldItemId) then begin    
+                        oldItemPrefix:=oldItemPrefix+'Alteration';
+                        magicType := magicType+'Alteration';
+                    end else if StartsStr(oldItemPrefix+'Hood', oldItemId) then begin    
+                        removeOldItem := true;
+                        magicType := nil;
+                    end else begin
+                        magicType := nil;
+                    end;
+                end;
+                if Assigned(magicType) then begin
+                    magicLevel := nil;
+                    if StartsStr(oldItemPrefix+'01', oldItemId) then begin    
+                        magicLevel := '1';
+                    end else if StartsStr(oldItemPrefix+'02', oldItemId) then begin    
+                        magicLevel := '2';
+                    end else if StartsStr(oldItemPrefix+'03', oldItemId) then begin    
+                        magicLevel := '3';
+                    end else if StartsStr(oldItemPrefix+'04', oldItemId) then begin    
+                        magicLevel := '4';
+                    end else if StartsStr(oldItemPrefix+'05', oldItemId) then begin    
+                        magicLevel := '5';
+                    end else if StartsStr(oldItemPrefix+'06', oldItemId) then begin    
+                        magicLevel := '6'; 
+                    end;
+                    if Assigned(magicLevel) then begin
+                        removeOldItem := true;
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, magicType+magicLevel);
+                        if not Assigned(newOutfitRef) then begin raise Exception.Create(magicType+magicLevel+' not found'); end;
+                        pantiesFinal := 'skip';
+                    end;
+                end;
             end else if StartsStr('Clothes', oldItemId) then begin
-                // if StartsStr('ClothesThalmor', oldItemId) then begin
-                //     oldItemPrefix := 'ClothesThalmor';
-                //     tawobaItemId := 'TWA Thalmor ';
-                //     pantiesItemId := 'Panties-ThalmorArmor';
-                // end else if StartsStr('ClothesRobes', oldItemId) then begin    
-                // end else if StartsStr('ClothesMonkRobes', oldItemId) then begin 
-                //     newOutfitRef := AnyMonk;
-                //     removeOldItem := Assigned(newOutfitRef);
-                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
-                //     if not Assigned(newOutfitRef) then begin
-                //         if StartsStr('ClothesMonkRobesColorRed', oldItemId) then begin
-                //             pantiesItemId := 'Panties-Monk-1-Basic';
-                //         end else if StartsStr('ClothesMonkRobesColorBrown', oldItemId) then begin
-                //             pantiesItemId := 'Panties-Monk-2-Brown';
-                //         end else if StartsStr('ClothesMonkRobesColorGrey', oldItemId) then begin
-                //             pantiesItemId := 'Panties-Monk-3-Grey';
-                //         end else begin
-                //             pantiesItemId := 'Panties-Monk-4-White';
-                //         end;
-                //     end;
-                //     //panties := 'Panties-Monk-5-Green';
-                // end else if StartsStr('ClothesNecromancer', oldItemId) then begin    
-                //     if StartsStr('ClothesNecromancerRobes', oldItemId) then begin
-                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyNecromancerPrefix+'MagickaRate2');
-                //         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                //         if Assigned(AnyNecromancerPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyNecromancerPrefix+'MagickaRate2 not found'); end;
-                //         removeOldItem := Assigned(newOutfitRef);
-                //     end else if oldItemId = 'ClothesNecromancerBoots' then begin
-                //         removeOldItem := Assigned(AnyNecromancerPrefix);
-                //     end;
-                // end else if StartsStr('ClothesCollege', oldItemId) then begin    
-                // end else if StartsStr('ClothesFarm', oldItemId) then begin    
-                //     oldItemPrefix := 'ClothesFarm';  
-                //     pantiesItemId := 'Panties-TheNine';
-                // end else if StartsStr('ClothesChef', oldItemId) then begin    
-                //     oldItemPrefix := 'ClothesChef';  
-                //     pantiesItemId := 'Panties-TheNine';
-                //     if oldItemId = 'ClothesChef' then begin
-                //         newOutfitRef := KitchenLingerie;
-                //     end;
-                //     removeOldItem := Assigned(KitchenLingerie);
-                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
-                // end else if StartsStr('ClothesFine', oldItemId) then begin    
-                //     oldItemPrefix := 'ClothesFine';  
-                //     pantiesItemId := 'Panties-TheNine';
-                // end else if StartsStr('ClothesWench', oldItemId) then begin  
-                //     oldItemPrefix := 'ClothesWench';  
-                //     pantiesItemId := 'Panties-TheNine';
-                //     newOutfitRef := AnyBarkeeper;
-                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                //     removeOldItem := Assigned(newOutfitRef);
-                // end else if StartsStr('ClothesMiner', oldItemId) then begin    
-                //     oldItemPrefix := 'ClothesMiner';  
-                //     pantiesItemId := 'Panties-TheNine';
-                // end else if StartsStr('ClothesJarl', oldItemId) then begin    
-                //     oldItemPrefix := 'ClothesJarl';  
-                //     pantiesItemId := 'Panties-Ebony';
-                // end else if StartsStr('ClothesBlackSmith', oldItemId) then begin    
-                //     oldItemPrefix := 'ClothesBlackSmith';  
-                //     pantiesItemId := 'Panties-TheNine';
-                //     newOutfitRef := AnyBlacksmith;
-                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                //     removeOldItem := Assigned(newOutfitRef);
-                // end else if StartsStr('ClothesBarKeeper', oldItemId) then begin    
-                //     oldItemPrefix := 'ClothesBarKeeper';  
-                //     pantiesItemId := 'Panties-General-Vendor';
-                //     newOutfitRef := AnyBarkeeper;
-                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                //     removeOldItem := Assigned(newOutfitRef);
-                // end else if StartsStr('ClothesMerchant', oldItemId) then begin    
-                //     oldItemPrefix := 'ClothesMerchant';  
-                //     pantiesItemId := 'Panties-Big Vendor';
-                // end else if StartsStr('ClothesBeggar', oldItemId) then begin
-                //     if oldItemId = 'ClothesBeggarRags' then begin
-                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
-                //         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                //         if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
-                //         removeOldItem := Assigned(newOutfitRef);
-                //     end else if oldItemId = 'ClothesBeggarHat' then begin
-                //     end else if oldItemId = 'ClothesBeggarBoots' then begin   
-                //     end;
-                // end else if StartsStr('ClothesPrisoner', oldItemId) then begin
-                //     if oldItemId = 'ClothesPrisonerRags' then begin
-                //         newOutfitRef := MainRecordByEditorID(GroupBySignature(fileChristineUndead, 'ARMO'), '00DSChosenUndeadLower');
-                //         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                //         if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('00DSChosenUndeadLower not found'); end;
-                //         removeOldItem := Assigned(newOutfitRef);
-                //     end else if oldItemId = 'ClothesPrisonerTunic' then begin
-                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
-                //         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                //         if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
-                //         removeOldItem := Assigned(newOutfitRef);
-                //     end else if oldItemId = 'ClothesPrisonerShoes' then begin   
-                //     end;
-                // end else if StartsStr('ClothesWarlock', oldItemId) then begin    
-                //     if StartsStr('ClothesWarlockRobes', oldItemId) then begin
-                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyWarlockPrefix+'MagickaRate3');
-                //         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                //         if Assigned(AnyWarlockPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyWarlockPrefix+'MagickaRate3 not found'); end;
-                //         removeOldItem := Assigned(newOutfitRef);
-                //     end else if oldItemId = 'ClothesWarlockBoots' then begin
-                //         removeOldItem := Assigned(AnyWarlockPrefix);
-                //     end;
-                // end else if StartsStr('ClothesMG', oldItemId) then begin    
-                //     if 'ClothesMGBoots' = oldItemId then begin    
-                //         removeOldItem := Assigned(AnyMagePrefix);
-                //     end;    
-                // end;
+                if StartsStr('ClothesThalmor', oldItemId) then begin
+                    oldItemPrefix := 'ClothesThalmor';
+                    tawobaItemId := 'TWA Thalmor ';
+                    pantiesItemId := 'Panties-ThalmorArmor';
+                end else if StartsStr('ClothesRobes', oldItemId) then begin    
+                end else if StartsStr('ClothesMonkRobes', oldItemId) then begin 
+                    newOutfitRef := AnyMonk;
+                    removeOldItem := Assigned(newOutfitRef);
+                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
+                    if not Assigned(newOutfitRef) then begin
+                        if StartsStr('ClothesMonkRobesColorRed', oldItemId) then begin
+                            pantiesItemId := 'Panties-Monk-1-Basic';
+                        end else if StartsStr('ClothesMonkRobesColorBrown', oldItemId) then begin
+                            pantiesItemId := 'Panties-Monk-2-Brown';
+                        end else if StartsStr('ClothesMonkRobesColorGrey', oldItemId) then begin
+                            pantiesItemId := 'Panties-Monk-3-Grey';
+                        end else begin
+                            pantiesItemId := 'Panties-Monk-4-White';
+                        end;
+                    end;
+                    //panties := 'Panties-Monk-5-Green';
+                end else if StartsStr('ClothesNecromancer', oldItemId) then begin    
+                    if StartsStr('ClothesNecromancerRobes', oldItemId) then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyNecromancerPrefix+'MagickaRate2');
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        if Assigned(AnyNecromancerPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyNecromancerPrefix+'MagickaRate2 not found'); end;
+                        removeOldItem := Assigned(newOutfitRef);
+                    end else if oldItemId = 'ClothesNecromancerBoots' then begin
+                        removeOldItem := Assigned(AnyNecromancerPrefix);
+                    end;
+                end else if StartsStr('ClothesCollege', oldItemId) then begin    
+                end else if StartsStr('ClothesFarm', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesFarm';  
+                    pantiesItemId := 'Panties-TheNine';
+                end else if StartsStr('ClothesChef', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesChef';  
+                    pantiesItemId := 'Panties-TheNine';
+                    if oldItemId = 'ClothesChef' then begin
+                        newOutfitRef := KitchenLingerie;
+                    end;
+                    removeOldItem := Assigned(KitchenLingerie);
+                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
+                end else if StartsStr('ClothesFine', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesFine';  
+                    pantiesItemId := 'Panties-TheNine';
+                end else if StartsStr('ClothesWench', oldItemId) then begin  
+                    oldItemPrefix := 'ClothesWench';  
+                    pantiesItemId := 'Panties-TheNine';
+                    newOutfitRef := AnyBarkeeper;
+                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                    removeOldItem := Assigned(newOutfitRef);
+                end else if StartsStr('ClothesMiner', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesMiner';  
+                    pantiesItemId := 'Panties-TheNine';
+                end else if StartsStr('ClothesJarl', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesJarl';  
+                    pantiesItemId := 'Panties-Ebony';
+                end else if StartsStr('ClothesBlackSmith', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesBlackSmith';  
+                    pantiesItemId := 'Panties-TheNine';
+                    newOutfitRef := AnyBlacksmith;
+                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                    removeOldItem := Assigned(newOutfitRef);
+                end else if StartsStr('ClothesBarKeeper', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesBarKeeper';  
+                    pantiesItemId := 'Panties-General-Vendor';
+                    newOutfitRef := AnyBarkeeper;
+                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                    removeOldItem := Assigned(newOutfitRef);
+                end else if StartsStr('ClothesMerchant', oldItemId) then begin    
+                    oldItemPrefix := 'ClothesMerchant';  
+                    pantiesItemId := 'Panties-Big Vendor';
+                end else if StartsStr('ClothesBeggar', oldItemId) then begin
+                    if oldItemId = 'ClothesBeggarRags' then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
+                        removeOldItem := Assigned(newOutfitRef);
+                    end else if oldItemId = 'ClothesBeggarHat' then begin
+                    end else if oldItemId = 'ClothesBeggarBoots' then begin   
+                    end;
+                end else if StartsStr('ClothesPrisoner', oldItemId) then begin
+                    if oldItemId = 'ClothesPrisonerRags' then begin
+                        newOutfitRef := MainRecordByEditorID(GroupBySignature(fileChristineUndead, 'ARMO'), '00DSChosenUndeadLower');
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('00DSChosenUndeadLower not found'); end;
+                        removeOldItem := Assigned(newOutfitRef);
+                    end else if oldItemId = 'ClothesPrisonerTunic' then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
+                        removeOldItem := Assigned(newOutfitRef);
+                    end else if oldItemId = 'ClothesPrisonerShoes' then begin   
+                    end;
+                end else if StartsStr('ClothesWarlock', oldItemId) then begin    
+                    if StartsStr('ClothesWarlockRobes', oldItemId) then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyWarlockPrefix+'MagickaRate3');
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        if Assigned(AnyWarlockPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyWarlockPrefix+'MagickaRate3 not found'); end;
+                        removeOldItem := Assigned(newOutfitRef);
+                    end else if oldItemId = 'ClothesWarlockBoots' then begin
+                        removeOldItem := Assigned(AnyWarlockPrefix);
+                    end;
+                end else if StartsStr('ClothesMG', oldItemId) then begin    
+                    if 'ClothesMGBoots' = oldItemId then begin    
+                        removeOldItem := Assigned(AnyMagePrefix);
+                    end;    
+                end;
                 if Assigned(oldItemPrefix) and Assigned(pantiesItemId) then begin
                     if StartsStr(oldItemPrefix+'Boots', oldItemId) or StartsStr(oldItemPrefix+'Hat', oldItemId) or StartsStr(oldItemPrefix+'Gloves', oldItemId) then begin
                         pantiesItemId := nil;
@@ -3878,75 +3881,75 @@ begin
                 oldItemPrefix := 'Forsworn';
                 pantiesItemId := 'Panties-Forsworn';
             end else if StartsStr('DLC1', oldItemId) then begin
-                // if StartsStr('DLC1Armor', oldItemId) then begin
-                //     if StartsStr('DLC1ArmorVampire', oldItemId) then begin
-                //         oldItemPrefix := 'DLC1ArmorVampire';
-                //         pantiesItemId := 'Panties-VampireBasicBlack';
-                //         if StartsStr('DLC1ArmorVampireArmor', oldItemId) then begin
-                //             oldItemPrefix := 'DLC1ArmorVampireArmor';
-                //             if (oldItemId = 'DLC1ArmorVampireArmorValerica') or (oldItemId = 'DLC1ArmorVampireArmorRoyalRed') then begin
-                //                 newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench');
-                //             end else begin
-                //                 newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
-                //             end;
-                //             if Assigned(AnyVampirePrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
-                //             removeOldItem := Assigned(newOutfitRef);
-                //             if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                //         end else begin
-                //             removeOldItem := Assigned(fileChristineDeadlyDesire);
-                //         end; 
-                //     end;
-                // end else if StartsStr('DLC1ClothesVampireLord', oldItemId) then begin
-                //     oldItemPrefix := 'DLC1ClothesVampireLord';
-                //     if StartsStr('DLC1ClothesVampireLordRoyal', oldItemId) then begin
-                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench');
-                //     end else begin
-                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
-                //     end;
-                //     if Assigned(fileChristineDeadlyDesire) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
-                //     removeOldItem := Assigned(newOutfitRef);
-                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                // end else if StartsStr('DLC1EnchClothesVampireRobes', oldItemId) then begin
-                //     if Assigned(fileChristineDeadlyDesire) then begin
-                //         oldItemPrefix := 'DLC1EnchClothesVampireRobes';
-                //         if Assigned(magicType) then begin
-                //             if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
-                //                 magicType := 'Destruction';
-                //             end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
-                //                 magicType := 'MagickaRate';
-                //             end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
-                //                 magicType := 'Conjuration';
-                //             end else begin
-                //                 magicType := nil;
-                //             end;
-                //         end;
-                //         if not Assigned(magicType) then begin
-                //             raise Exception.Create('Couldn''t parse magic type: '+oldItemId);
-                //         end;
-                //         oldItemPrefix:=oldItemPrefix+magicType;
-                //         magicLevel := nil;
-                //         if StartsStr(oldItemPrefix+'01', oldItemId) then begin    
-                //             magicLevel := '1';
-                //         end else if StartsStr(oldItemPrefix+'02', oldItemId) then begin    
-                //             magicLevel := '2';
-                //         end else if StartsStr(oldItemPrefix+'03', oldItemId) then begin    
-                //             magicLevel := '3';
-                //         end else if StartsStr(oldItemPrefix+'04', oldItemId) then begin    
-                //             magicLevel := '4';
-                //         end else if StartsStr(oldItemPrefix+'05', oldItemId) then begin    
-                //             magicLevel := '5';
-                //         end else if StartsStr(oldItemPrefix+'06', oldItemId) then begin    
-                //             magicLevel := '6'; 
-                //         end;
-                //         if not Assigned(magicLevel) then begin
-                //             raise Exception.Create('Couldn''t parse magic level: '+oldItemId);
-                //         end;
-                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench'+magic_type+magicLevel);
-                //         removeOldItem := true;
-                //         if not Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' Ench'+magic_type+magicLevel+' not found'); end;
-                //         pantiesFinal := 'skip';
-                //     end;
-                // end;
+                if StartsStr('DLC1Armor', oldItemId) then begin
+                    if StartsStr('DLC1ArmorVampire', oldItemId) then begin
+                        oldItemPrefix := 'DLC1ArmorVampire';
+                        pantiesItemId := 'Panties-VampireBasicBlack';
+                        if StartsStr('DLC1ArmorVampireArmor', oldItemId) then begin
+                            oldItemPrefix := 'DLC1ArmorVampireArmor';
+                            if (oldItemId = 'DLC1ArmorVampireArmorValerica') or (oldItemId = 'DLC1ArmorVampireArmorRoyalRed') then begin
+                                newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench');
+                            end else begin
+                                newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
+                            end;
+                            if Assigned(AnyVampirePrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
+                            removeOldItem := Assigned(newOutfitRef);
+                            if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        end else begin
+                            removeOldItem := Assigned(fileChristineDeadlyDesire);
+                        end; 
+                    end;
+                end else if StartsStr('DLC1ClothesVampireLord', oldItemId) then begin
+                    oldItemPrefix := 'DLC1ClothesVampireLord';
+                    if StartsStr('DLC1ClothesVampireLordRoyal', oldItemId) then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench');
+                    end else begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
+                    end;
+                    if Assigned(fileChristineDeadlyDesire) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
+                    removeOldItem := Assigned(newOutfitRef);
+                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                end else if StartsStr('DLC1EnchClothesVampireRobes', oldItemId) then begin
+                    if Assigned(fileChristineDeadlyDesire) then begin
+                        oldItemPrefix := 'DLC1EnchClothesVampireRobes';
+                        if Assigned(magicType) then begin
+                            if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
+                                magicType := 'Destruction';
+                            end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
+                                magicType := 'MagickaRate';
+                            end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
+                                magicType := 'Conjuration';
+                            end else begin
+                                magicType := nil;
+                            end;
+                        end;
+                        if not Assigned(magicType) then begin
+                            raise Exception.Create('Couldn''t parse magic type: '+oldItemId);
+                        end;
+                        oldItemPrefix:=oldItemPrefix+magicType;
+                        magicLevel := nil;
+                        if StartsStr(oldItemPrefix+'01', oldItemId) then begin    
+                            magicLevel := '1';
+                        end else if StartsStr(oldItemPrefix+'02', oldItemId) then begin    
+                            magicLevel := '2';
+                        end else if StartsStr(oldItemPrefix+'03', oldItemId) then begin    
+                            magicLevel := '3';
+                        end else if StartsStr(oldItemPrefix+'04', oldItemId) then begin    
+                            magicLevel := '4';
+                        end else if StartsStr(oldItemPrefix+'05', oldItemId) then begin    
+                            magicLevel := '5';
+                        end else if StartsStr(oldItemPrefix+'06', oldItemId) then begin    
+                            magicLevel := '6'; 
+                        end;
+                        if not Assigned(magicLevel) then begin
+                            raise Exception.Create('Couldn''t parse magic level: '+oldItemId);
+                        end;
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench'+magic_type+magicLevel);
+                        removeOldItem := true;
+                        if not Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' Ench'+magic_type+magicLevel+' not found'); end;
+                        pantiesFinal := 'skip';
+                    end;
+                end;
             end else if StartsStr('DlC01ClothesVampire', oldItemId) then begin
                 if oldItemId = 'DlC01ClothesVampire' then begin
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
@@ -3955,130 +3958,130 @@ begin
                     removeOldItem := Assigned(fileChristineDeadlyDesire);
                 end;
             end else if StartsStr('Armor', oldItemId) then begin
-                // if StartsStr('ArmorIron', oldItemId) then begin
-                //     if isBandit then begin
-                //         tawobaItemId := 'TWA Bandit Iron ';
-                //         pantiesItemId := 'Panties-Bandits';
-                //     end else begin
-                //         tawobaItemId := 'TWA Iron ';
-                //         pantiesItemId := 'Panties-Iron';
-                //     end;
-                //     if StartsStr('ArmorIronBanded', oldItemId) then begin
-                //         oldItemPrefix := 'ArmorIronBanded';
-                //     end else begin
-                //         oldItemPrefix := 'ArmorIron';
-                //     end;
-                // end else if StartsStr('ArmorThievesGuild', oldItemId) then begin
-                //     oldItemPrefix := 'ArmorThievesGuild';
-                //     pantiesItemId := 'Panties-TG-Basic';
-                //     // we don't want to replace the armor that is given to player, because we can't assume the player's gender
-                //     if (pos('Player', oldItemId) = 0) and (pos('Leader', oldItemId) = 0) then begin 
-                //         if pos('Cuirass', oldItemId) = 0 then begin
-                //             removeOldItem := Assigned(fileChristineNocturnal);
-                //         end else begin
-                //             newOutfitRef := AnyThievesGuild;
-                //             removeOldItem := Assigned(newOutfitRef);
-                //             if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                //         end;
+                if StartsStr('ArmorIron', oldItemId) then begin
+                    if isBandit then begin
+                        tawobaItemId := 'TWA Bandit Iron ';
+                        pantiesItemId := 'Panties-Bandits';
+                    end else begin
+                        tawobaItemId := 'TWA Iron ';
+                        pantiesItemId := 'Panties-Iron';
+                    end;
+                    if StartsStr('ArmorIronBanded', oldItemId) then begin
+                        oldItemPrefix := 'ArmorIronBanded';
+                    end else begin
+                        oldItemPrefix := 'ArmorIron';
+                    end;
+                end else if StartsStr('ArmorThievesGuild', oldItemId) then begin
+                    oldItemPrefix := 'ArmorThievesGuild';
+                    pantiesItemId := 'Panties-TG-Basic';
+                    // we don't want to replace the armor that is given to player, because we can't assume the player's gender
+                    if (pos('Player', oldItemId) = 0) and (pos('Leader', oldItemId) = 0) then begin 
+                        if pos('Cuirass', oldItemId) = 0 then begin
+                            removeOldItem := Assigned(fileChristineNocturnal);
+                        end else begin
+                            newOutfitRef := AnyThievesGuild;
+                            removeOldItem := Assigned(newOutfitRef);
+                            if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                        end;
                         
-                //     end;
-                // end else if StartsStr('ArmorLeather', oldItemId) then begin    
-                //     if isBandit then begin
-                //         tawobaItemId := 'TWA Bandit Leather ';
-                //         pantiesItemId := 'Panties-Bandits';
-                //     end else begin
-                //         tawobaItemId := 'TWA Leather ';
-                //         pantiesItemId := 'Panties-LeatherArmor';
-                //     end;
-                //     oldItemPrefix := 'ArmorLeather';
-                // end else if StartsStr('ArmorCompanions', oldItemId) then begin    
-                //     oldItemPrefix := 'ArmorCompanions';
-                //     tawobaItemId := 'TWA Wolf ';
-                //     pantiesItemId := 'Panties-Wolf';
-                // end else if StartsStr('ArmorBandit', oldItemId) then begin    
-                //     if isBanditBoss then begin
-                //         tawobaItemId := 'TWA Leather ';
-                //         pantiesItemId := 'Panties-Bandit-Boss';
-                //     end else begin
-                //         tawobaItemId := 'TWA Bandit Leather ';
-                //         pantiesItemId := 'Panties-Bandits';
-                //     end;
-                //     oldItemPrefix := 'ArmorBandit';
-                // end else if StartsStr('ArmorBlades', oldItemId) then begin    
-                //     tawobaItemId := 'TWA Blades ';
-                //     oldItemPrefix := 'ArmorBlades';
-                //     pantiesItemId := 'Panties-Blades';
-                // end else if StartsStr('ArmorSteel', oldItemId) then begin    
-                //     if StartsStr('ArmorSteelPlate', oldItemId) then begin    
-                //         oldItemPrefix := 'ArmorSteelPlate';
-                //     end else begin
-                //         oldItemPrefix := 'ArmorSteel';
-                //     end;
-                //     tawobaItemId := 'TWA Steel ';
-                //     pantiesItemId := 'Panties-Steel';
-                // end else if StartsStr('ArmorElven', oldItemId) then begin    
-                //     tawobaItemId := 'TWA Elven ';
-                //     pantiesItemId := 'Panties-Elven';
-                //     if StartsStr('ArmorElvenLight', oldItemId) then begin    
-                //         oldItemPrefix := 'ArmorElvenLight';
-                //     end else begin
-                //         oldItemPrefix := 'ArmorElven';
-                //     end;
-                // end else if StartsStr('ArmorNightingale', oldItemId) then begin    
-                //     oldItemPrefix := 'ArmorNightingale';
-                //     pantiesItemId := 'Panties-Nightingale';
-                // end else if StartsStr('ArmorPenitus', oldItemId) then begin    
-                //     oldItemPrefix := 'ArmorPenitus';
-                //     pantiesItemId := 'Panties-Penitus';
-                // end else if StartsStr('ArmorDaedric', oldItemId) then begin    
-                //     tawobaItemId := 'TEW Daedric ';
-                //     oldItemPrefix := 'ArmorDaedric';
-                //     pantiesItemId := 'Panties-Daedric';
-                // end else if StartsStr('ArmorDragonscale', oldItemId) then begin    
-                //     tawobaItemId := 'TEW Dragonscale ';
-                //     oldItemPrefix := 'ArmorDragonscale';
-                //     pantiesItemId := 'Panties-Dragonscale';
-                // end else if StartsStr('ArmorDragonplate', oldItemId) then begin    
-                //     tawobaItemId := 'TWA Dragon Bone ';
-                //     oldItemPrefix := 'ArmorDragonplate';
-                //     pantiesItemId := 'Panties-DragonBone';
-                // end else if StartsStr('ArmorDwarven', oldItemId) then begin    
-                //     tawobaItemId := 'TWA Dwarven ';
-                //     oldItemPrefix := 'ArmorDwarven';
-                //     pantiesItemId := 'Panties-Dwarven';
-                // end else if StartsStr('ArmorEbony', oldItemId) then begin    
-                //     tawobaItemId := 'TWA Ebony ';
-                //     oldItemPrefix := 'ArmorEbony';
-                //     pantiesItemId := 'Panties-Ebony';
-                // end else if StartsStr('ArmorHide', oldItemId) then begin    
-                //     tawobaItemId := 'TWA Hide ';
-                //     oldItemPrefix := 'ArmorHide';
-                //     pantiesItemId := 'Panties-Hide';
-                // end else if StartsStr('ArmorStudded', oldItemId) then begin    
-                //     tawobaItemId := 'TWA Hide ';
-                //     oldItemPrefix := 'ArmorStudded';
-                //     pantiesItemId := 'Panties-Hide';
-                // end else if StartsStr('ArmorScaled', oldItemId) then begin    
-                //     tawobaItemId := 'TEW Scaled ';
-                //     oldItemPrefix := 'ArmorScaled';
-                //     pantiesItemId := 'Panties-Scaled';
-                // end else if StartsStr('ArmorDraugr', oldItemId) then begin    
-                //     tawobaItemId := 'TEW Ancient Nord ';
-                //     oldItemPrefix := 'ArmorDraugr';
-                //     pantiesItemId := 'Panties-Draugr';
-                // end else if StartsStr('ArmorOrcish', oldItemId) then begin    
-                //     tawobaItemId := 'TWA Orcish ';
-                //     oldItemPrefix := 'ArmorOrcish';
-                //     pantiesItemId := 'Panties-Orcish';
-                // end else if StartsStr('ArmorImperial', oldItemId) then begin    
-                //     tawobaItemId := 'TEW Imperial Heavy ';
-                //     pantiesItemId := 'Panties-Imperial';
-                //     if StartsStr('ArmorImperialLight', oldItemId) then begin    
-                //         oldItemPrefix := 'ArmorImperialLight';
-                //     end else begin
-                //         oldItemPrefix := 'ArmorImperial';
-                //     end;
-                // end;
+                    end;
+                end else if StartsStr('ArmorLeather', oldItemId) then begin    
+                    if isBandit then begin
+                        tawobaItemId := 'TWA Bandit Leather ';
+                        pantiesItemId := 'Panties-Bandits';
+                    end else begin
+                        tawobaItemId := 'TWA Leather ';
+                        pantiesItemId := 'Panties-LeatherArmor';
+                    end;
+                    oldItemPrefix := 'ArmorLeather';
+                end else if StartsStr('ArmorCompanions', oldItemId) then begin    
+                    oldItemPrefix := 'ArmorCompanions';
+                    tawobaItemId := 'TWA Wolf ';
+                    pantiesItemId := 'Panties-Wolf';
+                end else if StartsStr('ArmorBandit', oldItemId) then begin    
+                    if isBanditBoss then begin
+                        tawobaItemId := 'TWA Leather ';
+                        pantiesItemId := 'Panties-Bandit-Boss';
+                    end else begin
+                        tawobaItemId := 'TWA Bandit Leather ';
+                        pantiesItemId := 'Panties-Bandits';
+                    end;
+                    oldItemPrefix := 'ArmorBandit';
+                end else if StartsStr('ArmorBlades', oldItemId) then begin    
+                    tawobaItemId := 'TWA Blades ';
+                    oldItemPrefix := 'ArmorBlades';
+                    pantiesItemId := 'Panties-Blades';
+                end else if StartsStr('ArmorSteel', oldItemId) then begin    
+                    if StartsStr('ArmorSteelPlate', oldItemId) then begin    
+                        oldItemPrefix := 'ArmorSteelPlate';
+                    end else begin
+                        oldItemPrefix := 'ArmorSteel';
+                    end;
+                    tawobaItemId := 'TWA Steel ';
+                    pantiesItemId := 'Panties-Steel';
+                end else if StartsStr('ArmorElven', oldItemId) then begin    
+                    tawobaItemId := 'TWA Elven ';
+                    pantiesItemId := 'Panties-Elven';
+                    if StartsStr('ArmorElvenLight', oldItemId) then begin    
+                        oldItemPrefix := 'ArmorElvenLight';
+                    end else begin
+                        oldItemPrefix := 'ArmorElven';
+                    end;
+                end else if StartsStr('ArmorNightingale', oldItemId) then begin    
+                    oldItemPrefix := 'ArmorNightingale';
+                    pantiesItemId := 'Panties-Nightingale';
+                end else if StartsStr('ArmorPenitus', oldItemId) then begin    
+                    oldItemPrefix := 'ArmorPenitus';
+                    pantiesItemId := 'Panties-Penitus';
+                end else if StartsStr('ArmorDaedric', oldItemId) then begin    
+                    tawobaItemId := 'TEW Daedric ';
+                    oldItemPrefix := 'ArmorDaedric';
+                    pantiesItemId := 'Panties-Daedric';
+                end else if StartsStr('ArmorDragonscale', oldItemId) then begin    
+                    tawobaItemId := 'TEW Dragonscale ';
+                    oldItemPrefix := 'ArmorDragonscale';
+                    pantiesItemId := 'Panties-Dragonscale';
+                end else if StartsStr('ArmorDragonplate', oldItemId) then begin    
+                    tawobaItemId := 'TWA Dragon Bone ';
+                    oldItemPrefix := 'ArmorDragonplate';
+                    pantiesItemId := 'Panties-DragonBone';
+                end else if StartsStr('ArmorDwarven', oldItemId) then begin    
+                    tawobaItemId := 'TWA Dwarven ';
+                    oldItemPrefix := 'ArmorDwarven';
+                    pantiesItemId := 'Panties-Dwarven';
+                end else if StartsStr('ArmorEbony', oldItemId) then begin    
+                    tawobaItemId := 'TWA Ebony ';
+                    oldItemPrefix := 'ArmorEbony';
+                    pantiesItemId := 'Panties-Ebony';
+                end else if StartsStr('ArmorHide', oldItemId) then begin    
+                    tawobaItemId := 'TWA Hide ';
+                    oldItemPrefix := 'ArmorHide';
+                    pantiesItemId := 'Panties-Hide';
+                end else if StartsStr('ArmorStudded', oldItemId) then begin    
+                    tawobaItemId := 'TWA Hide ';
+                    oldItemPrefix := 'ArmorStudded';
+                    pantiesItemId := 'Panties-Hide';
+                end else if StartsStr('ArmorScaled', oldItemId) then begin    
+                    tawobaItemId := 'TEW Scaled ';
+                    oldItemPrefix := 'ArmorScaled';
+                    pantiesItemId := 'Panties-Scaled';
+                end else if StartsStr('ArmorDraugr', oldItemId) then begin    
+                    tawobaItemId := 'TEW Ancient Nord ';
+                    oldItemPrefix := 'ArmorDraugr';
+                    pantiesItemId := 'Panties-Draugr';
+                end else if StartsStr('ArmorOrcish', oldItemId) then begin    
+                    tawobaItemId := 'TWA Orcish ';
+                    oldItemPrefix := 'ArmorOrcish';
+                    pantiesItemId := 'Panties-Orcish';
+                end else if StartsStr('ArmorImperial', oldItemId) then begin    
+                    tawobaItemId := 'TEW Imperial Heavy ';
+                    pantiesItemId := 'Panties-Imperial';
+                    if StartsStr('ArmorImperialLight', oldItemId) then begin    
+                        oldItemPrefix := 'ArmorImperialLight';
+                    end else begin
+                        oldItemPrefix := 'ArmorImperial';
+                    end;
+                end;
             end;
             if (StartsStr('TWA ', tawobaItemId) and hasTAWOBA) or (StartsStr('TEW ', tawobaItemId) and hasTEWOBA) then begin
                 removeOldItem := true;
