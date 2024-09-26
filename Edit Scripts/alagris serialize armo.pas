@@ -20,7 +20,7 @@ begin
       destfile := GetFile(selectedElement);
       AddMessage(GetFileName(destfile));
     end;
-    AddMessage('e := addToLVLI_(destFile, e, ''ARMO'', '''+EditorID(selectedElement)+''', ''0'', ''1'', ''0'', ''0'');')
+    AddMessage('addToLVLI_(destFile, e, ''ARMO'', '''+EditorID(selectedElement)+''', ''1'', ''1'');')
   end;
 end;
 
