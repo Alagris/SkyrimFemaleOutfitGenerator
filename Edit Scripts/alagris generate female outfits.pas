@@ -42,7 +42,6 @@ var
     fileDXsT: IwbFile;
     fileChristineKitchen: IwbFile;
     fileChristineAphrodite: IwbFile;
-    fileChristineAphrodite: IwbFile;
     fileNiniCatMaid: IwbFile;
     fileNiniChatNoir: IwbFile;
     fileNiniBlacksmith: IwbFile;
@@ -63,6 +62,8 @@ var
     AnyBlacksmithId: string;
     AnyBarkeeper: IwbMainRecord;
     AnyBarkeeperId: string;
+    AnyMonk: IwbMainRecord;
+    AnyMonkId: string;
     AnyVampirePrefix: string;
 
 function FileByName(fn: string): IwbFile;
@@ -276,6 +277,7 @@ begin
     e := GenerateKSOForMagicTypeAndLevel(destFile, e, 'Adept', magic_type, 3);
     e := GenerateKSOForMagicTypeAndLevel(destFile, e, 'Expert', magic_type, 4);
     e := GenerateKSOForMagicTypeAndLevel(destFile, e, 'Master', magic_type, 5);
+    Result := e;
 end;
 function GenerateKSOHood(destFile: IwbFile; e:IwbElement; level, levelNum:string): IwbElement;
 var
@@ -654,15 +656,16 @@ var
     i: integer;
     e: IwbMainRecord;
 begin
+    AddMessage('Combining (Mage prefixes) '+combinedPrefixes+' into '+newPrefix);
     for i := 1 to numOfLevels do begin
         e := GenerateAnyMageForLevel(destFile, newPrefix, combinedPrefixes, i);
     end;
     if StartsStr(newPrefix, EditorID(e)) then begin
         Result := newPrefix;
     end else begin
-        if combinedPrefixes[1] <> '#' then begin raise Exception.Create('unreachable: '+newPrefix+' -> '+combinedPrefixes);
-        Result := copy(combinedPrefixes, 1, length(combinedPrefixes)-1);
-        if pos('#', Result) <> 0 then begin raise Exception.Create('unreachable: '+newPrefix+' -> '+combinedPrefixes);
+        if combinedPrefixes[1] <> '#' then begin raise Exception.Create('unreachable: '+newPrefix+' -> '+combinedPrefixes); end;
+        Result := copy(combinedPrefixes, 2, length(combinedPrefixes)-1);
+        if pos('#', Result) <> 0 then begin raise Exception.Create('unreachable: '+combinedPrefixes+' -> '+newPrefix+', Result='+Result+', e='+FullPath(e)); end;
     end;
 end;
 function GenerateAnyMageForLevel(destFile: IwbFile; newPrefix, combinedPrefixes: string; levelNum:integer): IwbMainRecord;
@@ -671,8 +674,10 @@ begin
     GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Restoration', levelNum);
     GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Destruction', levelNum);
     GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Illusion', levelNum);
-    GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Alteration', levelNum);
-    Result := GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'MagickaRate', levelNum);
+    if (levelNum > 1) and (levelNum < 6) then begin
+        GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'MagickaRate', levelNum);
+    end;
+    Result := GenerateAnyMageForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Alteration', levelNum);
 end;
 function GenerateAnyMageForTypeAndLevel(destFile: IwbFile; newPrefix, combinedPrefixes, magic_type:string; levelNum:integer): IwbMainRecord;
 begin
@@ -682,8 +687,9 @@ end;
 function GenerateCocoDemon(destFile: IwbFile; e:IwbElement): IwbElement;
 var
     s:string;
+    i : integer;
 begin
-    for i := 1 to 6 do begin 
+    for i := 1 to 5 do begin 
         s := IntToStr(i);
         e := newLVLI(e, destFile, 'COCO demon'+s+' hair80', '80', '0', '1', '0');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_hairsmp'+s, '1', '1');
@@ -705,7 +711,9 @@ begin
     e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
     e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Illusion', levelNum);
     e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'Alteration', levelNum);
-    e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    if (levelNum > 1) and (levelNum < 6) then begin
+        e := GenerateCocoDemonForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    end;
     Result := e;
 end;
 function GenerateCocoDemonForTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
@@ -714,6 +722,7 @@ var
     lvl:string;
     ei: IwbMainRecord;
     ench:string;
+    i:integer;
 begin
     lvl := IntToStr(levelNum);
     ench :='EnchRobesFortify'+magic_type+'0'+lvl;
@@ -722,24 +731,24 @@ begin
         e := newLVLI(e, destFile, 'COCO demon'+s+' modular '+magic_type+lvl, '0', '1', '0', '0');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_bra'+s, '1', '1');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_glove'+s, '1', '1');
-        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_panties'+s, 'Demon_panties'+s+magic_type+lvl, magic_type, ench);
+        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_panties'+s, 'Demon_panties'+s+lvl, magic_type, ench);
         addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_heels'+s, '1', '1');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_stock'+s, '1', '1');
         e := newLVLI(e, destFile, 'COCO demon'+s+' two parts '+magic_type+lvl, '0', '1', '0', '0');
-        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodybra'+s, 'Demon_bodybra'+s+magic_type+lvl, magic_type, ench);
+        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodybra'+s, 'Demon_bodybra'+s+lvl, magic_type, ench);
         addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_bodystock'+s, '1', '1');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_heels'+s, '1', '1');
         e := newLVLI(e, destFile, 'COCO demon'+s+' full body'+magic_type+lvl, '0', '0', '1', '0');
-        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodyfucool'+s, 'Demon_bodyfucool'+s+magic_type+lvl, magic_type, ench);
+        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodyfucool'+s, 'Demon_bodyfucool'+s+lvl, magic_type, ench);
         addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
-        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodyfu'+s, 'Demon_bodyfu'+s+magic_type+lvl, magic_type, ench);
+        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodyfu'+s, 'Demon_bodyfu'+s+lvl, magic_type, ench);
         addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
         e := newLVLI(e, destFile, 'COCO demon body'+s+magic_type+lvl, '0', '0', '1', '0');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' full body'+magic_type+lvl, '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' two parts'+magic_type+lvl, '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' modular'+magic_type+lvl, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' two parts '+magic_type+lvl, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' modular '+magic_type+lvl, '1', '1');
         e := newLVLI(e, destFile, 'COCO demon'+s+magic_type+lvl, '0', '1', '0', '0');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_horn'+s, '1', '1');
         //addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_hair'+s, '1', '1');
@@ -754,11 +763,13 @@ begin
     addToLVLI_(destFile, e, 'LVLI', 'COCO demon3'+magic_type+lvl, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'COCO demon4'+magic_type+lvl, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'COCO demon5'+magic_type+lvl, '1', '1');
+    Result := e;
 end;
 
 function GenerateCocoWitch(destFile: IwbFile; e:IwbElement): IwbElement;
 var
     s:string;
+    i:integer;
 begin
     for i := 1 to 4 do begin
         s := IntToStr(i);
@@ -801,7 +812,9 @@ begin
     e := GenerateCocoWitchForTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
     e := GenerateCocoWitchForTypeAndLevel(destFile, e, level, 'Illusion', levelNum);
     e := GenerateCocoWitchForTypeAndLevel(destFile, e, level, 'Alteration', levelNum);
-    e := GenerateCocoWitchForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    if (levelNum > 1) and (levelNum < 6) then begin
+        e := GenerateCocoWitchForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    end;
     Result := e;
 end;
 function GenerateCocoWitchForTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
@@ -810,20 +823,21 @@ var
     lvl:string;
     ei: IwbMainRecord;
     ench:string;
+    i:integer;
 begin
     lvl := IntToStr(levelNum);
     ench :='EnchRobesFortify'+magic_type+'0'+lvl;
-    GenerateEnchantedItem(destFile, fileCocoWitch, 'Witchi_pants5', 'Witchi_pants5'+magic_type+lvl, magic_type, ench);
-    GenerateEnchantedItem(destFile, fileCocoWitch, 'Witchi_pants6', 'Witchi_pants6'+magic_type+lvl, magic_type, ench);
+    GenerateEnchantedItem(destFile, fileCocoWitch, 'Witchi_pants5', 'Witchi_pants5'+lvl, magic_type, ench);
+    GenerateEnchantedItem(destFile, fileCocoWitch, 'Witchi_pants6', 'Witchi_pants6'+lvl, magic_type, ench);
     for i := 1 to 4 do begin
         s := IntToStr(i);
         e := newLVLI(e, destFile, 'COCO witch'+s+' pants'+magic_type+lvl, '0', '0', '1', '0');
-        GenerateEnchantedItem(destFile, fileCocoWitch, 'Witchi_pants'+s, 'Witchi_pants'+s+magic_type+lvl, magic_type, ench);
-        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants'+s+magic_type+lvl, '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants'+s+magic_type+lvl, '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants'+s+magic_type+lvl, '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants5'+magic_type+lvl, '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants6'+magic_type+lvl, '1', '1');
+        GenerateEnchantedItem(destFile, fileCocoWitch, 'Witchi_pants'+s, 'Witchi_pants'+s+lvl, magic_type, ench);
+        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants'+s+lvl+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants'+s+lvl+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants'+s+lvl+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants5'+lvl+magic_type, '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', 'Witchi_pants6'+lvl+magic_type, '1', '1');
         e := newLVLI(e, destFile, 'COCO witch'+s+magic_type+lvl, '0', '1', '0', '0');
         addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'WitchiRing1', '1', '1');
         addToLVLI(destFile, e, fileCocoWitch, 'ARMO', 'Witchi_shoes'+s, '1', '1');
@@ -844,6 +858,7 @@ begin
     addToLVLI_(destFile, e, 'LVLI', 'COCO witch2'+magic_type+lvl, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'COCO witch3'+magic_type+lvl, '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'COCO witch4'+magic_type+lvl, '1', '1');
+    Result := e
 end;
 function GenerateDeadlyDesire(destFile: IwbFile; e:IwbElement): IwbElement;
 begin
@@ -859,7 +874,9 @@ function GenerateDeadlyDesireForLevel(destFile: IwbFile; e:IwbElement; level: st
 begin
     e := GenerateDeadlyDesireForTypeAndLevel(destFile, e, level, 'Conjuration', levelNum);
     e := GenerateDeadlyDesireForTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
-    e := GenerateDeadlyDesireForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    if (levelNum > 1) and (levelNum < 6) then begin
+        e := GenerateDeadlyDesireForTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    end;
     Result := e;
 end;
 function GenerateDeadlyDesireForTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
@@ -873,6 +890,7 @@ begin
     addToLVLI_(destFile, e, 'LVLI', 'CHDD Shoulder', '1', '1');
     addToLVLI_(destFile, e, 'LVLI', 'CHDD Boots', '1', '1');
     addToLVLI_(destFile, e, 'ARMO', '00DDPanty'+magic_type+s, '1', '1');
+    Result := e;
 end;
 /////// HERE IS A NICE TEMPLATE FOR MAKING MORE WARLOCK ENCHANTED STUFF IN THE FUTURE ////////
 // function GenerateCocoDemon(destFile: IwbFile; e:IwbElement): IwbElement;
@@ -1220,7 +1238,7 @@ begin
         addToLVLI(destFile, e, fileNiniCatMaid, 'ARMO', '0CatMaidGloves', '1', '1');
         addToLVLI(destFile, e, fileNiniCatMaid, 'ARMO', '0CatMaidHeaddress', '1', '1');
         addToLVLI(destFile, e, fileNiniCatMaid, 'ARMO', '0CatMaidShoes', '1', '1');
-        AnyBlacksmithId := AnyBlacksmithId + '#NINI Blacksmith';
+        AnyBarkeeperId := AnyBarkeeperId + '#NINI CatMaid';
     end;
     if Assigned(fileChristineAphrodite) then begin
         AddMasterIfMissing(destFile, GetFileName(fileChristineAphrodite));
@@ -1229,156 +1247,169 @@ begin
         addToLVLI(destFile, e, fileChristineAphrodite, 'ARMO', '00GoW3AphroditeDressDarker', '1', '1');
         addToLVLI(destFile, e, fileChristineAphrodite, 'ARMO', '00GoW3AphroditeDressGold', '1', '1');
         addToLVLI(destFile, e, fileChristineAphrodite, 'ARMO', '00GoW3AphroditeDressGoldDarker', '1', '1');
+        AnyMonkId := AnyMonkId + '#CHAphrodite'
     end;
     if Assigned(fileChristineKitchen) then begin
         AddMasterIfMissing(destFile, GetFileName(fileChristineKitchen));
         e := newLVLI(e, destFile, 'CH Kitchen hands', '0', '0', '1', '0');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieHands01', '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieHands02', '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieHands03', '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieHands04', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieHands01', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieHands02', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieHands03', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieHands04', '1', '1');
         e := newLVLI(e, destFile, 'CH Kitchen lower', '0', '0', '1', '0');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieLower01', '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieLower02', '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieLower03', '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieLower04', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieLower01', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieLower02', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieLower03', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieLower04', '1', '1');
         e := newLVLI(e, destFile, 'CH Kitchen upper', '0', '0', '1', '0');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieUpper01', '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieUpper02', '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieUpper03', '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieUpper04', '1', '1');
-        addToLVLI_(destFile, e, 'ARMO', '00KitchenLingerieUpper05', '1', '1');
-        e := newLVLI(e, destFile, 'CH Kitchen', '0', '0', '1', '0');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieUpper01', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieUpper02', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieUpper03', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieUpper04', '1', '1');
+        addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieUpper05', '1', '1');
+        e := newLVLI(e, destFile, 'CH Kitchen', '0', '1', '0', '0');
         addToLVLI_(destFile, e, 'LVLI', 'CH Kitchen hands', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'CH Kitchen lower', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'CH Kitchen upper', '1', '1');
         KitchenLingerieId := KitchenLingerieId + '#CH Kitchen';
     end;
     
-    // if Assigned(fileShinoSchool) then begin
-    //     AddMasterIfMissing(destFile, GetFileName(fileShinoSchool));
-    //     e := newLVLI(e, destFile, 'SkimpyMaidSet', '0', '1', '0', '0');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_pantyhose', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_a', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_b', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_c', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_d', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_e', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_f', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_sexy', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_stocking', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_socks', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_shoe', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1a', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2a_sexy', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_todo_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_todo_az_con_ro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_todo_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_todo_az_con_ro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_todo_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_todo_az_con_ro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_todo_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_todo_az_con_ro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_verde', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_VER', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_RO', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_AZ', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_aZ', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_RO', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_VER', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_RO', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_VER', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_AZ', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_RO', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_VER', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_AZ', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_RO', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_VER', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_ro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_short', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_short_real', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_rojo', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_rojo', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_short_rojo', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_short_real_rojo', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_rojo', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_sexy_rojo', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_rosa', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_rosa', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_rosa', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_rosa', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_rosa', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy_rosa', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon_rosa', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon_rojo', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon_blanco', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_blanco', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_blanco2', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_blanco', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_blanco', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_blanco2', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_blanco', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_blanco2', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1_rojo', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1_rosa', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2_rojo', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2_rosa', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_blanco2', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_socks_az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_stocking_Az', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_a', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1b', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_b', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_short_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_short_real_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_sexy_nergro', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_blanco', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy_blanco', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1c', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_c', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1d', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_D', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2b', '1', '1');
-    //     addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2b_sexy', '1', '1');
-    // end;
+    if Assigned(fileShinoSchool) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileShinoSchool));
+        e := newLVLI(e, destFile, 'Shino top', '0', '0', '0', '0');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_todo_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_todo_az_con_ro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_todo_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_todo_az_con_ro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_todo_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_todo_az_con_ro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_todo_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_todo_az_con_ro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_rosa', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_rosa', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_rosa', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_rosa', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_blanco', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_blanco2', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_blanco', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_blanco', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_blanco2', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_blanco', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_2_sexy_blanco2', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy_blanco2', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_a', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_b', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_c', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_d', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_e', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Shirt_f', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_short', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_short_real', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_rojo', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_rojo', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_short_rojo', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_short_real_rojo', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_nergro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_nergro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_sexy_short_nergro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Tshirt_short_real_nergro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1a', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2a_sexy', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_a', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1b', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_b', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1c', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_c', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1d', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_1_sexy_D', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2b', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Sport_Sukumizu_2b_sexy', '1', '1');
+        e := newLVLI(e, destFile, 'Shino tie', '0', '0', '0', '0');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_VER', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_RO', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_AZ', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_aZ', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_RO', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_VER', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_RO', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_VER', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_AZ', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_RO', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_VER', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_AZ', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_RO', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_VER', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_1_nergro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_2_nergro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_4_nergro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_3_nergro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_tie_5_nergro', '1', '1');
+        e := newLVLI(e, destFile, 'Shino ribbon', '0', '0', '0', '0');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon_rosa', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon_rojo', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_ribbon_blanco', '1', '1');
+        e := newLVLI(e, destFile, 'Shino panty', '0', '0', '0', '0');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1_rojo', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_1_rosa', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2_rojo', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_panty_2_rosa', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_sexy', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_rojo', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_sexy_rojo', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_nergro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Short_sexy_nergro', '1', '1');
+        e := newLVLI(e, destFile, 'Shino skirt', '0', '0', '0', '0');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_verde', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_ro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_rosa', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy_rosa', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_2_nergro', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_blanco', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_Skirt_1_sexy_blanco', '1', '1');
+        e := newLVLI(e, destFile, 'Shino sock', '0', '0', '0', '0');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_pantyhose', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_stocking', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_stocking_Az', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_socks', '1', '1');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_socks_az', '1', '1');
+        e := newLVLI(e, destFile, 'Shino set', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_shoe', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'Shino sock', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'Shino skirt', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'Shino panty', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'Shino ribbon', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'Shino tie', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'Shino top', '1', '1');
+    end;
     if Assigned(fileWizardHats) then begin
         if not Assigned(fileWitchyHats) then begin
             raise Exception.Create('You are using '+GetFileName(fileWizardHats)+' without '+GetFileName(fileWitchyHats)+'. Make sure to install both');
@@ -2853,7 +2884,7 @@ begin
             e := newLVLI(e, destFile, 'COCO assassin'+s+' corset', '0', '0', '1', '0');
             addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp'+s, '1', '1');
             addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex'+s, '1', '1');
-            if i < 5 then begin
+            if i < 3 then begin
                     e := newLVLI(e, destFile, 'COCO assassin'+s+' corsetb', '0', '0', '1', '0');
                     addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp'+s+'b', '1', '1');
                     addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex'+s+'b', '1', '1');
@@ -2861,7 +2892,7 @@ begin
             e := newLVLI(e, destFile, 'COCO assassin'+s+' mask', '0', '0', '1', '0');
             addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask'+s, '1', '1');
             addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex'+s, '1', '1');
-            if i < 5 then begin
+            if i < 3 then begin
                     e := newLVLI(e, destFile, 'COCO assassin'+s+' maskb', '0', '0', '1', '0');
                     addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_mask'+s+'b', '1', '1');
                     addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_masksex'+s+'b', '1', '1');
@@ -2870,11 +2901,11 @@ begin
             addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti'+s, '1', '1');
             addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex'+s, '1', '1');
             addToLVLIMaybe(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti'+s+'c', '1', '1');
-            if i < 5 then begin
+            if i < 3 then begin
                 e := newLVLI(e, destFile, 'COCO assassin'+s+' pantib', '0', '0', '1', '0');
                 addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti'+s+'b', '1', '1');
                 addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex'+s+'b', '1', '1');
-                addToLVLIMaybe(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti'+s+'c', '1', '1');
+                addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti'+s+'c', '1', '1');
             end;
             GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_underwear'+s, 'EnchAssassin_underwear'+s, '', 'DBEnchantShrouded');
             GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_horn'+s, 'EnchAssassin_horn'+s, '', 'DBEnchantGloves');
@@ -2896,17 +2927,21 @@ begin
                 e := newLVLI(e, destFile, 'COCO assassin'+s+'b', '0', '1', '0', '0');
                 addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp'+s, '1', '1');
                 addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp1b', '1', '1');
-                addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' pantib', '1', '1');
+                if not Assigned(addToLVLIMaybe_(destFile, e, 'LVLI', 'COCO assassin'+s+' pantib', '1', '1')) then begin
+                    addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' panti', '1', '1');
+                end;
                 if not Assigned(addToLVLIMaybe_(destFile, e, 'LVLI', 'COCO assassin'+s+' maskb', '1', '1')) then begin
                     addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' mask', '1', '1');
                 end;
-                addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' corsetb', '1', '1');
+                if not Assigned(addToLVLIMaybe_(destFile, e, 'LVLI', 'COCO assassin'+s+' corsetb', '1', '1')) then begin
+                    addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' corset', '1', '1')
+                end;
                 if not Assigned(addToLVLIMaybe(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove'+s+'b', '1', '1')) then begin
                     addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove'+s, '1', '1');
                 end;
                 addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_legbelt'+s, '1', '1');
                 addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_underwear'+s, '1', '1');
-                if not Assigned(addToLVLIMaybe(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots'+s+'b', '1', '1')then begin
+                if not Assigned(addToLVLIMaybe(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots'+s+'b', '1', '1')) then begin
                     addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots'+s, '1', '1');
                 end;
                 addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_legbelt'+s, '1', '1');
@@ -2947,7 +2982,7 @@ begin
         GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbraceLower1Damage', 'Ench00NocturnalEmbraceLower1Damage', '', 'TGArmorFortifyLockpicking');
         GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbraceLower2Damage', 'Ench00NocturnalEmbraceLower2Damage', '', 'TGArmorFortifyLockpicking');
         e := newLVLI(e, destFile, 'CHNE Upper', '0', '0', '1', '0');
-        addToLVLI(destFile, e, fileChristineNocturnal, 'ARMO', '00NocturnalEmbraceUpper'+s, '1', '1');
+        addToLVLI(destFile, e, fileChristineNocturnal, 'ARMO', '00NocturnalEmbraceUpper2', '1', '1');
         addToLVLI(destFile, e, fileChristineNocturnal, 'ARMO', '00NocturnalEmbraceUpper1', '1', '1');
         addToLVLI(destFile, e, fileChristineNocturnal, 'ARMO', '00NocturnalEmbraceUpper1Damage', '1', '1');
         addToLVLI(destFile, e, fileChristineNocturnal, 'ARMO', '00NocturnalEmbraceUpper2Damage', '1', '1');
@@ -3016,6 +3051,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess5', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess6', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess7', '1', '1');
+        AnyMonkId := AnyMonkId + '#CHHP priestess'
     end;
     if Assigned(AnyLingerieId) then begin
         AnyLingerie := combineLVLI(destFile, 'any_lingerie', AnyLingerieId, '');
@@ -3027,12 +3063,16 @@ begin
         AnyThievesGuildId := EditorID(AnyThievesGuild);
     end;
     if Assigned(AnyBarkeeperId) then begin
-        AnyBarkeeper := combineLVLI(destFile, 'any_thieves_guild', AnyBarkeeperId, '');
+        AnyBarkeeper := combineLVLI(destFile, 'any_barkeeper', AnyBarkeeperId, '');
         AnyBarkeeperId := EditorID(AnyBarkeeper);
     end;
     if Assigned(AnyBlacksmithId) then begin
-        AnyBlacksmith := combineLVLI(destFile, 'any_thieves_guild', AnyBlacksmithId, '');
+        AnyBlacksmith := combineLVLI(destFile, 'any_blacksmith', AnyBlacksmithId, '');
         AnyBlacksmithId := EditorID(AnyBlacksmith);
+    end;
+    if Assigned(AnyMonkId) then begin
+        AnyMonk := combineLVLI(destFile, 'any_monk', AnyMonkId, '');
+        AnyMonkId := EditorID(AnyMonk);
     end;
     if Assigned(AnyMagePrefix) then begin
         AnyMagePrefix := GenerateAnyMage(destFile, 5, 'AnyMage_', AnyMagePrefix);
@@ -3047,15 +3087,16 @@ begin
         KitchenLingerie := combineLVLI(destFile, 'any_lingerie_kitchen', KitchenLingerieId, '');
         KitchenLingerieId := EditorID(KitchenLingerie);
         KitchenLingerieOutfit := makeSingletonOutfit(destFile, 'AnyLingerieKitchenOutfit', KitchenLingerie);
-    end else begin
-        KitchenLingerie := AnyLingerie;
-        KitchenLingerieId := AnyLingerieId;
-        KitchenLingerieOutfit := AnyLingerieOutfit;
+    // end else begin
+    //     KitchenLingerie := AnyLingerie;
+    //     KitchenLingerieId := AnyLingerieId;
+    //     KitchenLingerieOutfit := AnyLingerieOutfit;
     end;
 
     if Assigned(e) then RemoveByIndex(e, 0, true);
 end;
 function makeSingletonOutfit(destFile: IwbFile; otftId: string; lvli: IwbMainRecord): IwbMainRecord;
+var
     o: IwbElement;
 begin
     Result := MainRecordByEditorID(outfitRecordGroup, otftId);
@@ -3074,28 +3115,35 @@ var
     stop : integer;
     i : integer;
     hashTagCount : integer;
+    e : IwbMainRecord;
 begin
     if lvliIdsToCombine[1] <> '#' then begin raise Exception.Create('No hashtag at the begining in:'+lvliIdsToCombine) end;
-    lvliIdsToCombine := copy(lvliIdsToCombine, 1, length(lvliIdsToCombine)-1);
-    
+    lvliIdsToCombine := copy(lvliIdsToCombine, 2, length(lvliIdsToCombine)-1);
+    if lvliIdsToCombine[1] = '#' then begin raise Exception.Create('Hashtag at the begining in:'+lvliIdsToCombine) end;
+
     for i := 1 to length(lvliIdsToCombine) do begin
       if lvliIdsToCombine[i] = '#' then begin
         e := newLVLI(nil, destFile, combinedLvliId, '0', '0', '1', '0');
+        Result := MainRecordByEditorID(GroupBySignature(destFile, 'LVLI'), combinedLvliId);
+        if not Assigned(e) then begin // record already exists
+            exit;
+        end;
+        AddMessage('Combining '+lvliIdsToCombine+' (with suffix='+suffix+') into '+combinedLvliId);
         while length(lvliIdsToCombine) > 0 do begin
           stop := pos('#', lvliIdsToCombine);
-          if stop = 0 then stop := length(lvliIdsToCombine)+1;
-          lvliId := copy(lvliIdsToCombine, 1, stop-1))
+          if stop = 0 then begin stop := length(lvliIdsToCombine)+1; end;
+          lvliId := copy(lvliIdsToCombine, 1, stop-1);
           lvliIdsToCombine := copy(lvliIdsToCombine, stop+1, length(lvliIdsToCombine)-stop);
 
           addToLVLI_(destFile, e, 'LVLI', lvliId+suffix, '1', '1');
         end;
         RemoveByIndex(e, 0, true);
-        Result := e;
         exit;
       end;
     end;
-    Result := MainRecordByEditorID(lvliRecordGroup, lvliIdsToCombine);
-    if not Assigned(Result) then begin raise Exception.Create('LVLI Not found: '+lvliIdsToCombine) end;
+    AddMessage('One element to combine '+lvliIdsToCombine+suffix+'. Skipping '+combinedLvliId);
+    Result := MainRecordByEditorID(lvliRecordGroup, lvliIdsToCombine+suffix);
+    if not Assigned(Result) then begin raise Exception.Create('LVLI Not found: '+lvliIdsToCombine+suffix) end;
 end;
 
 
@@ -3443,24 +3491,34 @@ begin
                 pantiesItemId := 'Panties-Summerset';    
             end;
         end else if StartsStr('hyd_', oldOutfitId) then begin
-            newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'any_lingerie');
-            if Assigned(newOutfitRef) then begin
-                if ElementCount(oldOutfitItems) = 0 then begin
-                    removeOldItem := true;
-                end else begin
-                    for i := ElementCount(oldOutfitItems)-1 downto 0 do begin
-                        oldOutfitItem := ElementByIndex(oldOutfitItems, i);
-                        removeOldItem := false; // checking if this is a slave 
-                        oldItemId := GetEditValue(oldOutfitItem);
-                        if StartsStr('zbf', oldItemId)  then begin
-                            removeOldItem := true;
-                            Break;
+            if oldOutfitId = 'hyd_cell_zyx_basegd' and Assigned(fileShinoSchool) then begin
+                newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'Shino set');
+            end else if oldOutfitId = 'hyd_out_cleaningslave' and Assigned(AnyBarkeeper) then begin
+                newOutfitRef := AnyBarkeeper;
+            end else if oldOutfitId = 'hyd_out_slavegirl1_sg20' and Assigned(fileNiniChatNoir) then begin
+                newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'NINI ChatNoir');
+            end else begin
+                newOutfitRef := AnyLingerie;
+                if Assigned(newOutfitRef) then begin
+                    if ElementCount(oldOutfitItems) = 0 then begin
+                        removeOldItem := true;
+                    end else begin
+                        for i := ElementCount(oldOutfitItems)-1 downto 0 do begin
+                            oldOutfitItem := ElementByIndex(oldOutfitItems, i);
+                            removeOldItem := false; // checking if this is a slave 
+                            oldItemId := GetEditValue(oldOutfitItem);
+                            if StartsStr('zbf', oldItemId)  then begin
+                                removeOldItem := true;
+                            end;
+                            if Assigned(KitchenLingerie) and StartsStr('ClothesChef', oldItemId)  then begin
+                                newOutfitRef := KitchenLingerie;
+                            end;
                         end;
                     end;
-                end;
-                if removeOldItem then begin
-                    ElementAssign(newOutfitItems, HighInteger, newOutfitRef, false);  
-                    exit;  
+                    if removeOldItem then begin
+                        ElementAssign(newOutfitItems, HighInteger, newOutfitRef, false);  
+                        exit;  
+                    end;
                 end;
             end;
         end else if StartsStr('College', oldOutfitId) then begin
@@ -3586,212 +3644,219 @@ begin
             end else if StartsStr('DA16VaerminaRobes', oldItemId) then begin
                 pantiesItemId := 'Panties-Monk-Vaermina';
             end else if StartsStr('DLC2', oldItemId) then begin
-                if StartsStr('DLC2ArmorNordicHeavy', oldItemId) then begin
-                    tawobaItemId := 'TWA Nordic Carved ';
-                    oldItemPrefix := 'DLC2ArmorNordicHeavy';
-                    pantiesItemId := 'Panties-Bandit-Boss';
-                end else if StartsStr('DLC2EnchArmorChitin', oldItemId) then begin    
-                    oldItemPrefix := 'DLC2EnchArmorChitin';
-                    pantiesItemId := 'Panties-Chitin';
-                    if StartsStr('DLC2EnchArmorChitinLight', oldItemId) then begin    
-                        oldItemPrefix := 'DLC2EnchArmorChitinLight';
-                    end else if StartsStr('DLC2EnchArmorChitinHeavy', oldItemId) then begin    
-                        oldItemPrefix := 'DLC2EnchArmorChitinHeavy';
-                    end;
-                end else if StartsStr('DLC2ArmorChitin', oldItemId) then begin    
-                    oldItemPrefix := 'DLC2ArmorChitin';
-                    pantiesItemId := 'Panties-Chitin';
-                    if StartsStr('DLC2ArmorChitinLight', oldItemId) then begin    
-                        oldItemPrefix := 'DLC2ArmorChitinLight';
-                    end else if StartsStr('DLC2ArmorChitinHeavy', oldItemId) then begin    
-                        oldItemPrefix := 'DLC2ArmorChitinHeavy';
-                    end;
-                end else if StartsStr('DLC2ArmorBonemold', oldItemId) then begin    
-                    oldItemPrefix := 'DLC2ArmorBonemold';
-                    pantiesItemId := 'Panties-Bonemold';
-                end;
+                // if StartsStr('DLC2ArmorNordicHeavy', oldItemId) then begin
+                //     tawobaItemId := 'TWA Nordic Carved ';
+                //     oldItemPrefix := 'DLC2ArmorNordicHeavy';
+                //     pantiesItemId := 'Panties-Bandit-Boss';
+                // end else if StartsStr('DLC2EnchArmorChitin', oldItemId) then begin    
+                //     oldItemPrefix := 'DLC2EnchArmorChitin';
+                //     pantiesItemId := 'Panties-Chitin';
+                //     if StartsStr('DLC2EnchArmorChitinLight', oldItemId) then begin    
+                //         oldItemPrefix := 'DLC2EnchArmorChitinLight';
+                //     end else if StartsStr('DLC2EnchArmorChitinHeavy', oldItemId) then begin    
+                //         oldItemPrefix := 'DLC2EnchArmorChitinHeavy';
+                //     end;
+                // end else if StartsStr('DLC2ArmorChitin', oldItemId) then begin    
+                //     oldItemPrefix := 'DLC2ArmorChitin';
+                //     pantiesItemId := 'Panties-Chitin';
+                //     if StartsStr('DLC2ArmorChitinLight', oldItemId) then begin    
+                //         oldItemPrefix := 'DLC2ArmorChitinLight';
+                //     end else if StartsStr('DLC2ArmorChitinHeavy', oldItemId) then begin    
+                //         oldItemPrefix := 'DLC2ArmorChitinHeavy';
+                //     end;
+                // end else if StartsStr('DLC2ArmorBonemold', oldItemId) then begin    
+                //     oldItemPrefix := 'DLC2ArmorBonemold';
+                //     pantiesItemId := 'Panties-Bonemold';
+                // end;
             end else if StartsStr('Draugr', oldItemId) then begin
                 tawobaItemId := 'TEW Ancient Nord ';
                 oldItemPrefix := 'Draugr';
                 pantiesItemId := 'Panties-Draugr';
             end else if StartsStr('EnchClothes', oldItemId) then begin
-                magicType := nil;
-                if StartsStr('EnchClothesRobesMage', oldItemId) then begin
-                    oldItemPrefix := 'EnchClothesRobesMage';
-                    magicType := AnyMagePrefix;
-                end else if StartsStr('EnchClothesMageRobes', oldItemId) then begin    
-                    oldItemPrefix := 'EnchClothesMageRobes';
-                    if StartsStr('EnchClothesMageRobesApp', oldItemId) then begin 
-                        oldItemPrefix := 'EnchClothesMageRobesApp';
-                    end;
-                    magicType := AnyMagePrefix;
-                end else if StartsStr('EnchClothesNecroRobes', oldItemId) then begin    
-                    oldItemPrefix := 'EnchClothesNecroRobes';
-                    if StartsStr('EnchClothesNecroRobesHooded', oldItemId) then begin 
-                        oldItemPrefix := 'EnchClothesNecroRobesHooded';
-                    end;
-                    magicType := AnyNecromancerPrefix;
-                end else if StartsStr('EnchClothesWarlockRobes', oldItemId) then begin    
-                    oldItemPrefix := 'EnchClothesWarlockRobes';
-                    if StartsStr('EnchClothesWarlockRobesHooded', oldItemId) then begin 
-                        oldItemPrefix := 'EnchClothesWarlockRobesHooded';
-                    end;
-                    magicType := AnyWarlockPrefix;
-                end;
+                // magicType := nil;
+                // if StartsStr('EnchClothesRobesMage', oldItemId) then begin
+                //     oldItemPrefix := 'EnchClothesRobesMage';
+                //     magicType := AnyMagePrefix;
+                // end else if StartsStr('EnchClothesMageRobes', oldItemId) then begin    
+                //     oldItemPrefix := 'EnchClothesMageRobes';
+                //     if StartsStr('EnchClothesMageRobesApp', oldItemId) then begin 
+                //         oldItemPrefix := 'EnchClothesMageRobesApp';
+                //     end;
+                //     magicType := AnyMagePrefix;
+                // end else if StartsStr('EnchClothesNecroRobes', oldItemId) then begin    
+                //     oldItemPrefix := 'EnchClothesNecroRobes';
+                //     if StartsStr('EnchClothesNecroRobesHooded', oldItemId) then begin 
+                //         oldItemPrefix := 'EnchClothesNecroRobesHooded';
+                //     end;
+                //     magicType := AnyNecromancerPrefix;
+                // end else if StartsStr('EnchClothesWarlockRobes', oldItemId) then begin    
+                //     oldItemPrefix := 'EnchClothesWarlockRobes';
+                //     if StartsStr('EnchClothesWarlockRobesHooded', oldItemId) then begin 
+                //         oldItemPrefix := 'EnchClothesWarlockRobesHooded';
+                //     end;
+                //     magicType := AnyWarlockPrefix;
+                // end;
                 
-                if Assigned(magicType) then begin
-                    if StartsStr(oldItemPrefix+'Illusion', oldItemId) then begin    
-                        oldItemPrefix:=oldItemPrefix+'Illusion';
-                        magicType := magicType+'Illusion';
-                    end else if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
-                        oldItemPrefix:=oldItemPrefix+'Destruction';
-                        magicType := magicType+'Destruction';
-                    end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
-                        oldItemPrefix:=oldItemPrefix+'MagickaRate';
-                        magicType := magicType+'MagickaRate';
-                    end else if StartsStr(oldItemPrefix+'Regen', oldItemId) then begin    
-                        oldItemPrefix:=oldItemPrefix+'Regen';
-                        magicType := magicType+'MagickaRate';
-                    end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
-                        oldItemPrefix:=oldItemPrefix+'Conjuration';
-                        magicType := magicType+'Conjuration';
-                    end else if StartsStr(oldItemPrefix+'Restoration', oldItemId) then begin    
-                        oldItemPrefix:=oldItemPrefix+'Restoration';
-                        magicType := magicType+'Restoration';
-                    end else if StartsStr(oldItemPrefix+'Alteration', oldItemId) then begin    
-                        oldItemPrefix:=oldItemPrefix+'Alteration';
-                        magicType := magicType+'Alteration';
-                    end else if StartsStr(oldItemPrefix+'Hood', oldItemId) then begin    
-                        removeOldItem := true;
-                        magicType := nil;
-                    end else begin
-                        magicType := nil;
-                    end;
-                end;
-                if Assigned(magicType) then begin
-                    magicLevel := nil;
-                    if StartsStr(oldItemPrefix+'01', oldItemId) then begin    
-                        magicLevel := '1';
-                    end else if StartsStr(oldItemPrefix+'02', oldItemId) then begin    
-                        magicLevel := '2';
-                    end else if StartsStr(oldItemPrefix+'03', oldItemId) then begin    
-                        magicLevel := '3';
-                    end else if StartsStr(oldItemPrefix+'04', oldItemId) then begin    
-                        magicLevel := '4';
-                    end else if StartsStr(oldItemPrefix+'05', oldItemId) then begin    
-                        magicLevel := '5';
-                    end else if StartsStr(oldItemPrefix+'06', oldItemId) then begin    
-                        magicLevel := '6'; 
-                    end;
-                    if Assigned(magicLevel) then begin
-                        removeOldItem := true;
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, magicType+magicLevel);
-                        if not Assigned(newOutfitRef) then begin raise Exception.Create(magicType+magicLevel+' not found'); end;
-                        pantiesFinal := 'skip';
-                    end;
-                end;
+                // if Assigned(magicType) then begin
+                //     if StartsStr(oldItemPrefix+'Illusion', oldItemId) then begin    
+                //         oldItemPrefix:=oldItemPrefix+'Illusion';
+                //         magicType := magicType+'Illusion';
+                //     end else if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
+                //         oldItemPrefix:=oldItemPrefix+'Destruction';
+                //         magicType := magicType+'Destruction';
+                //     end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
+                //         oldItemPrefix:=oldItemPrefix+'MagickaRate';
+                //         magicType := magicType+'MagickaRate';
+                //     end else if StartsStr(oldItemPrefix+'Regen', oldItemId) then begin    
+                //         oldItemPrefix:=oldItemPrefix+'Regen';
+                //         magicType := magicType+'MagickaRate';
+                //     end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
+                //         oldItemPrefix:=oldItemPrefix+'Conjuration';
+                //         magicType := magicType+'Conjuration';
+                //     end else if StartsStr(oldItemPrefix+'Restoration', oldItemId) then begin    
+                //         oldItemPrefix:=oldItemPrefix+'Restoration';
+                //         magicType := magicType+'Restoration';
+                //     end else if StartsStr(oldItemPrefix+'Alteration', oldItemId) then begin    
+                //         oldItemPrefix:=oldItemPrefix+'Alteration';
+                //         magicType := magicType+'Alteration';
+                //     end else if StartsStr(oldItemPrefix+'Hood', oldItemId) then begin    
+                //         removeOldItem := true;
+                //         magicType := nil;
+                //     end else begin
+                //         magicType := nil;
+                //     end;
+                // end;
+                // if Assigned(magicType) then begin
+                //     magicLevel := nil;
+                //     if StartsStr(oldItemPrefix+'01', oldItemId) then begin    
+                //         magicLevel := '1';
+                //     end else if StartsStr(oldItemPrefix+'02', oldItemId) then begin    
+                //         magicLevel := '2';
+                //     end else if StartsStr(oldItemPrefix+'03', oldItemId) then begin    
+                //         magicLevel := '3';
+                //     end else if StartsStr(oldItemPrefix+'04', oldItemId) then begin    
+                //         magicLevel := '4';
+                //     end else if StartsStr(oldItemPrefix+'05', oldItemId) then begin    
+                //         magicLevel := '5';
+                //     end else if StartsStr(oldItemPrefix+'06', oldItemId) then begin    
+                //         magicLevel := '6'; 
+                //     end;
+                //     if Assigned(magicLevel) then begin
+                //         removeOldItem := true;
+                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, magicType+magicLevel);
+                //         if not Assigned(newOutfitRef) then begin raise Exception.Create(magicType+magicLevel+' not found'); end;
+                //         pantiesFinal := 'skip';
+                //     end;
+                // end;
             end else if StartsStr('Clothes', oldItemId) then begin
-                if StartsStr('ClothesThalmor', oldItemId) then begin
-                    oldItemPrefix := 'ClothesThalmor';
-                    tawobaItemId := 'TWA Thalmor ';
-                    pantiesItemId := 'Panties-ThalmorArmor';
-                end else if StartsStr('ClothesRobes', oldItemId) then begin    
-                end else if StartsStr('ClothesMonkRobes', oldItemId) then begin 
-                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHHP priestess');
-                    if Assigned(fileChristinePriestess) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHHP priestess not found'); end;
-                    removeOldItem := Assigned(newOutfitRef);
-                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
-                    if not Assigned(newOutfitRef) then begin
-                        if StartsStr('ClothesMonkRobesColorRed', oldItemId) then begin
-                            pantiesItemId := 'Panties-Monk-1-Basic';
-                        end else if StartsStr('ClothesMonkRobesColorBrown', oldItemId) then begin
-                            pantiesItemId := 'Panties-Monk-2-Brown';
-                        end else if StartsStr('ClothesMonkRobesColorGrey', oldItemId) then begin
-                            pantiesItemId := 'Panties-Monk-3-Grey';
-                        end else begin
-                            pantiesItemId := 'Panties-Monk-4-White';
-                        end;
-                    end;
-                    //panties := 'Panties-Monk-5-Green';
-                end else if StartsStr('ClothesNecromancer', oldItemId) then begin    
-                    if StartsStr('ClothesNecromancerRobes', oldItemId) then begin
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyNecromancerPrefix+'MagickaRate2');
-                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                        if Assigned(AnyNecromancerPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyNecromancerPrefix+'MagickaRate2 not found'); end;
-                        removeOldItem := Assigned(newOutfitRef);
-                    end else if oldItemId = 'ClothesNecromancerBoots' then begin
-                        removeOldItem := Assigned(AnyNecromancerPrefix);
-                    end;
-                end else if StartsStr('ClothesCollege', oldItemId) then begin    
-                end else if StartsStr('ClothesFarm', oldItemId) then begin    
-                    oldItemPrefix := 'ClothesFarm';  
-                    pantiesItemId := 'Panties-TheNine';
-                end else if StartsStr('ClothesFine', oldItemId) then begin    
-                    oldItemPrefix := 'ClothesFine';  
-                    pantiesItemId := 'Panties-TheNine';
-                end else if StartsStr('ClothesWench', oldItemId) then begin  
-                    oldItemPrefix := 'ClothesWench';  
-                    pantiesItemId := 'Panties-TheNine';
-                    newOutfitRef := AnyBarkeeper;
-                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                    removeOldItem := Assigned(newOutfitRef);
-                end else if StartsStr('ClothesMiner', oldItemId) then begin    
-                    oldItemPrefix := 'ClothesMiner';  
-                    pantiesItemId := 'Panties-TheNine';
-                end else if StartsStr('ClothesJarl', oldItemId) then begin    
-                    oldItemPrefix := 'ClothesJarl';  
-                    pantiesItemId := 'Panties-Ebony';
-                end else if StartsStr('ClothesBlackSmith', oldItemId) then begin    
-                    oldItemPrefix := 'ClothesBlackSmith';  
-                    pantiesItemId := 'Panties-TheNine';
-                    newOutfitRef := AnyBlacksmith;
-                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                    removeOldItem := Assigned(newOutfitRef);
-                end else if StartsStr('ClothesBarKeeper', oldItemId) then begin    
-                    oldItemPrefix := 'ClothesBarKeeper';  
-                    pantiesItemId := 'Panties-General-Vendor';
-                    newOutfitRef := AnyBarkeeper;
-                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                    removeOldItem := Assigned(newOutfitRef);
-                end else if StartsStr('ClothesMerchant', oldItemId) then begin    
-                    oldItemPrefix := 'ClothesMerchant';  
-                    pantiesItemId := 'Panties-Big Vendor';
-                end else if StartsStr('ClothesBeggar', oldItemId) then begin
-                    if oldItemId = 'ClothesBeggarRags' then begin
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
-                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
-                        removeOldItem := Assigned(newOutfitRef);
-                    end else if oldItemId = 'ClothesBeggarHat' then begin
-                    end else if oldItemId = 'ClothesBeggarBoots' then begin   
-                    end;
-                end else if StartsStr('ClothesPrisoner', oldItemId) then begin
-                    if oldItemId = 'ClothesPrisonerRags' then begin
-                        newOutfitRef := MainRecordByEditorID(GroupBySignature(fileChristineUndead, 'ARMO'), '00DSChosenUndeadLower');
-                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('00DSChosenUndeadLower not found'); end;
-                        removeOldItem := Assigned(newOutfitRef);
-                    end else if oldItemId = 'ClothesPrisonerTunic' then begin
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
-                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
-                        removeOldItem := Assigned(newOutfitRef);
-                    end else if oldItemId = 'ClothesPrisonerShoes' then begin   
-                    end;
-                end else if StartsStr('ClothesWarlock', oldItemId) then begin    
-                    if StartsStr('ClothesWarlockRobes', oldItemId) then begin
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyWarlockPrefix+'MagickaRate3');
-                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                        if Assigned(AnyWarlockPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyWarlockPrefix+'MagickaRate3 not found'); end;
-                        removeOldItem := Assigned(newOutfitRef);
-                    end else if oldItemId = 'ClothesWarlockBoots' then begin
-                        removeOldItem := Assigned(AnyWarlockPrefix);
-                    end;
-                end else if StartsStr('ClothesMG', oldItemId) then begin    
-                    if 'ClothesMGBoots' = oldItemId then begin    
-                        removeOldItem := Assigned(AnyMagePrefix);
-                    end;    
-                end;
+                // if StartsStr('ClothesThalmor', oldItemId) then begin
+                //     oldItemPrefix := 'ClothesThalmor';
+                //     tawobaItemId := 'TWA Thalmor ';
+                //     pantiesItemId := 'Panties-ThalmorArmor';
+                // end else if StartsStr('ClothesRobes', oldItemId) then begin    
+                // end else if StartsStr('ClothesMonkRobes', oldItemId) then begin 
+                //     newOutfitRef := AnyMonk;
+                //     removeOldItem := Assigned(newOutfitRef);
+                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
+                //     if not Assigned(newOutfitRef) then begin
+                //         if StartsStr('ClothesMonkRobesColorRed', oldItemId) then begin
+                //             pantiesItemId := 'Panties-Monk-1-Basic';
+                //         end else if StartsStr('ClothesMonkRobesColorBrown', oldItemId) then begin
+                //             pantiesItemId := 'Panties-Monk-2-Brown';
+                //         end else if StartsStr('ClothesMonkRobesColorGrey', oldItemId) then begin
+                //             pantiesItemId := 'Panties-Monk-3-Grey';
+                //         end else begin
+                //             pantiesItemId := 'Panties-Monk-4-White';
+                //         end;
+                //     end;
+                //     //panties := 'Panties-Monk-5-Green';
+                // end else if StartsStr('ClothesNecromancer', oldItemId) then begin    
+                //     if StartsStr('ClothesNecromancerRobes', oldItemId) then begin
+                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyNecromancerPrefix+'MagickaRate2');
+                //         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                //         if Assigned(AnyNecromancerPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyNecromancerPrefix+'MagickaRate2 not found'); end;
+                //         removeOldItem := Assigned(newOutfitRef);
+                //     end else if oldItemId = 'ClothesNecromancerBoots' then begin
+                //         removeOldItem := Assigned(AnyNecromancerPrefix);
+                //     end;
+                // end else if StartsStr('ClothesCollege', oldItemId) then begin    
+                // end else if StartsStr('ClothesFarm', oldItemId) then begin    
+                //     oldItemPrefix := 'ClothesFarm';  
+                //     pantiesItemId := 'Panties-TheNine';
+                // end else if StartsStr('ClothesChef', oldItemId) then begin    
+                //     oldItemPrefix := 'ClothesChef';  
+                //     pantiesItemId := 'Panties-TheNine';
+                //     if oldItemId = 'ClothesChef' then begin
+                //         newOutfitRef := KitchenLingerie;
+                //     end;
+                //     removeOldItem := Assigned(KitchenLingerie);
+                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
+                // end else if StartsStr('ClothesFine', oldItemId) then begin    
+                //     oldItemPrefix := 'ClothesFine';  
+                //     pantiesItemId := 'Panties-TheNine';
+                // end else if StartsStr('ClothesWench', oldItemId) then begin  
+                //     oldItemPrefix := 'ClothesWench';  
+                //     pantiesItemId := 'Panties-TheNine';
+                //     newOutfitRef := AnyBarkeeper;
+                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                //     removeOldItem := Assigned(newOutfitRef);
+                // end else if StartsStr('ClothesMiner', oldItemId) then begin    
+                //     oldItemPrefix := 'ClothesMiner';  
+                //     pantiesItemId := 'Panties-TheNine';
+                // end else if StartsStr('ClothesJarl', oldItemId) then begin    
+                //     oldItemPrefix := 'ClothesJarl';  
+                //     pantiesItemId := 'Panties-Ebony';
+                // end else if StartsStr('ClothesBlackSmith', oldItemId) then begin    
+                //     oldItemPrefix := 'ClothesBlackSmith';  
+                //     pantiesItemId := 'Panties-TheNine';
+                //     newOutfitRef := AnyBlacksmith;
+                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                //     removeOldItem := Assigned(newOutfitRef);
+                // end else if StartsStr('ClothesBarKeeper', oldItemId) then begin    
+                //     oldItemPrefix := 'ClothesBarKeeper';  
+                //     pantiesItemId := 'Panties-General-Vendor';
+                //     newOutfitRef := AnyBarkeeper;
+                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                //     removeOldItem := Assigned(newOutfitRef);
+                // end else if StartsStr('ClothesMerchant', oldItemId) then begin    
+                //     oldItemPrefix := 'ClothesMerchant';  
+                //     pantiesItemId := 'Panties-Big Vendor';
+                // end else if StartsStr('ClothesBeggar', oldItemId) then begin
+                //     if oldItemId = 'ClothesBeggarRags' then begin
+                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
+                //         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                //         if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
+                //         removeOldItem := Assigned(newOutfitRef);
+                //     end else if oldItemId = 'ClothesBeggarHat' then begin
+                //     end else if oldItemId = 'ClothesBeggarBoots' then begin   
+                //     end;
+                // end else if StartsStr('ClothesPrisoner', oldItemId) then begin
+                //     if oldItemId = 'ClothesPrisonerRags' then begin
+                //         newOutfitRef := MainRecordByEditorID(GroupBySignature(fileChristineUndead, 'ARMO'), '00DSChosenUndeadLower');
+                //         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                //         if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('00DSChosenUndeadLower not found'); end;
+                //         removeOldItem := Assigned(newOutfitRef);
+                //     end else if oldItemId = 'ClothesPrisonerTunic' then begin
+                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
+                //         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                //         if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
+                //         removeOldItem := Assigned(newOutfitRef);
+                //     end else if oldItemId = 'ClothesPrisonerShoes' then begin   
+                //     end;
+                // end else if StartsStr('ClothesWarlock', oldItemId) then begin    
+                //     if StartsStr('ClothesWarlockRobes', oldItemId) then begin
+                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyWarlockPrefix+'MagickaRate3');
+                //         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                //         if Assigned(AnyWarlockPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyWarlockPrefix+'MagickaRate3 not found'); end;
+                //         removeOldItem := Assigned(newOutfitRef);
+                //     end else if oldItemId = 'ClothesWarlockBoots' then begin
+                //         removeOldItem := Assigned(AnyWarlockPrefix);
+                //     end;
+                // end else if StartsStr('ClothesMG', oldItemId) then begin    
+                //     if 'ClothesMGBoots' = oldItemId then begin    
+                //         removeOldItem := Assigned(AnyMagePrefix);
+                //     end;    
+                // end;
                 if Assigned(oldItemPrefix) and Assigned(pantiesItemId) then begin
                     if StartsStr(oldItemPrefix+'Boots', oldItemId) or StartsStr(oldItemPrefix+'Hat', oldItemId) or StartsStr(oldItemPrefix+'Gloves', oldItemId) then begin
                         pantiesItemId := nil;
@@ -3813,75 +3878,75 @@ begin
                 oldItemPrefix := 'Forsworn';
                 pantiesItemId := 'Panties-Forsworn';
             end else if StartsStr('DLC1', oldItemId) then begin
-                if StartsStr('DLC1Armor', oldItemId) then begin
-                    if StartsStr('DLC1ArmorVampire', oldItemId) then begin
-                        oldItemPrefix := 'DLC1ArmorVampire';
-                        pantiesItemId := 'Panties-VampireBasicBlack';
-                        if StartsStr('DLC1ArmorVampireArmor', oldItemId) then begin
-                            oldItemPrefix := 'DLC1ArmorVampireArmor';
-                            if (oldItemId = 'DLC1ArmorVampireArmorValerica') or (oldItemId = 'DLC1ArmorVampireArmorRoyalRed') then begin
-                                newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench');
-                            end else begin
-                                newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
-                            end;
-                            if Assigned(AnyVampirePrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
-                            removeOldItem := Assigned(newOutfitRef);
-                            if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                        end else begin
-                            removeOldItem := Assigned(fileChristineDeadlyDesire);
-                        end; 
-                    end;
-                end else if StartsStr('DLC1ClothesVampireLord', oldItemId) then begin
-                    oldItemPrefix := 'DLC1ClothesVampireLord';
-                    if StartsStr('DLC1ClothesVampireLordRoyal', oldItemId) then begin
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench');
-                    end else begin
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
-                    end;
-                    if Assigned(fileChristineDeadlyDesire) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
-                    removeOldItem := Assigned(newOutfitRef);
-                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                end else if StartsStr('DLC1EnchClothesVampireRobes', oldItemId) then begin
-                    if Assigned(fileChristineDeadlyDesire) then begin
-                        oldItemPrefix := 'DLC1EnchClothesVampireRobes';
-                        if Assigned(magicType) then begin
-                            if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
-                                magicType := 'Destruction';
-                            end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
-                                magicType := 'MagickaRate';
-                            end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
-                                magicType := 'Conjuration';
-                            end else begin
-                                magicType := nil;
-                            end;
-                        end;
-                        if not Assigned(magicType) then begin
-                            raise Exception.Create('Couldn''t parse magic type: '+oldItemId);
-                        end;
-                        oldItemPrefix:=oldItemPrefix+magicType;
-                        magicLevel := nil;
-                        if StartsStr(oldItemPrefix+'01', oldItemId) then begin    
-                            magicLevel := '1';
-                        end else if StartsStr(oldItemPrefix+'02', oldItemId) then begin    
-                            magicLevel := '2';
-                        end else if StartsStr(oldItemPrefix+'03', oldItemId) then begin    
-                            magicLevel := '3';
-                        end else if StartsStr(oldItemPrefix+'04', oldItemId) then begin    
-                            magicLevel := '4';
-                        end else if StartsStr(oldItemPrefix+'05', oldItemId) then begin    
-                            magicLevel := '5';
-                        end else if StartsStr(oldItemPrefix+'06', oldItemId) then begin    
-                            magicLevel := '6'; 
-                        end;
-                        if not Assigned(magicLevel) then begin
-                            raise Exception.Create('Couldn''t parse magic level: '+oldItemId);
-                        end;
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench'+magic_type+magicLevel);
-                        removeOldItem := true;
-                        if not Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' Ench'+magic_type+magicLevel+' not found'); end;
-                        pantiesFinal := 'skip';
-                    end;
-                end;
+                // if StartsStr('DLC1Armor', oldItemId) then begin
+                //     if StartsStr('DLC1ArmorVampire', oldItemId) then begin
+                //         oldItemPrefix := 'DLC1ArmorVampire';
+                //         pantiesItemId := 'Panties-VampireBasicBlack';
+                //         if StartsStr('DLC1ArmorVampireArmor', oldItemId) then begin
+                //             oldItemPrefix := 'DLC1ArmorVampireArmor';
+                //             if (oldItemId = 'DLC1ArmorVampireArmorValerica') or (oldItemId = 'DLC1ArmorVampireArmorRoyalRed') then begin
+                //                 newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench');
+                //             end else begin
+                //                 newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
+                //             end;
+                //             if Assigned(AnyVampirePrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
+                //             removeOldItem := Assigned(newOutfitRef);
+                //             if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                //         end else begin
+                //             removeOldItem := Assigned(fileChristineDeadlyDesire);
+                //         end; 
+                //     end;
+                // end else if StartsStr('DLC1ClothesVampireLord', oldItemId) then begin
+                //     oldItemPrefix := 'DLC1ClothesVampireLord';
+                //     if StartsStr('DLC1ClothesVampireLordRoyal', oldItemId) then begin
+                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench');
+                //     end else begin
+                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
+                //     end;
+                //     if Assigned(fileChristineDeadlyDesire) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
+                //     removeOldItem := Assigned(newOutfitRef);
+                //     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                // end else if StartsStr('DLC1EnchClothesVampireRobes', oldItemId) then begin
+                //     if Assigned(fileChristineDeadlyDesire) then begin
+                //         oldItemPrefix := 'DLC1EnchClothesVampireRobes';
+                //         if Assigned(magicType) then begin
+                //             if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
+                //                 magicType := 'Destruction';
+                //             end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
+                //                 magicType := 'MagickaRate';
+                //             end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
+                //                 magicType := 'Conjuration';
+                //             end else begin
+                //                 magicType := nil;
+                //             end;
+                //         end;
+                //         if not Assigned(magicType) then begin
+                //             raise Exception.Create('Couldn''t parse magic type: '+oldItemId);
+                //         end;
+                //         oldItemPrefix:=oldItemPrefix+magicType;
+                //         magicLevel := nil;
+                //         if StartsStr(oldItemPrefix+'01', oldItemId) then begin    
+                //             magicLevel := '1';
+                //         end else if StartsStr(oldItemPrefix+'02', oldItemId) then begin    
+                //             magicLevel := '2';
+                //         end else if StartsStr(oldItemPrefix+'03', oldItemId) then begin    
+                //             magicLevel := '3';
+                //         end else if StartsStr(oldItemPrefix+'04', oldItemId) then begin    
+                //             magicLevel := '4';
+                //         end else if StartsStr(oldItemPrefix+'05', oldItemId) then begin    
+                //             magicLevel := '5';
+                //         end else if StartsStr(oldItemPrefix+'06', oldItemId) then begin    
+                //             magicLevel := '6'; 
+                //         end;
+                //         if not Assigned(magicLevel) then begin
+                //             raise Exception.Create('Couldn''t parse magic level: '+oldItemId);
+                //         end;
+                //         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench'+magic_type+magicLevel);
+                //         removeOldItem := true;
+                //         if not Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' Ench'+magic_type+magicLevel+' not found'); end;
+                //         pantiesFinal := 'skip';
+                //     end;
+                // end;
             end else if StartsStr('DlC01ClothesVampire', oldItemId) then begin
                 if oldItemId = 'DlC01ClothesVampire' then begin
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
@@ -3890,130 +3955,130 @@ begin
                     removeOldItem := Assigned(fileChristineDeadlyDesire);
                 end;
             end else if StartsStr('Armor', oldItemId) then begin
-                if StartsStr('ArmorIron', oldItemId) then begin
-                    if isBandit then begin
-                        tawobaItemId := 'TWA Bandit Iron ';
-                        pantiesItemId := 'Panties-Bandits';
-                    end else begin
-                        tawobaItemId := 'TWA Iron ';
-                        pantiesItemId := 'Panties-Iron';
-                    end;
-                    if StartsStr('ArmorIronBanded', oldItemId) then begin
-                        oldItemPrefix := 'ArmorIronBanded';
-                    end else begin
-                        oldItemPrefix := 'ArmorIron';
-                    end;
-                end else if StartsStr('ArmorThievesGuild', oldItemId) then begin
-                    oldItemPrefix := 'ArmorThievesGuild';
-                    pantiesItemId := 'Panties-TG-Basic';
-                    // we don't want to replace the armor that is given to player, because we can't assume the player's gender
-                    if (pos('Player', oldItemId) = 0) and (pos('Leader', oldItemId) = 0) then begin 
-                        if pos('Cuirass', oldItemId) = 0 then begin
-                            removeOldItem := Assigned(fileChristineNocturnal);
-                        end else begin
-                            newOutfitRef := AnyThievesGuild;
-                            removeOldItem := Assigned(newOutfitRef);
-                            if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                        end;
+                // if StartsStr('ArmorIron', oldItemId) then begin
+                //     if isBandit then begin
+                //         tawobaItemId := 'TWA Bandit Iron ';
+                //         pantiesItemId := 'Panties-Bandits';
+                //     end else begin
+                //         tawobaItemId := 'TWA Iron ';
+                //         pantiesItemId := 'Panties-Iron';
+                //     end;
+                //     if StartsStr('ArmorIronBanded', oldItemId) then begin
+                //         oldItemPrefix := 'ArmorIronBanded';
+                //     end else begin
+                //         oldItemPrefix := 'ArmorIron';
+                //     end;
+                // end else if StartsStr('ArmorThievesGuild', oldItemId) then begin
+                //     oldItemPrefix := 'ArmorThievesGuild';
+                //     pantiesItemId := 'Panties-TG-Basic';
+                //     // we don't want to replace the armor that is given to player, because we can't assume the player's gender
+                //     if (pos('Player', oldItemId) = 0) and (pos('Leader', oldItemId) = 0) then begin 
+                //         if pos('Cuirass', oldItemId) = 0 then begin
+                //             removeOldItem := Assigned(fileChristineNocturnal);
+                //         end else begin
+                //             newOutfitRef := AnyThievesGuild;
+                //             removeOldItem := Assigned(newOutfitRef);
+                //             if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                //         end;
                         
-                    end;
-                end else if StartsStr('ArmorLeather', oldItemId) then begin    
-                    if isBandit then begin
-                        tawobaItemId := 'TWA Bandit Leather ';
-                        pantiesItemId := 'Panties-Bandits';
-                    end else begin
-                        tawobaItemId := 'TWA Leather ';
-                        pantiesItemId := 'Panties-LeatherArmor';
-                    end;
-                    oldItemPrefix := 'ArmorLeather';
-                end else if StartsStr('ArmorCompanions', oldItemId) then begin    
-                    oldItemPrefix := 'ArmorCompanions';
-                    tawobaItemId := 'TWA Wolf ';
-                    pantiesItemId := 'Panties-Wolf';
-                end else if StartsStr('ArmorBandit', oldItemId) then begin    
-                    if isBanditBoss then begin
-                        tawobaItemId := 'TWA Leather ';
-                        pantiesItemId := 'Panties-Bandit-Boss';
-                    end else begin
-                        tawobaItemId := 'TWA Bandit Leather ';
-                        pantiesItemId := 'Panties-Bandits';
-                    end;
-                    oldItemPrefix := 'ArmorBandit';
-                end else if StartsStr('ArmorBlades', oldItemId) then begin    
-                    tawobaItemId := 'TWA Blades ';
-                    oldItemPrefix := 'ArmorBlades';
-                    pantiesItemId := 'Panties-Blades';
-                end else if StartsStr('ArmorSteel', oldItemId) then begin    
-                    if StartsStr('ArmorSteelPlate', oldItemId) then begin    
-                        oldItemPrefix := 'ArmorSteelPlate';
-                    end else begin
-                        oldItemPrefix := 'ArmorSteel';
-                    end;
-                    tawobaItemId := 'TWA Steel ';
-                    pantiesItemId := 'Panties-Steel';
-                end else if StartsStr('ArmorElven', oldItemId) then begin    
-                    tawobaItemId := 'TWA Elven ';
-                    pantiesItemId := 'Panties-Elven';
-                    if StartsStr('ArmorElvenLight', oldItemId) then begin    
-                        oldItemPrefix := 'ArmorElvenLight';
-                    end else begin
-                        oldItemPrefix := 'ArmorElven';
-                    end;
-                end else if StartsStr('ArmorNightingale', oldItemId) then begin    
-                    oldItemPrefix := 'ArmorNightingale';
-                    pantiesItemId := 'Panties-Nightingale';
-                end else if StartsStr('ArmorPenitus', oldItemId) then begin    
-                    oldItemPrefix := 'ArmorPenitus';
-                    pantiesItemId := 'Panties-Penitus';
-                end else if StartsStr('ArmorDaedric', oldItemId) then begin    
-                    tawobaItemId := 'TEW Daedric ';
-                    oldItemPrefix := 'ArmorDaedric';
-                    pantiesItemId := 'Panties-Daedric';
-                end else if StartsStr('ArmorDragonscale', oldItemId) then begin    
-                    tawobaItemId := 'TEW Dragonscale ';
-                    oldItemPrefix := 'ArmorDragonscale';
-                    pantiesItemId := 'Panties-Dragonscale';
-                end else if StartsStr('ArmorDragonplate', oldItemId) then begin    
-                    tawobaItemId := 'TWA Dragon Bone ';
-                    oldItemPrefix := 'ArmorDragonplate';
-                    pantiesItemId := 'Panties-DragonBone';
-                end else if StartsStr('ArmorDwarven', oldItemId) then begin    
-                    tawobaItemId := 'TWA Dwarven ';
-                    oldItemPrefix := 'ArmorDwarven';
-                    pantiesItemId := 'Panties-Dwarven';
-                end else if StartsStr('ArmorEbony', oldItemId) then begin    
-                    tawobaItemId := 'TWA Ebony ';
-                    oldItemPrefix := 'ArmorEbony';
-                    pantiesItemId := 'Panties-Ebony';
-                end else if StartsStr('ArmorHide', oldItemId) then begin    
-                    tawobaItemId := 'TWA Hide ';
-                    oldItemPrefix := 'ArmorHide';
-                    pantiesItemId := 'Panties-Hide';
-                end else if StartsStr('ArmorStudded', oldItemId) then begin    
-                    tawobaItemId := 'TWA Hide ';
-                    oldItemPrefix := 'ArmorStudded';
-                    pantiesItemId := 'Panties-Hide';
-                end else if StartsStr('ArmorScaled', oldItemId) then begin    
-                    tawobaItemId := 'TEW Scaled ';
-                    oldItemPrefix := 'ArmorScaled';
-                    pantiesItemId := 'Panties-Scaled';
-                end else if StartsStr('ArmorDraugr', oldItemId) then begin    
-                    tawobaItemId := 'TEW Ancient Nord ';
-                    oldItemPrefix := 'ArmorDraugr';
-                    pantiesItemId := 'Panties-Draugr';
-                end else if StartsStr('ArmorOrcish', oldItemId) then begin    
-                    tawobaItemId := 'TWA Orcish ';
-                    oldItemPrefix := 'ArmorOrcish';
-                    pantiesItemId := 'Panties-Orcish';
-                end else if StartsStr('ArmorImperial', oldItemId) then begin    
-                    tawobaItemId := 'TEW Imperial Heavy ';
-                    pantiesItemId := 'Panties-Imperial';
-                    if StartsStr('ArmorImperialLight', oldItemId) then begin    
-                        oldItemPrefix := 'ArmorImperialLight';
-                    end else begin
-                        oldItemPrefix := 'ArmorImperial';
-                    end;
-                end;
+                //     end;
+                // end else if StartsStr('ArmorLeather', oldItemId) then begin    
+                //     if isBandit then begin
+                //         tawobaItemId := 'TWA Bandit Leather ';
+                //         pantiesItemId := 'Panties-Bandits';
+                //     end else begin
+                //         tawobaItemId := 'TWA Leather ';
+                //         pantiesItemId := 'Panties-LeatherArmor';
+                //     end;
+                //     oldItemPrefix := 'ArmorLeather';
+                // end else if StartsStr('ArmorCompanions', oldItemId) then begin    
+                //     oldItemPrefix := 'ArmorCompanions';
+                //     tawobaItemId := 'TWA Wolf ';
+                //     pantiesItemId := 'Panties-Wolf';
+                // end else if StartsStr('ArmorBandit', oldItemId) then begin    
+                //     if isBanditBoss then begin
+                //         tawobaItemId := 'TWA Leather ';
+                //         pantiesItemId := 'Panties-Bandit-Boss';
+                //     end else begin
+                //         tawobaItemId := 'TWA Bandit Leather ';
+                //         pantiesItemId := 'Panties-Bandits';
+                //     end;
+                //     oldItemPrefix := 'ArmorBandit';
+                // end else if StartsStr('ArmorBlades', oldItemId) then begin    
+                //     tawobaItemId := 'TWA Blades ';
+                //     oldItemPrefix := 'ArmorBlades';
+                //     pantiesItemId := 'Panties-Blades';
+                // end else if StartsStr('ArmorSteel', oldItemId) then begin    
+                //     if StartsStr('ArmorSteelPlate', oldItemId) then begin    
+                //         oldItemPrefix := 'ArmorSteelPlate';
+                //     end else begin
+                //         oldItemPrefix := 'ArmorSteel';
+                //     end;
+                //     tawobaItemId := 'TWA Steel ';
+                //     pantiesItemId := 'Panties-Steel';
+                // end else if StartsStr('ArmorElven', oldItemId) then begin    
+                //     tawobaItemId := 'TWA Elven ';
+                //     pantiesItemId := 'Panties-Elven';
+                //     if StartsStr('ArmorElvenLight', oldItemId) then begin    
+                //         oldItemPrefix := 'ArmorElvenLight';
+                //     end else begin
+                //         oldItemPrefix := 'ArmorElven';
+                //     end;
+                // end else if StartsStr('ArmorNightingale', oldItemId) then begin    
+                //     oldItemPrefix := 'ArmorNightingale';
+                //     pantiesItemId := 'Panties-Nightingale';
+                // end else if StartsStr('ArmorPenitus', oldItemId) then begin    
+                //     oldItemPrefix := 'ArmorPenitus';
+                //     pantiesItemId := 'Panties-Penitus';
+                // end else if StartsStr('ArmorDaedric', oldItemId) then begin    
+                //     tawobaItemId := 'TEW Daedric ';
+                //     oldItemPrefix := 'ArmorDaedric';
+                //     pantiesItemId := 'Panties-Daedric';
+                // end else if StartsStr('ArmorDragonscale', oldItemId) then begin    
+                //     tawobaItemId := 'TEW Dragonscale ';
+                //     oldItemPrefix := 'ArmorDragonscale';
+                //     pantiesItemId := 'Panties-Dragonscale';
+                // end else if StartsStr('ArmorDragonplate', oldItemId) then begin    
+                //     tawobaItemId := 'TWA Dragon Bone ';
+                //     oldItemPrefix := 'ArmorDragonplate';
+                //     pantiesItemId := 'Panties-DragonBone';
+                // end else if StartsStr('ArmorDwarven', oldItemId) then begin    
+                //     tawobaItemId := 'TWA Dwarven ';
+                //     oldItemPrefix := 'ArmorDwarven';
+                //     pantiesItemId := 'Panties-Dwarven';
+                // end else if StartsStr('ArmorEbony', oldItemId) then begin    
+                //     tawobaItemId := 'TWA Ebony ';
+                //     oldItemPrefix := 'ArmorEbony';
+                //     pantiesItemId := 'Panties-Ebony';
+                // end else if StartsStr('ArmorHide', oldItemId) then begin    
+                //     tawobaItemId := 'TWA Hide ';
+                //     oldItemPrefix := 'ArmorHide';
+                //     pantiesItemId := 'Panties-Hide';
+                // end else if StartsStr('ArmorStudded', oldItemId) then begin    
+                //     tawobaItemId := 'TWA Hide ';
+                //     oldItemPrefix := 'ArmorStudded';
+                //     pantiesItemId := 'Panties-Hide';
+                // end else if StartsStr('ArmorScaled', oldItemId) then begin    
+                //     tawobaItemId := 'TEW Scaled ';
+                //     oldItemPrefix := 'ArmorScaled';
+                //     pantiesItemId := 'Panties-Scaled';
+                // end else if StartsStr('ArmorDraugr', oldItemId) then begin    
+                //     tawobaItemId := 'TEW Ancient Nord ';
+                //     oldItemPrefix := 'ArmorDraugr';
+                //     pantiesItemId := 'Panties-Draugr';
+                // end else if StartsStr('ArmorOrcish', oldItemId) then begin    
+                //     tawobaItemId := 'TWA Orcish ';
+                //     oldItemPrefix := 'ArmorOrcish';
+                //     pantiesItemId := 'Panties-Orcish';
+                // end else if StartsStr('ArmorImperial', oldItemId) then begin    
+                //     tawobaItemId := 'TEW Imperial Heavy ';
+                //     pantiesItemId := 'Panties-Imperial';
+                //     if StartsStr('ArmorImperialLight', oldItemId) then begin    
+                //         oldItemPrefix := 'ArmorImperialLight';
+                //     end else begin
+                //         oldItemPrefix := 'ArmorImperial';
+                //     end;
+                // end;
             end;
             if (StartsStr('TWA ', tawobaItemId) and hasTAWOBA) or (StartsStr('TEW ', tawobaItemId) and hasTEWOBA) then begin
                 removeOldItem := true;
