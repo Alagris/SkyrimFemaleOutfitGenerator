@@ -656,6 +656,7 @@ var
     i: integer;
     e: IwbMainRecord;
 begin
+    if pos('#', newPrefix) <> 0 then begin raise Exception.Create('newPrefix shouldn''t have hashtags: '+combinedPrefixes+' -> '+newPrefix+', e='+FullPath(e)); end;
     AddMessage('Combining (Mage prefixes) '+combinedPrefixes+' into '+newPrefix);
     for i := 1 to numOfLevels do begin
         e := GenerateAnyMageForLevel(destFile, newPrefix, combinedPrefixes, i, minMagRateLvl, maxMagRateLvl);
@@ -665,8 +666,8 @@ begin
     end else begin
         if combinedPrefixes[1] <> '#' then begin raise Exception.Create('unreachable: '+newPrefix+' -> '+combinedPrefixes); end;
         Result := copy(combinedPrefixes, 2, length(combinedPrefixes)-1);
-        if pos('#', Result) <> 0 then begin raise Exception.Create('unreachable: '+combinedPrefixes+' -> '+newPrefix+', Result='+Result+', e='+FullPath(e)); end;
     end;
+    if pos('#', Result) <> 0 then begin raise Exception.Create('unreachable: '+combinedPrefixes+' -> '+newPrefix+', Result='+Result+', e='+FullPath(e)); end;
 end;
 function GenerateAnyMageForLevel(destFile: IwbFile; newPrefix, combinedPrefixes: string; levelNum, minMagRateLvl, maxMagRateLvl:integer): IwbMainRecord;
 begin
@@ -891,6 +892,37 @@ begin
     addToLVLI_(destFile, e, 'LVLI', 'CHDD Boots', '1', '1');
     addToLVLI_(destFile, e, 'ARMO', '00DDPanty'+magic_type+s, '1', '1');
     Result := e;
+end;
+
+function GenerateAnyVampire(destFile: IwbFile; numOfLevels: integer; newPrefix, combinedPrefixes: string; minMagRateLvl, maxMagRateLvl:integer): string;
+var
+    i: integer;
+    e: IwbMainRecord;
+begin
+    if pos('#', newPrefix) <> 0 then begin raise Exception.Create('newPrefix shouldn''t have hashtags: '+combinedPrefixes+' -> '+newPrefix+', e='+FullPath(e)); end;
+    AddMessage('Combining (Vamp prefixes) '+combinedPrefixes+' into '+newPrefix);
+    for i := 1 to numOfLevels do begin
+        e := GenerateAnyVampireForLevel(destFile, newPrefix, combinedPrefixes, i, minMagRateLvl, maxMagRateLvl);
+    end;
+    if StartsStr(newPrefix, EditorID(e)) then begin
+        Result := newPrefix;
+    end else begin
+        if combinedPrefixes[1] <> '#' then begin raise Exception.Create('unreachable: '+newPrefix+' -> '+combinedPrefixes); end;
+        Result := copy(combinedPrefixes, 2, length(combinedPrefixes)-1);
+    end;
+    if pos('#', Result) <> 0 then begin raise Exception.Create('unreachable: '+combinedPrefixes+' -> '+newPrefix+', Result='+Result+', e='+FullPath(e)); end;
+end;
+function GenerateAnyVampireForLevel(destFile: IwbFile; newPrefix, combinedPrefixes: string; levelNum, minMagRateLvl, maxMagRateLvl:integer): IwbMainRecord;
+begin
+    GenerateAnyVampireForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Conjuration', levelNum);
+    if (levelNum > minMagRateLvl) and (levelNum < maxMagRateLvl) then begin
+        GenerateAnyVampireForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'MagickaRate', levelNum);
+    end;
+    Result := GenerateAnyVampireForTypeAndLevel(destFile, newPrefix, combinedPrefixes, 'Destruction', levelNum);
+end;
+function GenerateAnyVampireForTypeAndLevel(destFile: IwbFile; newPrefix, combinedPrefixes, magic_type:string; levelNum:integer): IwbMainRecord;
+begin
+    Result := combineLVLI(destFile, newPrefix+' Ench'+magic_type+IntToStr(levelNum), combinedPrefixes, ' Ench'+magic_type+IntToStr(levelNum));
 end;
 /////// HERE IS A NICE TEMPLATE FOR MAKING MORE WARLOCK ENCHANTED STUFF IN THE FUTURE ////////
 // function GenerateCocoDemon(destFile: IwbFile; e:IwbElement): IwbElement;
@@ -1207,7 +1239,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'NINI Blacksmith lo', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'NINI Blacksmith st', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'NINI Blacksmith up', '1', '1');
-        AnyBlacksmith := AnyBlacksmith + '#NINI Blacksmith';
+        AnyBlacksmithId := AnyBlacksmithId + '#NINI Blacksmith';
     end;
     if Assigned(fileNiniChatNoir) then begin
         AddMasterIfMissing(destFile, GetFileName(fileNiniChatNoir));
@@ -3002,7 +3034,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'CHNE Panty', '1', '1');
         addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbraceBoots', '1', '1');
         addToLVLI_(destFile, e, 'ARMO', 'Ench00NocturnalEmbraceBelt', '1', '1');
-        AnyThievesGuild := AnyThievesGuild + '#CHNE Set';
+        AnyThievesGuildId := AnyThievesGuildId + '#CHNE Set';
     end;
     if Assigned(fileChristineBlackMagic) then begin
         AddMasterIfMissing(destFile, GetFileName(fileChristineBlackMagic));
@@ -3051,28 +3083,36 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess5', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess6', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'CHHP priestess7', '1', '1');
-        AnyMonkId := AnyMonkId + '#CHHP priestess'
+        AnyMonkId := AnyMonkId + '#CHHP priestess';
     end;
+    if Assigned(e) then RemoveByIndex(e, 0, true);
+    e := nil;
+
     if Assigned(AnyLingerieId) then begin
         AnyLingerie := combineLVLI(destFile, 'any_lingerie', AnyLingerieId, '');
         AnyLingerieId := EditorID(AnyLingerie);
         AnyLingerieOutfit := makeSingletonOutfit(destFile, 'AnyLingerieOutfit', AnyLingerie);
+        if Signature(AnyLingerie) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyLingerie)+' is invalid') end;
     end;
     if Assigned(AnyThievesGuildId) then begin
         AnyThievesGuild := combineLVLI(destFile, 'any_thieves_guild', AnyThievesGuildId, '');
         AnyThievesGuildId := EditorID(AnyThievesGuild);
+        if Signature(AnyThievesGuild) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyThievesGuild)+' is invalid') end;
     end;
     if Assigned(AnyBarkeeperId) then begin
         AnyBarkeeper := combineLVLI(destFile, 'any_barkeeper', AnyBarkeeperId, '');
         AnyBarkeeperId := EditorID(AnyBarkeeper);
+        if Signature(AnyBarkeeper) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyBarkeeper)+' is invalid') end;
     end;
     if Assigned(AnyBlacksmithId) then begin
         AnyBlacksmith := combineLVLI(destFile, 'any_blacksmith', AnyBlacksmithId, '');
         AnyBlacksmithId := EditorID(AnyBlacksmith);
+        if Signature(AnyBlacksmith) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyBlacksmith)+' is invalid') end;
     end;
     if Assigned(AnyMonkId) then begin
         AnyMonk := combineLVLI(destFile, 'any_monk', AnyMonkId, '');
         AnyMonkId := EditorID(AnyMonk);
+        if Signature(AnyMonk) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyMonk)+' is invalid') end;
     end;
     if Assigned(AnyMagePrefix) then begin
         AnyMagePrefix := GenerateAnyMage(destFile, 5, 'AnyMage_', AnyMagePrefix, 0, 6);
@@ -3081,22 +3121,40 @@ begin
         AnyNecromancerPrefix := GenerateAnyMage(destFile, 6, 'AnyNecro_', AnyNecromancerPrefix, 1, 6);
     end;
     if Assigned(AnyWarlockPrefix) then begin
-        AnyWarlockPrefix := AnyWarlockPrefix(destFile, 6, 'AnyWarlock_', AnyWarlockPrefix, 1, 6);
+        AnyWarlockPrefix := GenerateAnyMage(destFile, 6, 'AnyWarlock_', AnyWarlockPrefix, 1, 6);
+    end;
+    if Assigned(AnyVampirePrefix) then begin
+        combineLVLI(destFile, 'AnyVamp', AnyVampirePrefix, '');
+        combineLVLI(destFile, 'AnyVamp Ench', AnyVampirePrefix, ' Ench');
+        AnyVampirePrefix := GenerateAnyVampire(destFile, 6, 'AnyVamp', AnyVampirePrefix, 1, 6);
     end;
     if Assigned(KitchenLingerieId) then begin
         KitchenLingerie := combineLVLI(destFile, 'any_lingerie_kitchen', KitchenLingerieId, '');
         KitchenLingerieId := EditorID(KitchenLingerie);
         KitchenLingerieOutfit := makeSingletonOutfit(destFile, 'AnyLingerieKitchenOutfit', KitchenLingerie);
+        if Signature(KitchenLingerie) <> 'LVLI' then begin raise Exception.Create(FullPath(KitchenLingerie)+' is invalid') end;
     // end else begin
     //     KitchenLingerie := AnyLingerie;
     //     KitchenLingerieId := AnyLingerieId;
     //     KitchenLingerieOutfit := AnyLingerieOutfit;
     end;
+    if pos('#', AnyLingerieId) <> 0 then begin raise Exception.Create(AnyLingerie+' is invalid') end;
+    if pos('#', AnyBarkeeperId) <> 0 then begin raise Exception.Create(AnyBarkeeper+' is invalid') end;
+    if pos('#', AnyMonkId) <> 0 then begin raise Exception.Create(AnyMonkId+' is invalid') end;
+    if pos('#', KitchenLingerieId) <> 0 then begin raise Exception.Create(KitchenLingerieId+' is invalid') end;
+    if pos('#', AnyThievesGuildId) <> 0 then begin raise Exception.Create(AnyThievesGuildId+' is invalid') end;
     if pos('#', AnyMagePrefix) <> 0 then begin raise Exception.Create(AnyMagePrefix+' is invalid') end;
     if pos('#', AnyVampirePrefix) <> 0 then begin raise Exception.Create(AnyVampirePrefix+' is invalid') end;
+    if EndsStr('Ench', AnyVampirePrefix) then begin raise Exception.Create(AnyVampirePrefix+' is invalid') end;
     if pos('#', AnyWarlockPrefix) <> 0 then begin raise Exception.Create(AnyWarlockPrefix+' is invalid') end;
     if pos('#', AnyNecromancerPrefix) <> 0 then begin raise Exception.Create(AnyNecromancerPrefix+' is invalid') end;
-    if Assigned(e) then RemoveByIndex(e, 0, true);
+    
+    if EditorID(AnyLingerie) <> AnyLingerieId then begin raise Exception.Create(AnyLingerie+' <> '+EditorID(AnyLingerie)) end;
+    if EditorID(AnyBarkeeper) <> AnyBarkeeperId then begin raise Exception.Create(AnyBarkeeper+' <> '+EditorID(AnyBarkeeper)) end;
+    if EditorID(AnyMonk) <> AnyMonkId then begin raise Exception.Create(AnyMonkId+' <> '+EditorID(AnyMonk)) end;
+    if EditorID(KitchenLingerie) <> KitchenLingerieId then begin raise Exception.Create(KitchenLingerieId+' <> '+EditorID(KitchenLingerie)) end;
+    if EditorID(AnyThievesGuild) <> AnyThievesGuildId then begin raise Exception.Create(AnyThievesGuildId+' <> '+EditorID(AnyThievesGuild)) end;
+    
 end;
 function makeSingletonOutfit(destFile: IwbFile; otftId: string; lvli: IwbMainRecord): IwbMainRecord;
 var
@@ -3247,6 +3305,8 @@ begin
                 fileNiniCatMaid := f;
             end else if fname = '[NINI] Chat Noir.esp' then begin 
                 fileNiniChatNoir := f;
+            end else if fname = 'Shino_School_Uniform.esp' then begin 
+                fileShinoSchool := f;
             end;
         end;
         if not Assigned(destinationFile) then begin
@@ -3422,6 +3482,24 @@ begin
     end;
 end;
 
+function AddListElement(newItems: IwbElement; newItemReference:IwbMainRecord; isLVLI: Boolean): IwbElement;
+var
+    newItem: IwbElement;
+begin
+    Result := newItemReference;
+    if isLVLI then begin 
+        newItem := Add(newItems, 'Leveled List Entry', true);
+        AddMessage('LVLI (add) '+FullPath(newItem)+'='+GetElementEditValues(newItem, 'LVLO\Reference')+' -> '+EditorID(newItemReference)+' ['+FullPath(oldItem)+']');
+        SetElementNativeValues(newItem, 'LVLO\Count', 1);
+        SetElementNativeValues(newItem, 'LVLO\Level', 1);
+        ElementAssign(ElementByPath(newItem, 'LVLO\Reference'), LowInteger, newItemReference, false);
+    end else begin
+        AddMessage('OTFT (add) '+GetEditValue(newItem)+' -> '+EditorID(newItemReference));
+        ElementAssign(newItems, HighInteger, newItemReference, false);    
+    end;
+end;
+
+
 function TransferListElement(oldItem, newItems: IwbElement; newItemReference:IwbMainRecord; isLVLI: Boolean): IwbElement;
 var
     newItem: IwbElement;
@@ -3464,7 +3542,10 @@ var
     magicType: string;
     magicLevel: string;
     pantiesFinal: string;
+    usedTAWOBABody: string;
+    usesMage: Boolean;
 begin      
+
     (* CREATING NEW FEMALE-ONLY ARMOR BASED ON SOME RULES *)
     (* IT CHECKS WHAT ARMOR MODS ARE INSTALLED AND AUTOMATICALLY USES THEM *)
     recordSignature := Signature(oldOutfitRecord);
@@ -3473,6 +3554,8 @@ begin
     isBandit := pos('Bandit', oldOutfitId) > 0;
     isBanditBoss := pos('Boss', oldOutfitId) > 0;
     pantiesFinal := nil;
+    usedTAWOBABody := nil;
+    usesMage := false;
     if isLVLI then begin
         oldOutfitItems := ElementByPath(oldOutfitRecord, 'Leveled List Entries');
         newOutfitItems := ElementByPath(newOutfitRecord, 'Leveled List Entries');
@@ -3494,21 +3577,22 @@ begin
                 pantiesItemId := 'Panties-Summerset';    
             end;
         end else if StartsStr('hyd_', oldOutfitId) then begin
-            if oldOutfitId = 'hyd_cell_zyx_basegd' and Assigned(fileShinoSchool) then begin
+            if (oldOutfitId = 'hyd_cell_zyx_basegd') and Assigned(fileShinoSchool) then begin
                 newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'Shino set');
-            end else if oldOutfitId = 'hyd_out_cleaningslave' and Assigned(AnyBarkeeper) then begin
+                if not Assigned(newOutfitRef) then begin raise Exception.Create('unreachable'); end;
+            end else if (oldOutfitId = 'hyd_out_cleaningslave') and Assigned(AnyBarkeeper) then begin
                 newOutfitRef := AnyBarkeeper;
-            end else if oldOutfitId = 'hyd_out_slavegirl1_sg20' and Assigned(fileNiniChatNoir) then begin
+                if not Assigned(newOutfitRef) then begin raise Exception.Create('unreachable'); end;
+            end else if (oldOutfitId = 'hyd_out_slavegirl1_sg20') and Assigned(fileNiniChatNoir) then begin
                 newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'NINI ChatNoir');
+                if not Assigned(newOutfitRef) then begin raise Exception.Create('unreachable'); end;
             end else begin
                 newOutfitRef := AnyLingerie;
                 if Assigned(newOutfitRef) then begin
-                    if ElementCount(oldOutfitItems) = 0 then begin
-                        removeOldItem := true;
-                    end else begin
+                    if ElementCount(oldOutfitItems) > 0 then begin
+                        removeOldItem := false; // checking if this is a slave 
                         for i := ElementCount(oldOutfitItems)-1 downto 0 do begin
                             oldOutfitItem := ElementByIndex(oldOutfitItems, i);
-                            removeOldItem := false; // checking if this is a slave 
                             oldItemId := GetEditValue(oldOutfitItem);
                             if StartsStr('zbf', oldItemId)  then begin
                                 removeOldItem := true;
@@ -3517,10 +3601,20 @@ begin
                                 newOutfitRef := KitchenLingerie;
                             end;
                         end;
+                        if not removeOldItem then begin
+                            newOutfitRef := nil; // it's actually not a slave
+                        end;
+                        removeOldItem := nil;
                     end;
-                    if removeOldItem then begin
-                        ElementAssign(newOutfitItems, HighInteger, newOutfitRef, false);  
-                        exit;  
+                    
+                end;
+            end;
+            if Assigned(newOutfitRef) then begin
+                for i := ElementCount(newOutfitItems)-1 downto 0 do begin
+                    newOutfitItem := ElementByIndex(newOutfitItems, i);
+                    oldItemId := GetEditValue(newOutfitItem);
+                    if StartsStr('Clothes', oldItemId)  then begin
+                        RemoveElement(newOutfitItems, newOutfitItem);
                     end;
                 end;
             end;
@@ -3616,11 +3710,16 @@ begin
             end;
         end;
     end;
+    if Assigned(newOutfitRef) then begin 
+        AddListElement(newOutfitItems, newOutfitRef, isLVLI);
+        exit;
+    end;
     if Assigned(pantiesItemId) then begin
         pantiesFinal := pantiesItemId;
     end;
     for i := ElementCount(oldOutfitItems)-1 downto 0 do begin
         oldOutfitItem := ElementByIndex(oldOutfitItems, i);
+        if not Assigned(oldOutfitItem) then begin raise Exception.Create('No item in '+FullPath(oldOutfitItems)+' at '+IntToStr(i)) end;
         if isLVLI then begin
             oldOutfitRef := ElementByPath(oldOutfitItem, 'LVLO\Reference');
         end else begin
@@ -3749,7 +3848,16 @@ begin
                         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, magicType+magicLevel);
                         if not Assigned(newOutfitRef) then begin raise Exception.Create(magicType+magicLevel+' not found'); end;
                         pantiesFinal := 'skip';
+                        usesMage := true;
                     end;
+                end;
+            end else if StartsStr('cc', oldItemId) then begin
+                if StartsStr('ccBGSSSE025_ClothesBlackSmith', oldItemId) then begin
+                    oldItemPrefix := 'ClothesBlackSmith';  
+                    pantiesItemId := 'Panties-TheNine';
+                    newOutfitRef := AnyBlacksmith;
+                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                    removeOldItem := Assigned(newOutfitRef);
                 end;
             end else if StartsStr('Clothes', oldItemId) then begin
                 if StartsStr('ClothesThalmor', oldItemId) then begin
@@ -3779,6 +3887,7 @@ begin
                         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
                         if Assigned(AnyNecromancerPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyNecromancerPrefix+'MagickaRate2 not found'); end;
                         removeOldItem := Assigned(newOutfitRef);
+                        usesMage := usesMage or Assigned(newOutfitRef);
                     end else if oldItemId = 'ClothesNecromancerBoots' then begin
                         removeOldItem := Assigned(AnyNecromancerPrefix);
                     end;
@@ -3825,16 +3934,18 @@ begin
                     oldItemPrefix := 'ClothesMerchant';  
                     pantiesItemId := 'Panties-Big Vendor';
                 end else if StartsStr('ClothesBeggar', oldItemId) then begin
-                    if oldItemId = 'ClothesBeggarRags' then begin
+                    if (oldItemId = 'ClothesBeggarRags') or (oldItemId = 'ClothesBeggarRobes') then begin
                         newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
                         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
                         if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
                         removeOldItem := Assigned(newOutfitRef);
                     end else if oldItemId = 'ClothesBeggarHat' then begin
+                        removeOldItem := Assigned(fileChristineUndead);
                     end else if oldItemId = 'ClothesBeggarBoots' then begin   
+                        removeOldItem := Assigned(fileChristineUndead);
                     end;
                 end else if StartsStr('ClothesPrisoner', oldItemId) then begin
-                    if oldItemId = 'ClothesPrisonerRags' then begin
+                    if (oldItemId = 'ClothesPrisonerRags') or (oldItemId = 'ClothesPrisonerRagsBloody') then begin
                         newOutfitRef := MainRecordByEditorID(GroupBySignature(fileChristineUndead, 'ARMO'), '00DSChosenUndeadLower');
                         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
                         if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('00DSChosenUndeadLower not found'); end;
@@ -3844,7 +3955,8 @@ begin
                         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
                         if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
                         removeOldItem := Assigned(newOutfitRef);
-                    end else if oldItemId = 'ClothesPrisonerShoes' then begin   
+                    end else if (oldItemId = 'ClothesPrisonerShoes') or (oldItemId = 'ClothesPrisonerBloodyShoes') then begin   
+                        removeOldItem := Assigned(fileChristineUndead);
                     end;
                 end else if StartsStr('ClothesWarlock', oldItemId) then begin    
                     if StartsStr('ClothesWarlockRobes', oldItemId) then begin
@@ -3852,6 +3964,7 @@ begin
                         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
                         if Assigned(AnyWarlockPrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyWarlockPrefix+'MagickaRate3 not found'); end;
                         removeOldItem := Assigned(newOutfitRef);
+                        usesMage := usesMage or Assigned(newOutfitRef);
                     end else if oldItemId = 'ClothesWarlockBoots' then begin
                         removeOldItem := Assigned(AnyWarlockPrefix);
                     end;
@@ -3868,7 +3981,7 @@ begin
             end else if StartsStr('dun', oldItemId) then begin
             end else if StartsStr('DB', oldItemId) then begin
                 if StartsStr('DBArmor', oldItemId) then begin
-                    if (oldItemId = 'DBArmor') or (oldItemId = 'DBArmorShortSleeve') then begin
+                    if (oldItemId = 'DBArmor') or StartsStr('DBArmorWorn', oldItemId) or (oldItemId = 'DBArmorShortSleeve') then begin
                         newOutfitRef := AnyAssassin;
                         removeOldItem := Assigned(newOutfitRef);
                         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
@@ -3876,6 +3989,13 @@ begin
                         removeOldItem := Assigned(fileCocoAssassin);
                     end;
                 end else if StartsStr('DBClothes', oldItemId) then begin
+                    if (oldItemId = 'DBClothesRobes') or (oldItemId = 'DBClothesJester') or (oldItemId = 'DBClothesRedguardClothes') then begin
+                        newOutfitRef := AnyAssassin;
+                        removeOldItem := Assigned(newOutfitRef);
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
+                    end else begin
+                        removeOldItem := Assigned(fileCocoAssassin);
+                    end;
                 end;
             end else if StartsStr('Forsworn', oldItemId) then begin
                 oldItemPrefix := 'Forsworn';
@@ -3895,6 +4015,7 @@ begin
                             if Assigned(AnyVampirePrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
                             removeOldItem := Assigned(newOutfitRef);
                             if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                            usesMage := usesMage or Assigned(newOutfitRef);
                         end else begin
                             removeOldItem := Assigned(fileChristineDeadlyDesire);
                         end; 
@@ -3909,22 +4030,21 @@ begin
                     if Assigned(fileChristineDeadlyDesire) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
                     removeOldItem := Assigned(newOutfitRef);
                     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                    usesMage := usesMage or Assigned(newOutfitRef);
                 end else if StartsStr('DLC1EnchClothesVampireRobes', oldItemId) then begin
                     if Assigned(fileChristineDeadlyDesire) then begin
                         oldItemPrefix := 'DLC1EnchClothesVampireRobes';
-                        if Assigned(magicType) then begin
-                            if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
-                                magicType := 'Destruction';
-                            end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
-                                magicType := 'MagickaRate';
-                            end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
-                                magicType := 'Conjuration';
-                            end else begin
-                                magicType := nil;
-                            end;
+                        if StartsStr(oldItemPrefix+'Destruction', oldItemId) then begin    
+                            magicType := 'Destruction';
+                        end else if StartsStr(oldItemPrefix+'MagickaRate', oldItemId) then begin    
+                            magicType := 'MagickaRate';
+                        end else if StartsStr(oldItemPrefix+'Conjuration', oldItemId) then begin    
+                            magicType := 'Conjuration';
+                        end else begin
+                            magicType := nil;
                         end;
                         if not Assigned(magicType) then begin
-                            raise Exception.Create('Couldn''t parse magic type: '+oldItemId);
+                            raise Exception.Create('Couldn''t parse magic type: '+oldItemId+' (prefix='+oldItemPrefix+')');
                         end;
                         oldItemPrefix:=oldItemPrefix+magicType;
                         magicLevel := nil;
@@ -3944,16 +4064,18 @@ begin
                         if not Assigned(magicLevel) then begin
                             raise Exception.Create('Couldn''t parse magic level: '+oldItemId);
                         end;
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench'+magic_type+magicLevel);
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix+' Ench'+magicType+magicLevel);
                         removeOldItem := true;
-                        if not Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' Ench'+magic_type+magicLevel+' not found'); end;
+                        if not Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' Ench'+magicType+magicLevel+' not found'); end;
                         pantiesFinal := 'skip';
+                        usesMage := usesMage or Assigned(newOutfitRef);
                     end;
                 end;
             end else if StartsStr('DlC01ClothesVampire', oldItemId) then begin
                 if oldItemId = 'DlC01ClothesVampire' then begin
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
                     if Assigned(AnyVampirePrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
+                    usesMage := usesMage or Assigned(newOutfitRef);
                 end else begin
                     removeOldItem := Assigned(fileChristineDeadlyDesire);
                 end;
@@ -4085,9 +4207,15 @@ begin
             end;
             if (StartsStr('TWA ', tawobaItemId) and hasTAWOBA) or (StartsStr('TEW ', tawobaItemId) and hasTEWOBA) then begin
                 removeOldItem := true;
-                if StartsStr(oldItemPrefix+'Cuirass', oldItemId) or StartsStr(oldItemPrefix+'robes', oldItemId) then begin
+                if StartsStr(oldItemPrefix+'Cuirass', oldItemId) or StartsStr(oldItemPrefix+'robes', oldItemId) or StartsStr(oldItemPrefix+'Robes', oldItemId)  then begin
+                    if (pos('Hooded', oldItemId) <> 0) or (pos('hooded', oldItemId) <> 0) then begin
+                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Helmet');
+                        AddListElement(newOutfitItems, newOutfitRef, isLVLI)
+                    end;
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Body');
                     pantiesFinal := 'skip';
+                    ElementAssign(newOutfitItem, LowInteger, newOutfitRef, false);
+                    usedTAWOBABody := tawobaItemId;
                 end else if StartsStr(oldItemPrefix+'Gauntlets', oldItemId) or StartsStr(oldItemPrefix+'Gloves', oldItemId) then begin    
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Gauntlets');
                 end else if StartsStr(oldItemPrefix+'Boots', oldItemId) then begin    
@@ -4105,6 +4233,7 @@ begin
         end;
         if removeOldItem then begin
             newOutfitItem := ElementByIndex(newOutfitItems, i);
+            if not Assigned(newOutfitItem) then begin raise Exception.Create('No item in '+FullPath(newOutfitItems)+' at '+IntToStr(i)) end;
             if Assigned(newOutfitRef) then begin
                 if isLVLI then begin
                     newOutfitItem := ElementByPath(newOutfitItem, 'LVLO\Reference');
@@ -4130,7 +4259,40 @@ begin
             pantiesFinal := nil;
         end;
     end;
-    
+    if not isLVLI or GetElementEditValues(newOutfitRecord, 'LVLF\Use All') = '1' then begin
+        if Assigned(usedTAWOBABody) then begin
+            for i := ElementCount(newOutfitItems)-1 downto 0 do begin
+                newOutfitItem := ElementByIndex(newOutfitItems, i);
+                if isLVLI then begin
+                    newOutfitItem := ElementByPath(newOutfitItem, 'LVLO\Reference');
+                end;
+                oldItemId := GetEditValue(newOutfitItem);
+                if not Assigned(oldItemId) then begin raise Exception.Create('unreachable: '+FullPath(newOutfitItem)); end;
+                newOutfitRef := nil;
+                if (pos('Hood', oldItemId) <> 0) or (pos('hood', oldItemId) <> 0)  then begin
+                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, usedTAWOBABody+'Helmet');
+                end else if (pos('boots', oldItemId) <> 0) or (pos('Boots', oldItemId) <> 0)  then begin
+                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, usedTAWOBABody+'Boots');
+                end;
+                if Assigned(newOutfitRef) then begin
+                    ElementAssign(newOutfitItem, LowInteger, newOutfitRef, false);
+                end;
+            end;
+        end else if usesMage then begin
+            for i := ElementCount(newOutfitItems)-1 downto 0 do begin
+                newOutfitItem := ElementByIndex(newOutfitItems, i);
+                if isLVLI then begin
+                    oldItemId := GetElementEditValues(newOutfitItem, 'LVLO\Reference');
+                end else begin
+                    oldItemId := GetEditValue(newOutfitItem);
+                end;
+                if not Assigned(oldItemId) then begin raise Exception.Create('unreachable: '+FullPath(newOutfitItem)); end;
+                if (pos('Hood', oldItemId) <> 0) or (pos('hood', oldItemId) <> 0) or (pos('boots', oldItemId) <> 0) or (pos('Boots', oldItemId) <> 0) then begin
+                    RemoveElement(newOutfitItems, newOutfitItem);
+                end;
+            end;
+        end;
+    end;
     if Assigned(pantiesFinal) and Assigned(filePantiesofskyrim) and (pantiesFinal <> 'skip') then begin
         if StartsStr('Panties-', pantiesFinal) then begin
             newOutfitRef := MainRecordByEditorID(GroupBySignature(filePantiesofskyrim, 'LVLI'), pantiesFinal);
@@ -4197,13 +4359,17 @@ function isInFaction(npc: IwbMainRecord; faction:string): Boolean;
 var
     i:integer;
     f: string;
+    r: IInterface;
 begin
     Result := false;
     npc := ElementByPath(npc, 'Factions');
-    for i:= 1 to ElementCount(npc) do begin
-        f := EditorID(LinksTo(ElementByPath(ElementByIndex(npc, i), 'Faction')));
+    for i:= 0 to ElementCount(npc)-1 do begin
+        r := ElementByIndex(npc, i);
+        r := ElementByPath(r, 'Faction');
+        r := LinksTo(r);
+        f := EditorID(r);
         if not Assigned(f) then begin
-            raise Exception.Create('Error in isInFaction for '+FullPath(npc)+' at '+IntToStr(i));
+            raise Exception.Create('D Error in isInFaction for '+FullPath(npc)+' at '+IntToStr(i));
         end;
         if f = faction then begin
             Result := true;
