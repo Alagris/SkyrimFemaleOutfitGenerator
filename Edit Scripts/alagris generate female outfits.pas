@@ -2912,7 +2912,14 @@ begin
         AddMasterIfMissing(destFile, GetFileName(fileCocoAssassin));
         for i := 1 to 5 do begin
             s := IntToStr(i);
-
+            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_underwear'+s, 'EnchAssassin_underwear'+s, '', 'DBEnchantShrouded');
+            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_horn'+s, 'EnchAssassin_horn'+s, '', 'DBEnchantGloves');
+            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_heels'+s, 'EnchAssassin_heels'+s, '', 'EnchArmorFortifyMarksman02');
+            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_boots'+s, 'EnchAssassin_boots'+s, '', 'EnchArmorFortifyMarksman02');
+            if (i < 3) or (i=4) then begin 
+                GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_boots'+s+'b', 'EnchAssassin_boots'+s+'b', '', 'EnchArmorFortifyMarksman02');
+            end;
+            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_legbelt'+s, 'EnchAssassin_legbelt'+s, '', 'EnchArmorMuffle');
             e := newLVLI(e, destFile, 'COCO assassin'+s+' corset', '0', '0', '1', '0');
             addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsmp'+s, '1', '1');
             addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_corsetsex'+s, '1', '1');
@@ -2939,22 +2946,27 @@ begin
                 addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_pantisex'+s+'b', '1', '1');
                 addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_panti'+s+'c', '1', '1');
             end;
-            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_underwear'+s, 'EnchAssassin_underwear'+s, '', 'DBEnchantShrouded');
-            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_horn'+s, 'EnchAssassin_horn'+s, '', 'DBEnchantGloves');
-            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_heels'+s, 'EnchAssassin_heels'+s, '', 'EnchArmorFortifyMarksman02');
-            GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_legbelt'+s, 'EnchAssassin_legbelt'+s, '', 'EnchArmorMuffle');
+            e := newLVLI(e, destFile, 'COCO assassin'+s+' boots', '0', '0', '1', '0');
+            addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_boots'+s, '1', '1');
+            addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_heels'+s, '1', '1');
+            if (i < 3) or (i=4) then begin 
+                e := newLVLI(e, destFile, 'COCO assassin'+s+' bootsb', '0', '0', '1', '0');
+                addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_boots'+s+'b', '1', '1');
+                addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_heels'+s, '1', '1');
+            end;
+            
             e := newLVLI(e, destFile, 'COCO assassin'+s, '0', '1', '0', '0');
             addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp'+s, '1', '1');
             addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_tailfullsmp'+s, '1', '1');
             addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' panti', '1', '1');
             addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' mask', '1', '1');
             addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' corset', '1', '1');
+            addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' boots', '1', '1');
             addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove'+s, '1', '1');
             addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_legbelt'+s, '1', '1');
             addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_underwear'+s, '1', '1');
-            addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots'+s, '1', '1');
-            addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_legbelt'+s, '1', '1');
             addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_horn'+s, '1', '1');
+            
             if i < 5 then begin
                 e := newLVLI(e, destFile, 'COCO assassin'+s+'b', '0', '1', '0', '0');
                 addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_necklacesmp'+s, '1', '1');
@@ -2968,15 +2980,14 @@ begin
                 if not Assigned(addToLVLIMaybe_(destFile, e, 'LVLI', 'COCO assassin'+s+' corsetb', '1', '1')) then begin
                     addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' corset', '1', '1')
                 end;
+                if not Assigned(addToLVLIMaybe_(destFile, e, 'LVLI', 'COCO assassin'+s+' bootsb', '1', '1')) then begin
+                    addToLVLI_(destFile, e, 'LVLI', 'COCO assassin'+s+' boots', '1', '1')
+                end;
                 if not Assigned(addToLVLIMaybe(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove'+s+'b', '1', '1')) then begin
                     addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_glove'+s, '1', '1');
                 end;
                 addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_legbelt'+s, '1', '1');
                 addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_underwear'+s, '1', '1');
-                if not Assigned(addToLVLIMaybe(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots'+s+'b', '1', '1')) then begin
-                    addToLVLI(destFile, e, fileCocoAssassin, 'ARMO', 'Assassin_boots'+s, '1', '1');
-                end;
-                addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_legbelt'+s, '1', '1');
                 addToLVLI_(destFile, e, 'ARMO', 'EnchAssassin_horn'+s, '1', '1');
             end;
         end;
@@ -3109,6 +3120,11 @@ begin
         AnyBlacksmithId := EditorID(AnyBlacksmith);
         if Signature(AnyBlacksmith) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyBlacksmith)+' is invalid') end;
     end;
+    if Assigned(AnyAssassinId) then begin
+        AnyAssassin := combineLVLI(destFile, 'any_assassin', AnyAssassinId, '');
+        AnyAssassinId := EditorID(AnyAssassin);
+        if Signature(AnyAssassin) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyAssassin)+' is invalid') end;
+    end;
     if Assigned(AnyMonkId) then begin
         AnyMonk := combineLVLI(destFile, 'any_monk', AnyMonkId, '');
         AnyMonkId := EditorID(AnyMonk);
@@ -3141,6 +3157,7 @@ begin
     if pos('#', AnyLingerieId) <> 0 then begin raise Exception.Create(AnyLingerie+' is invalid') end;
     if pos('#', AnyBarkeeperId) <> 0 then begin raise Exception.Create(AnyBarkeeper+' is invalid') end;
     if pos('#', AnyMonkId) <> 0 then begin raise Exception.Create(AnyMonkId+' is invalid') end;
+    if pos('#', AnyAssassinId) <> 0 then begin raise Exception.Create(AnyAssassinId+' is invalid') end;
     if pos('#', KitchenLingerieId) <> 0 then begin raise Exception.Create(KitchenLingerieId+' is invalid') end;
     if pos('#', AnyThievesGuildId) <> 0 then begin raise Exception.Create(AnyThievesGuildId+' is invalid') end;
     if pos('#', AnyMagePrefix) <> 0 then begin raise Exception.Create(AnyMagePrefix+' is invalid') end;
@@ -3148,9 +3165,9 @@ begin
     if EndsStr('Ench', AnyVampirePrefix) then begin raise Exception.Create(AnyVampirePrefix+' is invalid') end;
     if pos('#', AnyWarlockPrefix) <> 0 then begin raise Exception.Create(AnyWarlockPrefix+' is invalid') end;
     if pos('#', AnyNecromancerPrefix) <> 0 then begin raise Exception.Create(AnyNecromancerPrefix+' is invalid') end;
-    
-    if EditorID(AnyLingerie) <> AnyLingerieId then begin raise Exception.Create(AnyLingerie+' <> '+EditorID(AnyLingerie)) end;
-    if EditorID(AnyBarkeeper) <> AnyBarkeeperId then begin raise Exception.Create(AnyBarkeeper+' <> '+EditorID(AnyBarkeeper)) end;
+    if EditorID(AnyAssassin) <> AnyAssassinId then begin raise Exception.Create(AnyAssassinId+' <> '+EditorID(AnyAssassin)) end;
+    if EditorID(AnyLingerie) <> AnyLingerieId then begin raise Exception.Create(AnyLingerieId+' <> '+EditorID(AnyLingerie)) end;
+    if EditorID(AnyBarkeeper) <> AnyBarkeeperId then begin raise Exception.Create(AnyBarkeeperId+' <> '+EditorID(AnyBarkeeper)) end;
     if EditorID(AnyMonk) <> AnyMonkId then begin raise Exception.Create(AnyMonkId+' <> '+EditorID(AnyMonk)) end;
     if EditorID(KitchenLingerie) <> KitchenLingerieId then begin raise Exception.Create(KitchenLingerieId+' <> '+EditorID(KitchenLingerie)) end;
     if EditorID(AnyThievesGuild) <> AnyThievesGuildId then begin raise Exception.Create(AnyThievesGuildId+' <> '+EditorID(AnyThievesGuild)) end;
@@ -3986,7 +4003,7 @@ begin
                         removeOldItem := Assigned(newOutfitRef);
                         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
                     end else begin
-                        removeOldItem := Assigned(fileCocoAssassin);
+                        removeOldItem := Assigned(AnyAssassin);
                     end;
                 end else if StartsStr('DBClothes', oldItemId) then begin
                     if (oldItemId = 'DBClothesRobes') or (oldItemId = 'DBClothesJester') or (oldItemId = 'DBClothesRedguardClothes') then begin
@@ -3994,7 +4011,7 @@ begin
                         removeOldItem := Assigned(newOutfitRef);
                         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end; 
                     end else begin
-                        removeOldItem := Assigned(fileCocoAssassin);
+                        removeOldItem := Assigned(AnyAssassin);
                     end;
                 end;
             end else if StartsStr('Forsworn', oldItemId) then begin
