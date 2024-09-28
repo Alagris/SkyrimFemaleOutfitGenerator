@@ -35,6 +35,7 @@ var
     fileChristineBlackMagic: IwbFile;
     fileChristineDeadlyDesire: IwbFile;
     fileChristinePriestess: IwbFile;
+    fileChristineExnem: IwbFile;
     fileSkimpyMaid: IwbFile;
     fileShinoSchool: IwbFile;
     fileDXFI: IwbFile;
@@ -687,6 +688,100 @@ begin
     Result := combineLVLI(destFile, newPrefix+magic_type+IntToStr(levelNum), combinedPrefixes, magic_type+IntToStr(levelNum));
 end;
 
+
+function GenerateExnemDemonEnchPanties(destFile: IwbFile; e:IwbElement; level, magic_type, color:string; levelNum:integer): IwbElement;
+var
+    ei_panties: IwbMainRecord;
+    lvl:string;
+    ench:string;
+begin 
+    lvl := IntToStr(levelNum);
+    ench :='EnchRobesFortify'+magic_type+'0'+lvl;
+    e := newLVLI(e, destFile, 'Exnem demon Lower '+color+' '+magic_type+lvl, '0', '0', '1', '0');  
+    ei_panties := GenerateEnchantedItem(destFile, fileChristineExnem, '00ExnemDemonicLower'+color, 'Exnem demon Lower '+color+magic_type+lvl, magic_type, ench);
+    addToLVLI_(destFile, e, 'ARMO', EditorID(ei_panties), '1', '1');
+    ei_panties := GenerateEnchantedItem(destFile, fileChristineExnem, '00ExnemDemonicLower'+color+'Alt', 'Exnem demon Lower '+color+' Alt'+magic_type+lvl, magic_type, ench);
+    addToLVLI_(destFile, e, 'ARMO', EditorID(ei_panties), '1', '1');
+    Result := e;
+end;
+function GenerateExnemDemonEnchClothingTypeAndLevelColor(destFile: IwbFile; e:IwbElement; level, magic_type, color:string; levelNum:integer): IwbElement;
+begin 
+    e := GenerateExnemDemonEnchPanties(destFile, e, level, magic_type, '', levelNum);
+    e := GenerateExnemDemonEnchPanties(destFile, e, level, magic_type, 'Black', levelNum);
+    e := GenerateExnemDemonEnchPanties(destFile, e, level, magic_type, 'White', levelNum);
+    e := newLVLI(e, destFile, 'Exnem demon'+color+magic_type+IntToStr(levelNum), '0', '1', '0', '0');  
+    addToLVLI_(destFile, e, 'LVLI', 'Exnem demon Boots '+color, '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'Exnem demon Gauntlets '+color, '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'Exnem demon Lower '+color+' '+magic_type+IntToStr(levelNum), '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'Exnem demon Thighs '+color, '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'Exnem demon Upper '+color, '1', '1');
+    Result := e;
+end;
+
+function GenerateExnemDemonEnchClothingTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
+begin 
+    e := GenerateExnemDemonEnchClothingTypeAndLevelColor(destFile, e, level, magic_type, '', levelNum);
+    e := GenerateExnemDemonEnchClothingTypeAndLevelColor(destFile, e, level, magic_type, 'Black', levelNum);
+    e := GenerateExnemDemonEnchClothingTypeAndLevelColor(destFile, e, level, magic_type, 'White', levelNum);  
+    e := newLVLI(e, destFile, 'Exnem demon set '+magic_type+IntToStr(levelNum), '0', '0', '0', '0');  
+    addToLVLI_(destFile, e, 'LVLI', 'Exnem demon'+magic_type+IntToStr(levelNum), '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'Exnem demonBlack'+magic_type+IntToStr(levelNum), '1', '1');
+    addToLVLI_(destFile, e, 'LVLI', 'Exnem demonWhite'+magic_type+IntToStr(levelNum), '1', '1');
+end;
+
+function GenerateExnemDemonEnchClothing(destFile: IwbFile; e:IwbElement; level: string; levelNum:integer): IwbElement;
+begin
+    e := GenerateExnemDemonEnchClothingTypeAndLevel(destFile, e, level, 'Conjuration', levelNum);
+    e := GenerateExnemDemonEnchClothingTypeAndLevel(destFile, e, level, 'Restoration', levelNum);
+    e := GenerateExnemDemonEnchClothingTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
+    e := GenerateExnemDemonEnchClothingTypeAndLevel(destFile, e, level, 'Illusion', levelNum);
+    e := GenerateExnemDemonEnchClothingTypeAndLevel(destFile, e, level, 'Alteration', levelNum);
+    if (levelNum > 1) and (levelNum < 6) then begin
+        e := GenerateExnemDemonEnchClothingTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    end;
+    Result := e;
+end;
+function GenerateExnemDemonBodyPartAndColor(destFile: IwbFile; e:IwbElement; bodyPart, color:string): IwbElement;
+begin 
+    e := newLVLI(e, destFile, 'Exnem demon '+bodyPart+' '+color, '0', '0', '1', '0');  
+    addToLVLI(destFile, e, fileChristineExnem, 'ARMO', '00ExnemDemonic'+bodyPart+color, '1', '1');
+    addToLVLI(destFile, e, fileChristineExnem, 'ARMO', '00ExnemDemonic'+bodyPart+color+'Alt', '1', '1');
+    Result := e;
+end;
+function GenerateExnemDemonClothingColor(destFile: IwbFile; e:IwbElement; color:String): IwbElement;
+begin
+    e := GenerateExnemDemonBodyPartAndColor(destFile, e, 'Boots', color);
+    e := GenerateExnemDemonBodyPartAndColor(destFile, e, 'Gauntlets', color);
+    e := GenerateExnemDemonBodyPartAndColor(destFile, e, 'Thighs', color);
+    e := GenerateExnemDemonBodyPartAndColor(destFile, e, 'Upper', color);
+    addToLVLI(destFile, e, fileChristineExnem, 'ARMO', '00ExnemDemonicUpperSlutty'+color, '1', '1');
+    addToLVLI(destFile, e, fileChristineExnem, 'ARMO', '00ExnemDemonicUpperSlutty'+color+'Alt', '1', '1');
+    Result := e;
+end;
+
+function GenerateExnemDemonClothing(destFile: IwbFile; e:IwbElement): IwbElement;
+begin 
+    e := GenerateExnemDemonClothingColor(destFile, e, '');
+    e := GenerateExnemDemonClothingColor(destFile, e, 'Black');
+    e := GenerateExnemDemonClothingColor(destFile, e, 'White');
+    Result := e;
+end;
+function GenerateExnemDemon(destFile: IwbFile; e:IwbElement): IwbElement;
+var
+    s:string;
+    i : integer;
+begin
+    e := GenerateExnemDemonClothing(destFile, e);
+    e := GenerateExnemDemonEnchClothing(destFile, e, 'Minor', 1);
+    e := GenerateExnemDemonEnchClothing(destFile, e, 'Common', 2);
+    e := GenerateExnemDemonEnchClothing(destFile, e, 'Major', 3);
+    e := GenerateExnemDemonEnchClothing(destFile, e, 'Eminent', 4);
+    e := GenerateExnemDemonEnchClothing(destFile, e, 'Extreme', 5);
+    e := GenerateExnemDemonEnchClothing(destFile, e, 'Peerless', 6);
+    Result := e;
+end;
+
+
 function GenerateCocoDemon(destFile: IwbFile; e:IwbElement): IwbElement;
 var
     s:string;
@@ -724,6 +819,7 @@ var
     s:string;
     lvl:string;
     ei: IwbMainRecord;
+    ei_panties: IwbMainRecord;
     ench:string;
     i:integer;
 begin
@@ -734,24 +830,28 @@ begin
         e := newLVLI(e, destFile, 'COCO demon'+s+' modular '+magic_type+lvl, '0', '1', '0', '0');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_bra'+s, '1', '1');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_glove'+s, '1', '1');
-        ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_panties'+s, 'Demon_panties'+s+lvl, magic_type, ench);
-        addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
-        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_heels'+s, '1', '1');
+        ei_panties := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_panties'+s, 'Demon_panties'+s+lvl, magic_type, ench);
+        addToLVLI_(destFile, e, 'ARMO', EditorID(ei_panties), '1', '1');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_stock'+s, '1', '1');
+
         e := newLVLI(e, destFile, 'COCO demon'+s+' two parts '+magic_type+lvl, '0', '1', '0', '0');
         ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodybra'+s, 'Demon_bodybra'+s+lvl, magic_type, ench);
         addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_bodystock'+s, '1', '1');
-        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_heels'+s, '1', '1');
+        addToLVLI_(destFile, e, 'ARMO', EditorID(ei_panties), '1', '1');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_glove'+s, '1', '1');
+
         e := newLVLI(e, destFile, 'COCO demon'+s+' full body'+magic_type+lvl, '0', '0', '1', '0');
         ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodyfucool'+s, 'Demon_bodyfucool'+s+lvl, magic_type, ench);
         addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
         ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodyfu'+s, 'Demon_bodyfu'+s+lvl, magic_type, ench);
+
         addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
         e := newLVLI(e, destFile, 'COCO demon body'+s+magic_type+lvl, '0', '0', '1', '0');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' full body'+magic_type+lvl, '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' two parts '+magic_type+lvl, '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' modular '+magic_type+lvl, '1', '1');
+
         e := newLVLI(e, destFile, 'COCO demon'+s+magic_type+lvl, '0', '1', '0', '0');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_horn'+s, '1', '1');
         //addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_hair'+s, '1', '1');
@@ -759,6 +859,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' mask60', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' hair80', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon body'+s+magic_type+lvl, '1', '1');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_heels'+s, '1', '1');
     end;
     e := newLVLI(e, destFile, 'COCO demon'+magic_type+lvl, '0', '0', '1', '0');
     addToLVLI_(destFile, e, 'LVLI', 'COCO demon1'+magic_type+lvl, '1', '1');
@@ -2893,6 +2994,11 @@ begin
         e := GenerateCocoDemon(destFile, e);
         AnyNecromancerPrefix := AnyNecromancerPrefix + '#COCO demon';
     end;
+    if Assigned(fileChristineExnem) then begin
+        AddMasterIfMissing(destFile, GetFileName(fileChristineExnem)); 
+        e := GenerateExnemDemon(destFile, e);
+        AnyNecromancerPrefix := AnyNecromancerPrefix + '#Exnem demon set ';
+    end;
     if Assigned(fileCocoWitch) then begin
         AddMasterIfMissing(destFile, GetFileName(fileCocoWitch)); 
         e := GenerateCocoWitch(destFile, e);
@@ -3313,6 +3419,8 @@ begin
                 fileChristineDeadlyDesire := f;
             end else if fname = '[Christine] High Priestess Bikini.esp' then begin   
                 fileChristinePriestess := f;
+            end else if fname = '[Christine] Exnem Demonic.esp' then begin   
+                fileChristineExnem := f;
             end else if fname = 'HS2_bunyCostume.esp' then begin 
                 fileHS2Bunny := f;
             end else if fname = 'KSO Mage Robes.esp' then begin 
@@ -3419,7 +3527,7 @@ begin
     recordSignature := Signature(leveled_npc);
     if recordSignature = 'NPC_' then begin
         AddMessage('RecursiveCopyLVLN calls RecursiveCopyNPC('+Name(leveled_npc)+')');
-        Result := RecursiveCopyNPC(leveled_npc, false);
+        Result := RecursiveCopyNPC(leveled_npc, true);
         exit;
     end;
     
@@ -4110,6 +4218,7 @@ begin
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
                     if Assigned(AnyVampirePrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
                     usesMage := usesMage or Assigned(newOutfitRef);
+                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
                 end else begin
                     removeOldItem := Assigned(fileChristineDeadlyDesire);
                 end;
@@ -4406,11 +4515,118 @@ begin
     end;
 end;
 
- // LItemBanditBossCuirass [LVLI:0003DF19]
- // LItemBanditBossCuirassF
+function FindFemaleVersionOfNPC(selectedElement: IInterface; createIfNotExists:Boolean): IwbElement;
+var
+    signat: string;
+    selectedElementId: string;
+begin
+    signat := Signature(selectedElement);
+    if (signat <> 'NPC_') and (signat <> 'LVLN') then raise Exception.Create('Not an NPC '+FullPath(selectedElement));
+    if isFemale(selectedElement) then begin
+        if GetFileName(GetFile(selectedElement)) = GetFileName(destinationFile) then begin
+            Result := selectedElement;
+            AddMessage('NPC M2F (already female) '+FullPath(Result));
+        end else begin
+            Result := MainRecordByEditorID(npcRecordGroup, EditorID(selectedElement));
+            if not Assigned(Result) then begin
+                Result := wbCopyElementToFileWithPrefix(selectedElement, destinationFile, false, true, '', '', '');
+                AddMessage('NPC M2F (overwrite) from '+GetFileName(GetFile(selectedElement))+' to '+destinationFile);
+            end;
+        end;
+        exit;
+    end;
+    selectedElementId := EditorID(selectedElement);
+    if EndsStr('M', selectedElementId) then begin
+        selectedElementId := copy(selectedElementId, 1, length(selectedElementId)-1);
+    end;
+    if not EndsStr('F', selectedElementId) then begin
+        selectedElementId := selectedElementId+'F';
+    end;
+    Result := MainRecordByEditorID(npcRecordGroup, selectedElementId);
+    if Assigned(Result) then begin    
+        AddMessage('NPC M2F (exists) '+EditorID(selectedElement)+' -> '+EditorID(Result));
+        exit;
+    end;        
+    if createIfNotExists then begin
+        Result := wbCopyElementToFileWithPrefix(selectedElement, destinationFile, true, true, '', '', '');
+        AddMessage('NPC M2F (copied) '+EditorID(selectedElement)+' -> '+EditorID(Result));
+        SetEditorID(Result, selectedElementId);
+    end;
+    
+end;
 
+function FindSourceOfNPCsOutfit(selectedElement: IInterface): IwbMainRecord;
+var
+    signat: string;
+    selectedElementId: string;
+    otft: IwbElement;
+    templateLoopsBackToMale: Boolean;
+begin
+    signat := Signature(selectedElement);
+    selectedElementId := EditorID(selectedElement);
+    if signat <> 'NPC_' then raise Exception.Create('Not an NPC '+FullPath(selectedElement));
+    if GetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory') = '1' then begin
+        otft := LinksTo(ElementByPath(selectedElement, 'TPLT'));
+        if not Assigned(otft) then begin // just an assertion
+            raise Exception.Create('Inventory = 1 despite having no template '+FullPath(selectedElement));
+        end;
+        templateLoopsBackToMale := EndsStr('M', EditorID(otft)) and (EditorID(otft) = copy(selectedElementId, 1, length(selectedElementId)-1)+'M');
+        if templateLoopsBackToMale then begin 
+            if GetElementEditValues(otft, 'ACBS\Template Flags\Use Inventory') = '1' then begin
+                Result := LinksTo(ElementByPath(otft, 'TPLT'));
+                if not Assigned(Result) then begin // just an assertion
+                    raise Exception.Create('Inventory = 1 despite having no template '+FullPath(otft));
+                end;
+            end else begin
+                Result := LinksTo(ElementByPath(otft, 'DOFT'));
+            end;
+            exit;
+        end;
+        Result := otft;
+    end else begin
+        Result := LinksTo(ElementByPath(selectedElement, 'DOFT'));
+    end;
+end;
+function SetSourceOfNPCsOutfit(selectedElement: IInterface; otft: IwbMainRecord): Boolean;
+var
+    signat: string;
+    e : IwbElement;
+begin
+    signat := Signature(selectedElement);
+    if signat <> 'NPC_' then raise Exception.Create('Not an NPC '+FullPath(selectedElement));
+    if GetFile(selectedElement) <> destinationFile then begin raise Exception.Create('Shouldn''t edit record '+FullPath(selectedElement)+' as it is outside '+GetFileName(destinationFile)); end;
+    signat := Signature(otft);
+    if (signat = 'NPC_') or (signat = 'LVLN') then begin
+        SetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory', '1');
+        AddMessage(Name(selectedElement)+': TPLT '+GetElementEditValues(selectedElement,'TPLT')+'->'+Name(otft)); 
+        e := ElementByPath(selectedElement, 'TPLT');
+        if not Assigned(e) then begin
+            e := Add(selectedElement, 'TPLT', true);
+        end;
+        ElementAssign(e, LowInteger, otft, false);
+        if GetElementEditValues(selectedElement,'TPLT') <> Name(otft) then begin // just an assertion
+            raise Exception.Create('"'+GetElementEditValues(selectedElement,'TPLT') + '" <> "' + Name(otft)+'" failed to set for '+FullPath(selectedElement));
+        end;
+        Result := true;
+    end else begin
+        if signat <> 'OTFT' then begin // just an assertion
+            raise Exception.Create(Name(otft)+' can''t be an outfit for '+FullPath(selectedElement));
+        end;
+        SetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory', '0');
+        AddMessage(Name(selectedElement)+': DOFT '+GetElementEditValues(selectedElement,'DOFT')+'->'+Name(otft)); 
+        e := ElementByPath(selectedElement, 'DOFT');
+        if not Assigned(e) then begin
+            e := Add(selectedElement, 'DOFT', true);
+        end;
+        ElementAssign(e, LowInteger, otft, false);
+        if GetElementEditValues(selectedElement,'DOFT') <> Name(otft) then begin // just an assertion
+            raise Exception.Create('"'+GetElementEditValues(selectedElement,'DOFT') + '" <> "' + Name(otft)+'" failed to set for '+FullPath(selectedElement));
+        end;
+        Result := false;
+    end;
+end;
 
-function RecursiveCopyNPC(selectedElement: IInterface; ignoreIfNotFemale:Boolean): IwbElement;
+function RecursiveCopyNPC(selectedElement: IInterface; createIfNotExists:Boolean): IwbElement;
 var
     selectedElementId: string;
     newOutfitRecord: IwbElement;
@@ -4421,85 +4637,23 @@ var
     templateLoopsBackToMale: Boolean;
     i: integer;
 begin
-    selectedElementId := Signature(selectedElement);
-    if selectedElementId <> 'NPC_' then exit;
-    selectedElementId := EditorID(selectedElement);
-    
-    if not isFemale(selectedElement) then begin
-        if ignoreIfNotFemale then begin
-            AddMessage('NPC (ignore) '+EditorID(selectedElement)+' not female');
-            exit;
-        end;
-        AddMessage('NPC '+EditorID(selectedElement)+' not female');
-        if EndsStr('M', selectedElementId) then begin
-            selectedElementId := copy(selectedElementId, 1, length(selectedElementId)-1);
-        end;
-        if not EndsStr('F', selectedElementId) then begin
-            selectedElementId := selectedElementId+'F';
-        end;
-        newOutfitRecord := MainRecordByEditorID(npcRecordGroup, selectedElementId);
-        if Assigned(newOutfitRecord) then begin            
-            AddMessage('NPC (exists M2F) '+EditorID(selectedElement)+' -> '+EditorID(newOutfitRecord));
-        end else begin
-            newOutfitRecord := wbCopyElementToFileWithPrefix(selectedElement, destinationFile, true, true, '', '', '');
-            SetEditorID(newOutfitRecord, selectedElementId);
-            AddMessage('NPC (copied M2F) '+EditorID(selectedElement)+' -> '+EditorID(newOutfitRecord));
-        end;
-        selectedElement := newOutfitRecord;
-    end;
-    if GetFile(selectedElement) <> destinationFile then begin 
-        newOutfitRecord := MainRecordByEditorID(npcRecordGroup, selectedElementId);
-        if not Assigned(newOutfitRecord) then begin
-            newOutfitRecord := wbCopyElementToFileWithPrefix(selectedElement, destinationFile, false, true, '', '', '');
-            AddMessage('NPC copied from '+GetFileName(GetFile(selectedElement))+' to '+destinationFile);
-        end;
-        selectedElement := newOutfitRecord;
-    end;
-    if GetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory') = '1' then begin
-        defaultOutfitElement := ElementByPath(selectedElement, 'TPLT');
-        oldOutfitRecord := LinksTo(defaultOutfitElement);
-        if not Assigned(oldOutfitRecord) then begin
-            raise Exception.Create('Use Inventory = 1 despite having no template '+FullPath(selectedElement));
-        end;
-        templateLoopsBackToMale := EndsStr('M', EditorID(oldOutfitRecord)) and (EditorID(oldOutfitRecord) = copy(selectedElementId, 1, length(selectedElementId)-1)+'M');
-        if templateLoopsBackToMale then begin
-            defaultOutfitElement := ElementByPath(oldOutfitRecord, 'TPLT');
-            oldOutfitRecord := LinksTo(defaultOutfitElement);
-        end;
-        if Assigned(defaultOutfitElement) then begin
-            AddMessage(EditorID(selectedElement)+' calls RecursiveCopyLVLN('+Name(oldOutfitRecord)+')');
-            newOutfitRecord := RecursiveCopyLVLN(oldOutfitRecord);
-            AddMessage(FullPath(defaultOutfitElement)+'='+Name(LinksTo(defaultOutfitElement))+' -> '+Name(newOutfitRecord));
-            if Assigned(newOutfitRecord) then begin
-                SetEditValue(defaultOutfitElement, Name(newOutfitRecord));
-            end;
-        end;
-    end else begin
-    // if GetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory') = '1' then begin
-    //   SetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory', '0');
-    // end;
-    
-    // if templateLoopsBackToMale then begin
-    //     defaultOutfitElement := ElementByPath(oldOutfitRecord, 'DOFT');
-    //     if not Assigned(defaultOutfitElement) then begin
-    //         defaultOutfitElement := ElementByPath(selectedElement, 'DOFT');
-    //     end;
-    // end else begin
-    //     defaultOutfitElement := ElementByPath(selectedElement, 'DOFT');
-    // end;
-        defaultOutfitElement := ElementByPath(selectedElement, 'DOFT');
-        if Assigned(defaultOutfitElement) then begin
-            oldOutfitRecord := LinksTo(defaultOutfitElement);
-            newOutfitRecord := CopyOutfit(oldOutfitRecord);
-            AddMessage(EditorID(selectedElement)+':'+EditorID(oldOutfitRecord)+'->'+EditorID(newOutfitRecord)+'/'+Name(newOutfitRecord)); 
-            SetEditValue(defaultOutfitElement, Name(newOutfitRecord));
-        end else if isInFaction(selectedElement, 'zbfFactionSlave') then begin
-            defaultOutfitElement := Add(selectedElement, 'DOFT', true);
+    selectedElement := FindFemaleVersionOfNPC(selectedElement, createIfNotExists);
+    if not Assigned(selectedElement) then begin exit; end;
+    if GetFile(selectedElement) <> destinationFile then begin raise Exception.Create('assertion failed: '+FullPath(selectedElement)); end;
+    oldOutfitRecord := FindSourceOfNPCsOutfit(selectedElement);
+    if not Assigned(oldOutfitRecord) then begin
+        if isInFaction(selectedElement, 'zbfFactionSlave') then begin
             newOutfitRecord := AnyLingerieOutfit;
-            AddMessage(FullPath(defaultOutfitElement)+': naked -> '+EditorID(newOutfitRecord)); 
-            SetEditValue(defaultOutfitElement, Name(newOutfitRecord));
         end;
+    end else if Signature(oldOutfitRecord) = 'OTFT' then begin
+        newOutfitRecord := CopyOutfit(oldOutfitRecord);
+        if not Assigned(newOutfitRecord) then begin raise Exception.Create('unreachable '+ FullPath(selectedElement)+' otft= '+FullPath(oldOutfitRecord)) end;
+    end else begin
+        AddMessage(EditorID(selectedElement)+' calls RecursiveCopyLVLN('+Name(oldOutfitRecord)+')');
+        newOutfitRecord := RecursiveCopyLVLN(oldOutfitRecord);
+        if not Assigned(newOutfitRecord) then begin raise Exception.Create('unreachable '+ FullPath(selectedElement)+' otft= '+FullPath(oldOutfitRecord)) end;
     end;
+    if Assigned(newOutfitRecord) then begin SetSourceOfNPCsOutfit(selectedElement, newOutfitRecord); end;
     Result := selectedElement;
 end;
 
@@ -4509,7 +4663,7 @@ var
 begin
    
     recordSignature := Signature(selectedElement);
-    if recordSignature = 'NPC_' then RecursiveCopyNPC(selectedElement, true)
+    if recordSignature = 'NPC_' then RecursiveCopyNPC(selectedElement, false)
     else if recordSignature = 'LVLN' then RecursiveCopyLVLN(selectedElement)
     else if recordSignature = 'OTFT' then CopyOutfit(selectedElement)
     else if recordSignature = 'LVLI' then RecursiveCopyLVLI(selectedElement);
