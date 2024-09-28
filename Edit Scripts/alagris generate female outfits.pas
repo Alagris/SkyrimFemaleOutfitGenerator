@@ -53,6 +53,8 @@ var
     KitchenLingerieOutfit: IwbMainRecord;
     AnyLingerieId: string;
     AnyLingerie: IwbMainRecord;
+    AnyForswornId: string;
+    AnyForsworn: IwbMainRecord;
     AnyLingerieOutfit: IwbMainRecord;
     AnyThievesGuild: IwbMainRecord;
     AnyThievesGuildId: string;
@@ -2153,12 +2155,6 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Pauldron', '2', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Thigh Tasset and Abs', '4', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Accessories', '3', '1');
-        e := newLVLI(e, destFile, 'TWA Bandit Leather Body', '0', '1', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Armors', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Thongs', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Pauldron', '2', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Thigh Tasset and Abs', '4', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Leather Accessories', '3', '1');
         e := newLVLI(e, destFile, 'TWA Hide Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00HBA_top', '1', '1');
         e := newLVLI(e, destFile, 'TWA Hide Helmet', '0', '0', '1', '0');
@@ -2182,12 +2178,6 @@ begin
         e := newLVLI(e, destFile, 'TWA Hide Accessories', '70', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00HBA_cooll', '1', '1');
         e := newLVLI(e, destFile, 'TWA Hide Body', '0', '1', '0', '0');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Armors', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Thongs', '1', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Pauldron', '2', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Thigh Tasset and Abs', '4', '1');
-        addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Accessories', '3', '1');
-        e := newLVLI(e, destFile, 'TWA Bandit Hide Body', '0', '1', '0', '0');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Armors', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Thongs', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'TWA Hide Pauldron', '2', '1');
@@ -3049,6 +3039,20 @@ begin
     end;
     if Assigned(fileChristineBlackMagic) then begin
         AddMasterIfMissing(destFile, GetFileName(fileChristineBlackMagic));
+        e := newLVLI(e, destFile, 'BlackMagicGrove Upper', '0', '0', '1', '0');
+        addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGroveUpper', '1', '1');
+        addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGroveUpperSlutty', '1', '1');
+        e := newLVLI(e, destFile, 'BlackMagicGrove', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'BlackMagicGrove Upper', '1', '1');
+        addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGroveBoots', '1', '1');
+        addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGroveGauntlets', '1', '1');
+        addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGroveCirclet', '1', '1');
+        addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGroveLower', '1', '1');
+        addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGroveArms', '1', '1');
+        addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGroveAmulet', '1', '1');
+        addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGroveThighs', '1', '1');
+        addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGrovePanty', '1', '1');
+        AnyForswornId := AnyForswornId + '#BlackMagicGrove';
     end;
     if Assigned(fileChristineDeadlyDesire) then begin
         AddMasterIfMissing(destFile, GetFileName(fileChristineDeadlyDesire));
@@ -3110,6 +3114,11 @@ begin
         AnyThievesGuildId := EditorID(AnyThievesGuild);
         if Signature(AnyThievesGuild) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyThievesGuild)+' is invalid') end;
     end;
+    if Assigned(AnyForswornId) then begin
+        AnyForsworn := combineLVLI(destFile, 'any_forsworn', AnyForswornId, '');
+        AnyForswornId := EditorID(AnyForsworn);
+        if Signature(AnyForsworn) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyForsworn)+' is invalid') end;
+    end;
     if Assigned(AnyBarkeeperId) then begin
         AnyBarkeeper := combineLVLI(destFile, 'any_barkeeper', AnyBarkeeperId, '');
         AnyBarkeeperId := EditorID(AnyBarkeeper);
@@ -3155,6 +3164,7 @@ begin
     //     KitchenLingerieOutfit := AnyLingerieOutfit;
     end;
     if pos('#', AnyLingerieId) <> 0 then begin raise Exception.Create(AnyLingerie+' is invalid') end;
+    if pos('#', AnyForswornId) <> 0 then begin raise Exception.Create(AnyLingerie+' is invalid') end;
     if pos('#', AnyBarkeeperId) <> 0 then begin raise Exception.Create(AnyBarkeeper+' is invalid') end;
     if pos('#', AnyMonkId) <> 0 then begin raise Exception.Create(AnyMonkId+' is invalid') end;
     if pos('#', AnyAssassinId) <> 0 then begin raise Exception.Create(AnyAssassinId+' is invalid') end;
@@ -3168,6 +3178,7 @@ begin
     if EditorID(AnyAssassin) <> AnyAssassinId then begin raise Exception.Create(AnyAssassinId+' <> '+EditorID(AnyAssassin)) end;
     if EditorID(AnyLingerie) <> AnyLingerieId then begin raise Exception.Create(AnyLingerieId+' <> '+EditorID(AnyLingerie)) end;
     if EditorID(AnyBarkeeper) <> AnyBarkeeperId then begin raise Exception.Create(AnyBarkeeperId+' <> '+EditorID(AnyBarkeeper)) end;
+    if EditorID(AnyForsworn) <> AnyForswornId then begin raise Exception.Create(AnyForswornId+' <> '+EditorID(AnyForsworn)) end;
     if EditorID(AnyMonk) <> AnyMonkId then begin raise Exception.Create(AnyMonkId+' <> '+EditorID(AnyMonk)) end;
     if EditorID(KitchenLingerie) <> KitchenLingerieId then begin raise Exception.Create(KitchenLingerieId+' <> '+EditorID(KitchenLingerie)) end;
     if EditorID(AnyThievesGuild) <> AnyThievesGuildId then begin raise Exception.Create(AnyThievesGuildId+' <> '+EditorID(AnyThievesGuild)) end;
@@ -3324,6 +3335,8 @@ begin
                 fileNiniChatNoir := f;
             end else if fname = 'Shino_School_Uniform.esp' then begin 
                 fileShinoSchool := f;
+            end else if fname = '[Christine] GoW3 - Aphrodite Dress.esl' then begin
+                fileChristineAphrodite := f;
             end;
         end;
         if not Assigned(destinationFile) then begin
@@ -4017,6 +4030,10 @@ begin
             end else if StartsStr('Forsworn', oldItemId) then begin
                 oldItemPrefix := 'Forsworn';
                 pantiesItemId := 'Panties-Forsworn';
+                if oldItemId = 'ForswornCuirass' then begin
+                    newOutfitRef := AnyForsworn;
+                end;
+                removeOldItem := Assigned(AnyForsworn);
             end else if StartsStr('DLC1', oldItemId) then begin
                 if StartsStr('DLC1Armor', oldItemId) then begin
                     if StartsStr('DLC1ArmorVampire', oldItemId) then begin
@@ -4098,13 +4115,8 @@ begin
                 end;
             end else if StartsStr('Armor', oldItemId) then begin
                 if StartsStr('ArmorIron', oldItemId) then begin
-                    if isBandit then begin
-                        tawobaItemId := 'TWA Bandit Iron ';
-                        pantiesItemId := 'Panties-Bandits';
-                    end else begin
-                        tawobaItemId := 'TWA Iron ';
-                        pantiesItemId := 'Panties-Iron';
-                    end;
+                    tawobaItemId := 'TWA Iron ';
+                    pantiesItemId := 'Panties-Iron';
                     if StartsStr('ArmorIronBanded', oldItemId) then begin
                         oldItemPrefix := 'ArmorIronBanded';
                     end else begin
@@ -4125,26 +4137,16 @@ begin
                         
                     end;
                 end else if StartsStr('ArmorLeather', oldItemId) then begin    
-                    if isBandit then begin
-                        tawobaItemId := 'TWA Bandit Leather ';
-                        pantiesItemId := 'Panties-Bandits';
-                    end else begin
-                        tawobaItemId := 'TWA Leather ';
-                        pantiesItemId := 'Panties-LeatherArmor';
-                    end;
+                    tawobaItemId := 'TWA Leather ';
+                    pantiesItemId := 'Panties-LeatherArmor';
                     oldItemPrefix := 'ArmorLeather';
                 end else if StartsStr('ArmorCompanions', oldItemId) then begin    
                     oldItemPrefix := 'ArmorCompanions';
                     tawobaItemId := 'TWA Wolf ';
                     pantiesItemId := 'Panties-Wolf';
                 end else if StartsStr('ArmorBandit', oldItemId) then begin    
-                    if isBanditBoss then begin
-                        tawobaItemId := 'TWA Leather ';
-                        pantiesItemId := 'Panties-Bandit-Boss';
-                    end else begin
-                        tawobaItemId := 'TWA Bandit Leather ';
-                        pantiesItemId := 'Panties-Bandits';
-                    end;
+                    tawobaItemId := 'TWA Leather ';
+                    pantiesItemId := 'Panties-Bandit-Boss';
                     oldItemPrefix := 'ArmorBandit';
                 end else if StartsStr('ArmorBlades', oldItemId) then begin    
                     tawobaItemId := 'TWA Blades ';
@@ -4225,23 +4227,28 @@ begin
             if (StartsStr('TWA ', tawobaItemId) and hasTAWOBA) or (StartsStr('TEW ', tawobaItemId) and hasTEWOBA) then begin
                 removeOldItem := true;
                 if StartsStr(oldItemPrefix+'Cuirass', oldItemId) or StartsStr(oldItemPrefix+'robes', oldItemId) or StartsStr(oldItemPrefix+'Robes', oldItemId)  then begin
-                    if (pos('Hooded', oldItemId) <> 0) or (pos('hooded', oldItemId) <> 0) then begin
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Helmet');
-                        AddListElement(newOutfitItems, newOutfitRef, isLVLI)
-                    end;
-                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Body');
-                    pantiesFinal := 'skip';
-                    ElementAssign(newOutfitItem, LowInteger, newOutfitRef, false);
+                    // if (pos('Hooded', oldItemId) <> 0) or (pos('hooded', oldItemId) <> 0) then begin
+                    //     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Helmet');
+                    //     AddListElement(newOutfitItems, newOutfitRef, isLVLI);
+                    // end;
                     usedTAWOBABody := tawobaItemId;
+                    tawobaItemId := tawobaItemId+'Body';
+                    pantiesFinal := 'skip';
                 end else if StartsStr(oldItemPrefix+'Gauntlets', oldItemId) or StartsStr(oldItemPrefix+'Gloves', oldItemId) then begin    
-                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Gauntlets');
+                    tawobaItemId := tawobaItemId+'Gauntlets';
                 end else if StartsStr(oldItemPrefix+'Boots', oldItemId) then begin    
-                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Boots');
+                    tawobaItemId := tawobaItemId+'Boots';
                 end else if StartsStr(oldItemPrefix+'Helmet', oldItemId) then begin    
-                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId+'Helmet');
+                    tawobaItemId := tawobaItemId+'Helmet';
                 end else begin
                     removeOldItem := false;
                     tawobaItemId := nil;
+                end;
+                if Assigned(tawobaItemId) then begin
+                    newOutfitRef := MainRecordByEditorID(lvliRecordGroup, tawobaItemId);
+                    if not Assigned(newOutfitRef) then begin
+                        raise Exception.Create('unreachable: '+oldItemPrefix+'/'+oldItemId+' -> '+tawobaItemId);    
+                    end;
                 end;
             end;
             if Assigned(pantiesItemId) and not Assigned(pantiesFinal) then begin
@@ -4258,7 +4265,11 @@ begin
                 AddMessage('LVLI '+FullPath(newOutfitRecord)+': '+GetEditValue(newOutfitItem)+' -> '+EditorID(newOutfitRef));
                 ElementAssign(newOutfitItem, LowInteger, newOutfitRef, false);
             end else begin
-                AddMessage('LVLI '+FullPath(newOutfitRecord)+' -= '+GetEditValue(newOutfitItem));
+                if isLVLI then begin
+                    AddMessage('LVLI '+FullPath(newOutfitItem)+' -= '+GetElementEditValues(newOutfitItem, 'LVLO\Reference'));
+                end else begin
+                    AddMessage('LVLI '+FullPath(newOutfitItem)+' -= '+GetEditValue(newOutfitItem));
+                end;
                 RemoveElement(newOutfitItems, newOutfitItem);
             end;
         end else begin
@@ -4394,6 +4405,9 @@ begin
         end;
     end;
 end;
+
+ // LItemBanditBossCuirass [LVLI:0003DF19]
+ // LItemBanditBossCuirassF
 
 
 function RecursiveCopyNPC(selectedElement: IInterface; ignoreIfNotFemale:Boolean): IwbElement;
