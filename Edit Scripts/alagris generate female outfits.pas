@@ -99,11 +99,12 @@ begin
     end;
     AddMasterIfMissing(dst, GetFileName(src));
 end;
-function CopyOverAllNPCs(src, dst: IwbFile): integer;
+function CopyOverAllNPCs(src, dst: IwbFile; modifyNpcs: Boolean): integer;
 var
     srcNpcGrp: IwbGroupRecord;
     dstNpcGrp: IwbGroupRecord;
     srcRec: IwbMainRecord;
+    dstRec: IwbMainRecord;
     i:integer;
 begin
     if Assigned(src) then begin
@@ -115,9 +116,15 @@ begin
             AddMasterDependencies(src, dst);
             for i:=0 to ElementCount(srcNpcGrp) do begin
                 srcRec := ElementByIndex(srcNpcGrp, i);
-                if isFemale(srcRec) then begin
-                    if not Assigned(wbCopyElementToFile(srcRec, dst, false, true)) then begin
-                        raise Exception.Create('unreachable '+GetFileName(src)+' : '+FullPath(srcRec));
+                if not Assigned(MainRecordByEditorID(dstNpcGrp, EditorID(srcRec))) then begin
+                    if isFemale(srcRec) then begin
+                        dstRec := wbCopyElementToFile(srcRec, dst, false, true);
+                        if Signature(dstRec) <> 'NPC_' then begin
+                            raise Exception.Create('unreachable '+GetFileName(src)+' : '+FullPath(srcRec)+' -> '+FullPath(dstRec));
+                        end;
+                        if modifyNpcs then begin
+                            RecursiveCopyNPC(dstRec, false);
+                        end;
                     end;
                 end;
             end;
@@ -134,13 +141,16 @@ var
 begin
     if Assigned(src) then begin
         srcOtft := MainRecordByEditorID(GroupBySignature(src, 'OTFT'), otftId);
+
         dstGrp := GroupBySignature(dst, 'OTFT');
         if not Assigned(dstGrp) then begin raise Exception.Create('No OTFT in '+GetFileName(dst)) end;
         if not Assigned(srcOtft) then begin raise Exception.Create('No '+otftId+' outfit in '+GetFileName(src)) end;
-        AddMessage('Copying '+otftId+' outfit from '+GetFileName(src)+' to '+GetFileName(dst));
-        dstOtft := wbCopyElementToFile(srcOtft, dst, false, true);
-        if not Assigned(dstOtft) then begin raise Exception.Create('unreachable'); end;
-        ModifyFemaleOutfit(srcOtft, dstOtft);
+        if not Assigned(MainRecordByEditorID(dstGrp, otftId)) then begin
+            AddMessage('Copying '+otftId+' outfit from '+GetFileName(src)+' to '+GetFileName(dst));
+            dstOtft := wbCopyElementToFile(srcOtft, dst, false, true);
+            if not Assigned(dstOtft) then begin raise Exception.Create('unreachable'); end;
+            ModifyFemaleOutfit(srcOtft, dstOtft);
+        end;
     end;
 end;
 
@@ -148,6 +158,7 @@ function GenerateSmash(newFileName: string; clb: TCheckListBox): IwbFile;
 var 
     npcFile: IwbFile;
     i: integer;
+    modifyNpcs: Boolean;
 begin
     AddMessage('Creating new mod:'+newFileName);
     Result := AddNewFileName(newFileName);
@@ -158,10 +169,15 @@ begin
     // the order matters. Once a record has been copied it is not overwritten again.
     // So the patches should come first before the original mods. Skyrim.esm comes last. 
     if Assigned(ObjectToElement(clb.Items.Objects[0])) then begin raise Exception.Create('unreachable. This should be a special element'); end;
+    modifyNpcs := not clb.Checked[0];
+    if modifyNpcs then begin
+        SetupRecordGroups(Result);
+        generateLvlListsAndEnchArmorForClothingMods(Result);
+    end;
     for i := 1 to Pred(clb.Items.Count) do begin
         if clb.Checked[i] then begin
             npcFile := ObjectToElement(clb.Items.Objects[i]);
-            CopyOverAllNPCs(npcFile, Result);
+            CopyOverAllNPCs(npcFile, Result, modifyNpcs);
         end;
     end;
 end;
@@ -3517,8 +3533,8 @@ begin
             end else if fname = '(Pumpkin)-TEWOBA-TheExpandedWorldofBikiniArmor.esp' then begin
                 hasTEWOBA := true;
                 fileTEWOBA := f;
-            // end else if fname = 'alagris_smash.esp' then begin
-            //     destinationFile := f;
+            end else if fname = 'alagris_smash.esp' then begin
+                destinationFile := f;
             end else if fname = 'Skyrim.esm' then begin
                 fileSkyrim := f;
                 clbNPC.Checked[1] := true;
@@ -3635,8 +3651,7 @@ begin
                 if clb.Checked[i] then begin
                     if i > 1 then begin
                         destinationFile := ObjectToElement(clb.Items.Objects[i]);
-                        SetupRecordGroups();
-                        Result := generateLvlListsAndEnchArmorForClothingMods(destinationFile);
+                        Break;
                     end else begin
                         if frmNPC.ShowModal <> mrOk then begin
                             Result := 1;
@@ -3660,14 +3675,18 @@ begin
                         if i = 1 then begin
                             SetElementNativeValues(ElementByIndex(destinationFile, 0), 'Record Header\Record Flags\ESL', 1);
                         end;
-                        if not clbNPC.Checked[0] then begin
-                            SetupRecordGroups();
-                            generateLvlListsAndEnchArmorForClothingMods(destinationFile);
-                            Result := ProcessAllNPCs();
-                        end;
+                        
+                        exit;
                     end;
-                    Break;
                 end;
+            
+        end;
+        if not Assigned(destinationFile) then begin
+            Result := 1;
+            AddMessage('No destination selected. Aborting');
+        end else begin
+            SetupRecordGroups(destinationFile);
+            Result := generateLvlListsAndEnchArmorForClothingMods(destinationFile);
         end;
     finally
         frm.Free;
@@ -3675,24 +3694,29 @@ begin
     
 end;    
 
-function SetupRecordGroups: integer;
+function SetupRecordGroups(destFile: IwbFile): integer;
 begin 
-    outfitRecordGroup := GroupBySignature(destinationFile, 'OTFT');
+    destinationFile := destFile;
+    outfitRecordGroup := GroupBySignature(destFile, 'OTFT');
     if not Assigned(outfitRecordGroup) then begin
-        outfitRecordGroup := Add(destinationFile, 'OTFT', true);
+        outfitRecordGroup := Add(destFile, 'OTFT', true);
     end;
-    lvlnRecordGroup := GroupBySignature(destinationFile, 'LVLN');
+    lvlnRecordGroup := GroupBySignature(destFile, 'LVLN');
     if not Assigned(lvlnRecordGroup) then begin
-        lvlnRecordGroup := Add(destinationFile, 'LVLN', true);
+        lvlnRecordGroup := Add(destFile, 'LVLN', true);
     end;
-    npcRecordGroup := GroupBySignature(destinationFile, 'NPC_');
+    npcRecordGroup := GroupBySignature(destFile, 'NPC_');
     if not Assigned(npcRecordGroup) then begin
-        npcRecordGroup := Add(destinationFile, 'NPC_', true);
+        npcRecordGroup := Add(destFile, 'NPC_', true);
     end;
-    lvliRecordGroup := GroupBySignature(destinationFile, 'LVLI');
+    lvliRecordGroup := GroupBySignature(destFile, 'LVLI');
     if not Assigned(lvliRecordGroup) then begin
-        lvliRecordGroup := Add(destinationFile, 'LVLI', true);
+        lvliRecordGroup := Add(destFile, 'LVLI', true);
     end;
+    AddMessage('outfitRecordGroup='+FullPath(outfitRecordGroup));
+    AddMessage('lvlnRecordGroup='+FullPath(lvlnRecordGroup));
+    AddMessage('npcRecordGroup='+FullPath(npcRecordGroup));
+    AddMessage('lvliRecordGroup='+FullPath(lvliRecordGroup));
 end;
 function BoolToStr(B: Boolean): string;
 begin 
@@ -4731,7 +4755,7 @@ begin
             Result := MainRecordByEditorID(npcRecordGroup, EditorID(selectedElement));
             if not Assigned(Result) then begin
                 Result := wbCopyElementToFileWithPrefix(selectedElement, destinationFile, false, true, '', '', '');
-                AddMessage('NPC M2F (overwrite) from '+GetFileName(GetFile(selectedElement))+' to '+destinationFile);
+                AddMessage('NPC M2F (overwrite) from '+GetFileName(GetFile(selectedElement))+' to '+GetFileName(destinationFile));
             end;
         end;
         exit;
