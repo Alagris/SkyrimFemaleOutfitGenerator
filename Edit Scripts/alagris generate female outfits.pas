@@ -24,6 +24,9 @@ var
     fileModularMage: IwbFile;
     fileSkyrim: IwbFile;
     fileCocoWitch: IwbFile;
+    fileForgottenPrincess: IwbFile;
+    fileCocoAhri: IwbFile;
+    fileFairyQueen: IwbFile;
     fileCocoDemon: IwbFile;
     fileCocoLingerie: IwbFile;
     fileCocoLace: IwbFile;
@@ -56,6 +59,13 @@ var
     AnyLingerie: IwbMainRecord;
     AnyForswornId: string;
     AnyForsworn: IwbMainRecord;
+    AnyFineClothes: IwbMainRecord;
+    AnyFineClothesId: string;
+    AnyFarmClothes: IwbMainRecord;
+    AnyFarmClothesId: string;
+    AnyJarl: IwbMainRecord;
+    AnyJarlId: string;
+    Any: IwbMainRecord;
     AnyLingerieOutfit: IwbMainRecord;
     AnyThievesGuild: IwbMainRecord;
     AnyThievesGuildId: string;
@@ -1967,6 +1977,158 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'coco_lace_body9', '1', '1');
         AnyLingerieId := AnyLingerieId + '#coco_lace_body#coco_lace';
     end;
+    if Assigned(fileForgottenPrincess) then begin
+        AddMasterDependencies(fileForgottenPrincess, destFile);
+        e := newLVLI(e, destFile, 'cocoForgPrinc', '0', '1', '0', '0');
+        addToLVLI(destFile, e, fileForgottenPrincess, 'ARMO', '_dint_ForgottenPrincess_Cuirass', '1', '1');
+        //addToLVLI(destFile, e, fileForgottenPrincess, 'ARMO', '_dint_ForgottenPrincess_Cuirass2', '1', '1');
+        //addToLVLI(destFile, e, fileForgottenPrincess, 'ARMO', '_dint_ForgottenPrincess_PantiesFull', '1', '1');
+        addToLVLI(destFile, e, fileForgottenPrincess, 'ARMO', '_dint_ForgottenPrincess_Panties', '1', '1');
+        addToLVLI(destFile, e, fileForgottenPrincess, 'ARMO', '_dint_ForgottenPrincess_Boots', '1', '1');
+        addToLVLI(destFile, e, fileForgottenPrincess, 'ARMO', '_dint_ForgottenPrincess_Crown', '1', '1');
+        addToLVLI(destFile, e, fileForgottenPrincess, 'ARMO', '_dint_ForgottenPrincess_Gauntlets', '1', '1');
+        addToLVLI(destFile, e, fileForgottenPrincess, 'ARMO', '_dint_ForgottenPrincess_Sho', '1', '1');
+        addToLVLI(destFile, e, fileForgottenPrincess, 'ARMO', '_dint_ForgottenPrincess_Cloak', '1', '1');
+        AnyJarlId := AnyJarlId + '#cocoForgPrinc';
+    end;
+    if Assigned(fileFairyQueen) then begin
+        AddMasterDependencies(fileFairyQueen, destFile);
+        for i:=1 to 4 do begin
+            s := IntToStr(i);
+            e := newLVLI(e, destFile, 'cocoFQ set'+s, '0', '1', '0', '0');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_ear'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_clothbelly'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_clothback'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_clothtop'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_clothlowSMP'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_neck'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_skirtSMP'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_armSMP'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_shoes'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_briefs'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_glove'+s, '1', '1');
+            if not Assigned(addToLVLIMaybe(destFile, e, fileFairyQueen, 'ARMO', 'FQ_shomat'+s, '1', '1')) then begin 
+                addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_shomat2', '1', '1')
+            end;
+            e := newLVLI(e, destFile, 'cocoFQ set skimpy'+s, '0', '1', '0', '0');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_ear'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_clothbelly'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_clothback'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_bramat'+s, '1', '1'); // instead of FQ_clothtop
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_clothlowSMP'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_neck'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_armmat'+s, '1', '1'); // instead of FQ_armSMP
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_shoes'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_briefs'+s, '1', '1');
+            addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_glove'+s, '1', '1');
+            if not Assigned(addToLVLIMaybe(destFile, e, fileFairyQueen, 'ARMO', 'FQ_lowmat'+s, '1', '1')) then begin // instead of FQ_skirtSMP
+                addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_lowmat2', '1', '1')
+            end;
+            if not Assigned(addToLVLIMaybe(destFile, e, fileFairyQueen, 'ARMO', 'FQ_shomat'+s, '1', '1')) then begin 
+                addToLVLI(destFile, e, fileFairyQueen, 'ARMO', 'FQ_shomat2', '1', '1')
+            end;
+        end;
+        e := newLVLI(e, destFile, 'cocoFQ sets', '0', '0', '0', '0');
+        for i:=1 to 4 do begin
+            addToLVLI_(destFile, e, 'LVLI', 'cocoFQ set'+IntToStr(i), '1', '1');
+        end;
+        e := newLVLI(e, destFile, 'cocoFQ sets skimpy', '0', '0', '0', '0');
+        for i:=1 to 4 do begin
+            addToLVLI_(destFile, e, 'LVLI', 'cocoFQ set skimpy'+IntToStr(i), '1', '1');
+        end;
+        AnyJarlId := AnyJarlId + '#cocoFQ sets';
+        //AnyLingerieId := AnyLingerieId + '#cocoFQ sets skimpy';
+    end;
+    if Assigned(fileCocoAhri) then begin
+        AddMasterDependencies(fileCocoAhri, destFile);
+        e := newLVLI(e, destFile, 'Ahriv2 ear', '0', '0', '0', '0');
+        addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_earB3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_earA1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_earB1', '1', '1');
+        addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_earA3', '1', '1');
+        addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_earA2', '1', '1');
+        addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_earB2', '1', '1');
+        for i:=1 to 5 do begin
+            s := IntToStr(i);
+            e := newLVLI(e, destFile, 'Ahriv2 neck'+s, '0', '0', '0', '0');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_neck'+s, '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_neckf'+s, '1', '1');
+        end;
+        for i:=1 to 2 do begin
+            if i=1 then begin
+                s := '';
+            end else begin
+                s := 'sex';
+            end;
+            e := newLVLI(e, destFile, 'Ahriv2 set1'+s, '0', '1', '0', '0');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_briefs1', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_bra'+s+'1', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_skirt'+s+'1', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_stock1', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_top1', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_shoes1', '1', '1');
+            addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 neck1', '1', '1');
+            if s <> '' then addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 ear', '1', '1');
+            e := newLVLI(e, destFile, 'Ahriv2 set2'+s, '0', '1', '0', '0');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_briefs2', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_bra'+s+'2', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_skirt'+s+'2', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_stock2', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_top2', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_shoes2', '1', '1');
+            addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 neck2', '1', '1');
+            if s <> '' then addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 ear', '1', '1');
+            e := newLVLI(e, destFile, 'Ahriv2 set3'+s, '0', '1', '0', '0');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_briefs4', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_bra'+s+'3', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_skirt'+s+'3', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_stock4', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_shoes5', '1', '1');
+            if s <> '' then addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 ear', '1', '1');
+            e := newLVLI(e, destFile, 'Ahriv2 set4'+s, '0', '1', '0', '0');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_bra'+s+'4', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_briefs2', '1', '1');
+            addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 neck3', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_shoes3', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_skirt'+s+'4', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_stock4', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_top3', '1', '1');
+            if s <> '' then addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 ear', '1', '1');
+            e := newLVLI(e, destFile, 'Ahriv2 set5'+s, '0', '1', '0', '0');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_bra'+s+'5', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_briefs2', '1', '1');
+            addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 neck3', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_shoes3', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_skirt'+s+'5', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_stock5', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_top3', '1', '1');
+            if s <> '' then addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 ear', '1', '1');
+            e := newLVLI(e, destFile, 'Ahriv2 set6'+s, '0', '1', '0', '0');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_bra'+s+'6', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_briefs3', '1', '1');
+            addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 neck4', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_shoes1', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_skirt'+s+'6', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_stock6', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_top4', '1', '1');
+            if s <> '' then addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 ear', '1', '1');
+            e := newLVLI(e, destFile, 'Ahriv2 set7'+s, '0', '1', '0', '0');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_bra'+s+'7', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_briefs4', '1', '1');
+            addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 neck5', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_shoes5', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_skirt'+s+'7', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_stock7', '1', '1');
+            addToLVLI(destFile, e, fileCocoAhri, 'ARMO', 'Ahriv2_top5', '1', '1');
+            if s <> '' then addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 ear', '1', '1');
+            e := newLVLI(e, destFile, 'Ahriv2 full sets '+s, '0', '0', '0', '0');
+            for i:=1 to 7 do begin
+                addToLVLI_(destFile, e, 'LVLI', 'Ahriv2 set'+IntToStr(i)+s, '1', '1');
+            end;
+        end;
+        AnyLingerieId := AnyLingerieId + '#Ahriv2 full sets sex';
+        AnyFineClothesId := AnyFineClothesId + '#Ahriv2 full sets ';
+    end;
     if Assigned(coco_bikini) then begin
         AddMasterDependencies(coco_bikini, destFile);
         e := newLVLI(e, destFile, 'coco_bikini3a', '0', '1', '0', '0');
@@ -3374,6 +3536,21 @@ begin
         AnyAssassinId := EditorID(AnyAssassin);
         if Signature(AnyAssassin) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyAssassin)+' is invalid') end;
     end;
+    if Assigned(AnyJarlId) then begin
+        AnyJarl := combineLVLI(destFile, 'any_jarl', AnyJarlId, '');
+        AnyJarlId := EditorID(AnyJarl);
+        if Signature(AnyJarl) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyJarl)+' is invalid') end;
+    end;
+    if Assigned(AnyFineClothesId) then begin
+        AnyFineClothes := combineLVLI(destFile, 'any_fine_clothes', AnyFineClothesId, '');
+        AnyFineClothesId := EditorID(AnyFineClothes);
+        if Signature(AnyFineClothes) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyFineClothes)+' is invalid') end;
+    end;
+    if Assigned(AnyFarmClothesId) then begin
+        AnyFarmClothes := combineLVLI(destFile, 'any_farm_clothes', AnyFarmClothesId, '');
+        AnyFarmClothesId := EditorID(AnyFarmClothes);
+        if Signature(AnyFarmClothes) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyFarmClothes)+' is invalid') end;
+    end;
     if Assigned(AnyMonkId) then begin
         AnyMonk := combineLVLI(destFile, 'any_monk', AnyMonkId, '');
         AnyMonkId := EditorID(AnyMonk);
@@ -3533,8 +3710,8 @@ begin
             end else if fname = '(Pumpkin)-TEWOBA-TheExpandedWorldofBikiniArmor.esp' then begin
                 hasTEWOBA := true;
                 fileTEWOBA := f;
-            end else if fname = 'alagris_smash.esp' then begin
-                destinationFile := f;
+            // end else if fname = 'alagris_smash.esp' then begin
+            //     destinationFile := f;
             end else if fname = 'Skyrim.esm' then begin
                 fileSkyrim := f;
                 clbNPC.Checked[1] := true;
@@ -3585,6 +3762,12 @@ begin
                 fileChristineKitchen := f;
             end else if fname = '[NINI] Blacksmith.esp' then begin 
                 fileNiniBlacksmith := f;
+            end else if fname = '[Dint999] Fogotten Princess Set.esp' then begin 
+                fileForgottenPrincess := f;
+            end else if fname = '[COCO] Fairy Queen.esp' then begin 
+                fileFairyQueen := f;
+            end else if fname = '[COCO] Ahri Uniforms.esp' then begin 
+                fileCocoAhri := f;
             end else if fname = '[NINI] Cat Maid.esp' then begin 
                 fileNiniCatMaid := f;
             end else if fname = '[NINI] Chat Noir.esp' then begin 
@@ -4255,6 +4438,11 @@ begin
                 end else if StartsStr('ClothesFarm', oldItemId) then begin    
                     oldItemPrefix := 'ClothesFarm';  
                     pantiesItemId := 'Panties-TheNine';
+                    if isBodyPart32(oldOutfitRef) then begin
+                        newOutfitRef := AnyFarmClothes;
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                    end;
+                    removeOldItem := Assigned(AnyFarmClothes);
                 end else if StartsStr('ClothesChef', oldItemId) then begin    
                     oldItemPrefix := 'ClothesChef';  
                     pantiesItemId := 'Panties-TheNine';
@@ -4266,6 +4454,11 @@ begin
                 end else if StartsStr('ClothesFine', oldItemId) then begin    
                     oldItemPrefix := 'ClothesFine';  
                     pantiesItemId := 'Panties-TheNine';
+                    if isBodyPart32(oldOutfitRef) then begin
+                        newOutfitRef := AnyFineClothes;
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                    end;
+                    removeOldItem := Assigned(AnyFineClothes);
                 end else if StartsStr('ClothesWench', oldItemId) then begin  
                     oldItemPrefix := 'ClothesWench';  
                     pantiesItemId := 'Panties-TheNine';
@@ -4282,6 +4475,11 @@ begin
                 end else if StartsStr('ClothesJarl', oldItemId) then begin    
                     oldItemPrefix := 'ClothesJarl';  
                     pantiesItemId := 'Panties-Ebony';
+                    if isBodyPart32(oldOutfitRef) then begin
+                        newOutfitRef := AnyJarl;
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                    end;
+                    removeOldItem := Assigned(AnyJarl);
                 end else if StartsStr('ClothesBlackSmith', oldItemId) then begin    
                     oldItemPrefix := 'ClothesBlackSmith';  
                     pantiesItemId := 'Panties-TheNine';
@@ -4691,6 +4889,11 @@ begin
         MoveDown(e);
     end;
 end;
+function isBodyPart32(armor: IwbElement): Boolean;
+begin
+    Result := GetElementEditValues(armor, 'BOD2\First Person Flags\32 - Body') = '1'; 
+end;
+
 function isFemale(lvln: IwbElement): Boolean;
 var
     i: integer;
