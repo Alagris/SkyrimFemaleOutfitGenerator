@@ -3809,16 +3809,16 @@ begin
             end else if fname = 'SexLab-AmorousAdventures.esp' then begin
                 npcFileAAvd := f;
                 clbNPC.Checked[1] := true;
-            end else if fname = 'JKs Skyrim.esp ' then begin
+            end else if fname = 'JKs Skyrim.esp' then begin
                 npcFileJKsS := f;
                 clbNPC.Checked[1] := true;
-            end else if fname = 'SexLab_DibellaCult.esp ' then begin
+            end else if fname = 'SexLab_DibellaCult.esp' then begin
                 npcFileSoD := f;
                 clbNPC.Checked[1] := true;
-            end else if fname = 'SexLab_DibellaCult_Sisters.esp ' then begin
+            end else if fname = 'SexLab_DibellaCult_Sisters.esp' then begin
                 npcFileSoDs := f;
                 clbNPC.Checked[1] := true;
-            end else if fname = 'troublesofheroine.esp ' then begin
+            end else if fname = 'troublesofheroine.esp' then begin
                 npcFileToH := f;
                 clbNPC.Checked[1] := true;
             end;
