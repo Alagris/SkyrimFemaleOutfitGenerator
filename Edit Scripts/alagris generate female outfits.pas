@@ -59,6 +59,10 @@ var
     AnyLingerieOutfit: IwbMainRecord;
     AnyThievesGuild: IwbMainRecord;
     AnyThievesGuildId: string;
+    AnyBeggar: IwbMainRecord;
+    AnyBeggarId: string;
+    AnyPrisoner: IwbMainRecord;
+    AnyPrisonerId: string;
     AnyAssassin: IwbMainRecord;
     AnyAssassinId: string;
     AnyBlacksmith: IwbMainRecord;
@@ -68,7 +72,99 @@ var
     AnyMonk: IwbMainRecord;
     AnyMonkId: string;
     AnyVampirePrefix: string;
+    npcFileHydSlavegirls: IwbFile;
+    npcFileDawnguard: IwbFile;
+    npcFileAnciProf: IwbFile;
+    npcFileDragonborn: IwbFile;
+    npcFileHearthfires: IwbFile;
+    npcFileCCContest: IwbFile;
+    npcFileCCBloodfall: IwbFile;
+    npcFileCCAdv: IwbFile;
+    npcFileMoreBCamp: IwbFile;
+    npcFileMiasL: IwbFile;
+    npcFileAAvd: IwbFile;
+    npcFileJKsS: IwbFile;
+    npcFileSoD: IwbFile;
+    npcFileSoDs: IwbFile;
+    npcFileToH: IwbFile;
+function AddMasterDependencies(src, dst: IwbFile): integer;
+var
+    i: integer;
+    m: IwbFile;
+begin
+    for i := 0 to MasterCount(src)-1 do begin
+        m := MasterByIndex(src, i);
+        if not Assigned(m) then begin raise Exception.Create('unreachable '+GetFileName(src)+' '+IntToStr(i)); end;
+        AddMasterDependencies(m, dst);
+    end;
+    AddMasterIfMissing(dst, GetFileName(src));
+end;
+function CopyOverAllNPCs(src, dst: IwbFile): integer;
+var
+    srcNpcGrp: IwbGroupRecord;
+    dstNpcGrp: IwbGroupRecord;
+    srcRec: IwbMainRecord;
+    i:integer;
+begin
+    if Assigned(src) then begin
+        srcNpcGrp := GroupBySignature(src, 'NPC_');
+        dstNpcGrp := GroupBySignature(dst, 'NPC_');
+        if not Assigned(dstNpcGrp) then begin raise Exception.Create('No NPC_ in '+GetFileName(dst)); end;
+        if Assigned(srcNpcGrp) then begin
+            AddMessage('Copying NPCs from '+GetFileName(src)+' to '+GetFileName(dst));
+            AddMasterDependencies(src, dst);
+            for i:=0 to ElementCount(srcNpcGrp) do begin
+                srcRec := ElementByIndex(srcNpcGrp, i);
+                if isFemale(srcRec) then begin
+                    if not Assigned(wbCopyElementToFile(srcRec, dst, false, true)) then begin
+                        raise Exception.Create('unreachable '+GetFileName(src)+' : '+FullPath(srcRec));
+                    end;
+                end;
+            end;
+        end;
+    end;
+end;
+function OverrideOutfit(src, dst: IwbFile; otftId: string): integer;
+var
+    srcOtft: IwbGroupRecord;
+    dstGrp: IwbGroupRecord;
+    srcRec: IwbMainRecord;
+    dstOtft: IwbGroupRecord;
+    i:integer;
+begin
+    if Assigned(src) then begin
+        srcOtft := MainRecordByEditorID(GroupBySignature(src, 'OTFT'), otftId);
+        dstGrp := GroupBySignature(dst, 'OTFT');
+        if not Assigned(dstGrp) then begin raise Exception.Create('No OTFT in '+GetFileName(dst)) end;
+        if not Assigned(srcOtft) then begin raise Exception.Create('No '+otftId+' outfit in '+GetFileName(src)) end;
+        AddMessage('Copying '+otftId+' outfit from '+GetFileName(src)+' to '+GetFileName(dst));
+        dstOtft := wbCopyElementToFile(srcOtft, dst, false, true);
+        if not Assigned(dstOtft) then begin raise Exception.Create('unreachable'); end;
+        ModifyFemaleOutfit(srcOtft, dstOtft);
+    end;
+end;
 
+function GenerateSmash(newFileName: string; clb: TCheckListBox): IwbFile;
+var 
+    npcFile: IwbFile;
+    i: integer;
+begin
+    AddMessage('Creating new mod:'+newFileName);
+    Result := AddNewFileName(newFileName);
+    if not Assigned(Result) then begin raise Exception.Create('unreachable'); end;
+    Add(Result, 'OTFT', true);
+    Add(Result, 'NPC_', true);
+
+    // the order matters. Once a record has been copied it is not overwritten again.
+    // So the patches should come first before the original mods. Skyrim.esm comes last. 
+    if Assigned(ObjectToElement(clb.Items.Objects[0])) then begin raise Exception.Create('unreachable. This should be a special element'); end;
+    for i := 1 to Pred(clb.Items.Count) do begin
+        if clb.Checked[i] then begin
+            npcFile := ObjectToElement(clb.Items.Objects[i]);
+            CopyOverAllNPCs(npcFile, Result);
+        end;
+    end;
+end;
 function FileByName(fn: string): IwbFile;
 var
     i: integer;
@@ -789,10 +885,15 @@ var
 begin
     for i := 1 to 5 do begin 
         s := IntToStr(i);
-        e := newLVLI(e, destFile, 'COCO demon'+s+' hair80', '80', '0', '1', '0');
+        e := newLVLI(e, destFile, 'COCO demon'+s+' hair80', '90', '0', '0', '0');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_hairsmp'+s, '1', '1');
-        e := newLVLI(e, destFile, 'COCO demon'+s+' mask60', '70', '0', '1', '0');
+        e := newLVLI(e, destFile, 'COCO demon'+s+' mask60', '70', '0', '0', '0');
         addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_mask'+s, '1', '1');
+        e := newLVLI(e, destFile, 'COCO demon'+s+' horn60', '70', '0', '0', '0');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_horn'+s, '1', '1');
+        e := newLVLI(e, destFile, 'COCO demon'+s+' tail60', '70', '0', '0', '0');
+        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_tail'+s, '1', '1');
+        
     end;
     e := GenerateCocoDemonForLevel(destFile, e, 'Minor', 1);
     e := GenerateCocoDemonForLevel(destFile, e, 'Common', 2);
@@ -845,17 +946,17 @@ begin
         ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodyfucool'+s, 'Demon_bodyfucool'+s+lvl, magic_type, ench);
         addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
         ei := GenerateEnchantedItem(destFile, fileCocoDemon, 'Demon_bodyfu'+s, 'Demon_bodyfu'+s+lvl, magic_type, ench);
-
         addToLVLI_(destFile, e, 'ARMO', EditorID(ei), '1', '1');
+
         e := newLVLI(e, destFile, 'COCO demon body'+s+magic_type+lvl, '0', '0', '1', '0');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' full body'+magic_type+lvl, '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' two parts '+magic_type+lvl, '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' modular '+magic_type+lvl, '1', '1');
 
         e := newLVLI(e, destFile, 'COCO demon'+s+magic_type+lvl, '0', '1', '0', '0');
-        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_horn'+s, '1', '1');
         //addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_hair'+s, '1', '1');
-        addToLVLI(destFile, e,fileCocoDemon, 'ARMO', 'Demon_tail'+s, '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' tail60', '1', '1');
+        addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' horn60', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' mask60', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon'+s+' hair80', '1', '1');
         addToLVLI_(destFile, e, 'LVLI', 'COCO demon body'+s+magic_type+lvl, '1', '1');
@@ -1075,7 +1176,7 @@ end;
 // function GenerateAnyMageForTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
 // begin
 // end;
-function generate(destFile: IwbFile): integer;
+function generateLvlListsAndEnchArmorForClothingMods(destFile: IwbFile): integer;
 var
     s: string;
     i: integer;
@@ -1109,10 +1210,10 @@ begin
         raise Exception.Create('You should disable '''+GetFileName(tawoba_list)+''' to avoid conflicts!');
     end;
     if Assigned(panties) then begin
-        AddMasterIfMissing(destFile, GetFileName(panties));
+        AddMasterDependencies(panties, destFile);
     end;
     if Assigned(fileSkimpyMaid) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileSkimpyMaid));
+        AddMasterDependencies(fileSkimpyMaid, destFile);
         e := newLVLI(e, destFile, 'SkimpyMaidSet', '0', '1', '0', '0');
         addToLVLI(destFile, e, fileSkimpyMaid, 'ARMO', 'xxxSkimpyMaidShoes', '1', '1');
         addToLVLI(destFile, e, fileSkimpyMaid, 'ARMO', 'xxxSkimpyMaidCloth', '1', '1');
@@ -1120,7 +1221,7 @@ begin
         AnyBarkeeperId := AnyBarkeeperId + '#SkimpyMaidSet';
     end;
     if Assigned(fileDXFI) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileDXFI));
+        AddMasterDependencies(fileDXFI, destFile);
         e := newLVLI(e, destFile, 'DXCallMeYoursTop', '0', '0', '1', '0');
         addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursTop1', '1', '1');
         addToLVLI(destFile, e, fileDXFI, 'ARMO', 'DXCallMeYoursTopGold1', '1', '1');
@@ -1217,7 +1318,7 @@ begin
         AnyLingerieId := AnyLingerieId + '#DXFI';
     end;
     if Assigned(fileDXFII) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileDXFII));
+        AddMasterDependencies(fileDXFII, destFile);
         e := newLVLI(e, destFile, 'DXFIIWildDreamsGloves', '0', '0', '1', '0');
         addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsGloves1', '1', '1');
         addToLVLI(destFile, e, fileDXFII, 'ARMO', 'DXFIIWildDreamsGlovesBelts1', '1', '1');
@@ -1308,7 +1409,7 @@ begin
         AnyLingerieId := AnyLingerieId + '#DXFII';
     end;
     if Assigned(fileDXsT) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileDXsT));
+        AddMasterDependencies(fileDXsT, destFile);
         e := newLVLI(e, destFile, 'DXsT', '0', '1', '0', '0');
         addToLVLI(destFile, e, fileDXsT, 'ARMO', 'DXStLouisDress1', '1', '1');
         addToLVLI(destFile, e, fileDXsT, 'ARMO', 'DXStLouisBracelet1', '1', '1');
@@ -1320,7 +1421,7 @@ begin
         AnyLingerieId := AnyLingerieId + '#DXsT';
     end;
     if Assigned(fileNiniBlacksmith) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileNiniBlacksmith));
+        AddMasterDependencies(fileNiniBlacksmith, destFile);
         e := newLVLI(e, destFile, 'NINI Blacksmith boots', '0', '0', '1', '0');
         addToLVLI(destFile, e, fileNiniBlacksmith, 'ARMO', '00bs_boots', '1', '1');
         addToLVLI(destFile, e, fileNiniBlacksmith, 'ARMO', '00bs_boots_b', '1', '1');
@@ -1345,7 +1446,7 @@ begin
         AnyBlacksmithId := AnyBlacksmithId + '#NINI Blacksmith';
     end;
     if Assigned(fileNiniChatNoir) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileNiniChatNoir));
+        AddMasterDependencies(fileNiniChatNoir, destFile);
         e := newLVLI(e, destFile, 'NINI ChatNoir suit', '0', '0', '1', '0');
         addToLVLI(destFile, e, fileNiniChatNoir, 'ARMO', '0ChatNoirSuit', '1', '1');
         addToLVLI(destFile, e, fileNiniChatNoir, 'ARMO', '0ChatNoirSuitSlutty', '1', '1');
@@ -1361,7 +1462,7 @@ begin
         addToLVLI(destFile, e, fileNiniChatNoir, 'ARMO', '0ChatNoirTail', '1', '1');
     end;
     if Assigned(fileNiniCatMaid) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileNiniCatMaid));
+        AddMasterDependencies(fileNiniCatMaid, destFile);
         e := newLVLI(e, destFile, 'NINI CatMaid top bot', '0', '1', '0', '0');
         addToLVLI(destFile, e, fileNiniCatMaid, 'ARMO', '0CatMaidLower', '1', '1');
         addToLVLI(destFile, e, fileNiniCatMaid, 'ARMO', '0CatMaidUpper', '1', '1');
@@ -1376,7 +1477,7 @@ begin
         AnyBarkeeperId := AnyBarkeeperId + '#NINI CatMaid';
     end;
     if Assigned(fileChristineAphrodite) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileChristineAphrodite));
+        AddMasterDependencies(fileChristineAphrodite, destFile);
         e := newLVLI(e, destFile, 'CHAphrodite', '0', '0', '1', '0');
         addToLVLI(destFile, e, fileChristineAphrodite, 'ARMO', '00GoW3AphroditeDress', '1', '1');
         addToLVLI(destFile, e, fileChristineAphrodite, 'ARMO', '00GoW3AphroditeDressDarker', '1', '1');
@@ -1385,7 +1486,7 @@ begin
         AnyMonkId := AnyMonkId + '#CHAphrodite'
     end;
     if Assigned(fileChristineKitchen) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileChristineKitchen));
+        AddMasterDependencies(fileChristineKitchen, destFile);
         e := newLVLI(e, destFile, 'CH Kitchen hands', '0', '0', '1', '0');
         addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieHands01', '1', '1');
         addToLVLI(destFile, e, fileChristineKitchen, 'ARMO', '00KitchenLingerieHands02', '1', '1');
@@ -1410,7 +1511,7 @@ begin
     end;
     
     if Assigned(fileShinoSchool) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileShinoSchool));
+        AddMasterDependencies(fileShinoSchool, destFile);
         e := newLVLI(e, destFile, 'Shino top', '0', '0', '0', '0');
         addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1', '1', '1');
         addToLVLI(destFile, e, fileShinoSchool, 'ARMO', 'Shino_seikufu_1_sexy', '1', '1');
@@ -1549,8 +1650,8 @@ begin
         if not Assigned(fileWitchyHats) then begin
             raise Exception.Create('You are using '+GetFileName(fileWizardHats)+' without '+GetFileName(fileWitchyHats)+'. Make sure to install both');
         end;
-        AddMasterIfMissing(destFile, GetFileName(fileWizardHats));
-        AddMasterIfMissing(destFile, GetFileName(fileWitchyHats));
+        AddMasterDependencies(fileWizardHats, destFile);
+        AddMasterDependencies(fileWitchyHats, destFile);
         e := newLVLI(e, destFile, 'MM_WizardHats', '0', '0', '1', '1');
         addToLVLI(destFile, e, wizard_hats, 'ARMO', 'sirwhoArmorWizardHatRedCirclet', '1', '1');
         addToLVLI(destFile, e, wizard_hats, 'ARMO', 'sirwhoArmorWizardHatBeigeCirclet', '1', '1');
@@ -1565,17 +1666,17 @@ begin
         addToLVLI(destFile, e, wizard_hats, 'ARMO', 'sirwhoArmorWizardHatYellowCirclet', '1', '1');
     end;
     if Assigned(modular_mage) then begin
-        AddMasterIfMissing(destFile, GetFileName(modular_mage));
+        AddMasterDependencies(modular_mage, destFile);
         e := GenerateModularMage(destFile, e);
         AnyMagePrefix := AnyMagePrefix + '#MM_';
     end;
     if Assigned(fileKSOMage) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileKSOMage));
+        AddMasterDependencies(fileKSOMage, destFile);
         e := GenerateKSO(destFile, e);
         AnyMagePrefix := AnyMagePrefix + '#KSO_';
     end;
     if Assigned(coco_lingerie) then begin
-        AddMasterIfMissing(destFile, GetFileName(coco_lingerie));
+        AddMasterDependencies(coco_lingerie, destFile);
         e := newLVLI(e, destFile, 'coco_lingerie1', '0', '1', '0', '0');
         addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie1', '1', '1');
         addToLVLI(destFile, e, coco_lingerie, 'ARMO', 'lingerie_shoes1', '1', '1');
@@ -1630,7 +1731,7 @@ begin
         AnyLingerieId := AnyLingerieId + '#coco_lingerie';
     end;
     if Assigned(coco_lace) then begin
-        AddMasterIfMissing(destFile, GetFileName(coco_lace));
+        AddMasterDependencies(coco_lace, destFile);
         e := newLVLI(e, destFile, 'coco_lace_heel1', '0', '0', '0', '0');
         addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel01_1', '1', '1');
         addToLVLI(destFile, e, coco_lace, 'ARMO', 'heel01_2', '1', '1');
@@ -1851,7 +1952,7 @@ begin
         AnyLingerieId := AnyLingerieId + '#coco_lace_body#coco_lace';
     end;
     if Assigned(coco_bikini) then begin
-        AddMasterIfMissing(destFile, GetFileName(coco_bikini));
+        AddMasterDependencies(coco_bikini, destFile);
         e := newLVLI(e, destFile, 'coco_bikini3a', '0', '1', '0', '0');
         addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03a_body', '1', '1');
         addToLVLI(destFile, e, coco_bikini, 'ARMO', 'Bikini03a_bellfur', '1', '1');
@@ -1929,7 +2030,7 @@ begin
         AnyLingerieId := AnyLingerieId + '#coco_bikini';
     end;
     if Assigned(hs2_bunny) then begin
-        AddMasterIfMissing(destFile, GetFileName(hs2_bunny));
+        AddMasterDependencies(hs2_bunny, destFile);
         e := newLVLI(e, destFile, 'bunny_leggings', '0', '0', '0', '0');
         addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_BunnyLeggings', '1', '1');
         addToLVLI(destFile, e, hs2_bunny, 'ARMO', 'HS2_BunnyLeggings_normal', '1', '1');
@@ -1979,7 +2080,7 @@ begin
     
 
     if Assigned(tewoba) then begin
-        AddMasterIfMissing(destFile, GetFileName(tewoba));
+        AddMasterDependencies(tewoba, destFile);
         e := newLVLI(e, destFile, 'TEW Ancient Nord Accessories', '0', '0', '1', '0');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'AncientNord45', '1', '1');
         addToLVLI(destFile, e, tewoba, 'ARMO', 'AncientNord46', '1', '1');
@@ -2212,7 +2313,7 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TEW Scaled Thongs', '1', '1');
     end;
     if Assigned(tawoba) then begin
-        AddMasterIfMissing(destFile, GetFileName(tawoba));
+        AddMasterDependencies(tawoba, destFile);
         e := newLVLI(e, destFile, 'TWA Leather Armors', '0', '0', '1', '0');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00LBAbikini1', '1', '1');
         addToLVLI(destFile, e, tawoba, 'ARMO', '00LBAbikini2', '1', '1');
@@ -2990,22 +3091,22 @@ begin
         addToLVLI_(destFile, e, 'LVLI', 'TWA Orcish Accessories', '3', '1');
     end;
     if Assigned(fileCocoDemon) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileCocoDemon)); 
+        AddMasterDependencies(fileCocoDemon, destFile); 
         e := GenerateCocoDemon(destFile, e);
         AnyNecromancerPrefix := AnyNecromancerPrefix + '#COCO demon';
     end;
     if Assigned(fileChristineExnem) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileChristineExnem)); 
+        AddMasterDependencies(fileChristineExnem, destFile); 
         e := GenerateExnemDemon(destFile, e);
         AnyNecromancerPrefix := AnyNecromancerPrefix + '#Exnem demon set ';
     end;
     if Assigned(fileCocoWitch) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileCocoWitch)); 
+        AddMasterDependencies(fileCocoWitch, destFile); 
         e := GenerateCocoWitch(destFile, e);
         AnyWarlockPrefix := AnyWarlockPrefix + '#COCO witch';
     end;
     if Assigned(fileCocoAssassin) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileCocoAssassin));
+        AddMasterDependencies(fileCocoAssassin, destFile);
         for i := 1 to 5 do begin
             s := IntToStr(i);
             GenerateEnchantedItem_(destFile, fileCocoAssassin, 'Assassin_underwear'+s, 'EnchAssassin_underwear'+s, '', 'DBEnchantShrouded');
@@ -3100,16 +3201,23 @@ begin
         AnyAssassinId := AnyAssassinId + '#COCO assassin';
     end;
     if Assigned(fileChristineUndead) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileChristineUndead));
-        e := newLVLI(e, destFile, 'CHUD Upper', '0', '0', '1', '0');
+        AddMasterDependencies(fileChristineUndead, destFile);
+        e := newLVLI(e, destFile, 'CHUD Upper', '10', '0', '1', '0');
         addToLVLI(destFile, e, fileChristineUndead, 'ARMO', '00DSChosenUndeadUpperDM', '1', '1');
         addToLVLI(destFile, e, fileChristineUndead, 'ARMO', '00DSChosenUndeadUpper', '1', '1');
-        e := newLVLI(e, destFile, 'CHUD Set', '0', '1', '0', '0');
+        e := newLVLI(e, destFile, 'CHUD Beggar Set', '0', '1', '0', '0');
         addToLVLI_(destFile, e, 'LVLI', 'CHUD Upper', '1', '1');
         addToLVLI(destFile, e, fileChristineUndead, 'ARMO', '00DSChosenUndeadLower', '1', '1');
+        addToLVLI(destFile, e, fileSkyrim, 'ARMO', 'ClothesBeggarBoots', '1', '1');
+        e := newLVLI(e, destFile, 'CHUD Prisoner Set', '0', '1', '0', '0');
+        addToLVLI_(destFile, e, 'LVLI', 'CHUD Upper', '1', '1');
+        addToLVLI(destFile, e, fileChristineUndead, 'ARMO', '00DSChosenUndeadLower', '1', '1');
+        addToLVLI(destFile, e, fileSkyrim, 'ARMO', 'ClothesPrisonerShoes', '1', '1');
+        AnyBeggarId := AnyBeggarId + '#CHUD Beggar Set';
+        AnyPrisonerId := AnyPrisonerId + '#CHUD Prisoner Set';
     end;
     if Assigned(fileChristineNocturnal) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileChristineNocturnal));
+        AddMasterDependencies(fileChristineNocturnal, destFile);
         GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbraceBoots', 'Ench00NocturnalEmbraceBoots', '', 'TGArmorFortifyPickpocket');
         GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbraceBelt', 'Ench00NocturnalEmbraceBelt', '', 'TGArmorFortifyCarry');
         GenerateEnchantedItem_(destFile, fileChristineNocturnal, '00NocturnalEmbracePanty1', 'Ench00NocturnalEmbracePanty1', '', 'TGArmorFortifySpeechcraft');
@@ -3144,7 +3252,7 @@ begin
         AnyThievesGuildId := AnyThievesGuildId + '#CHNE Set';
     end;
     if Assigned(fileChristineBlackMagic) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileChristineBlackMagic));
+        AddMasterDependencies(fileChristineBlackMagic, destFile);
         e := newLVLI(e, destFile, 'BlackMagicGrove Upper', '0', '0', '1', '0');
         addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGroveUpper', '1', '1');
         addToLVLI(destFile, e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGroveUpperSlutty', '1', '1');
@@ -3161,7 +3269,7 @@ begin
         AnyForswornId := AnyForswornId + '#BlackMagicGrove';
     end;
     if Assigned(fileChristineDeadlyDesire) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileChristineDeadlyDesire));
+        AddMasterDependencies(fileChristineDeadlyDesire, destFile);
         e := newLVLI(e, destFile, 'CHDD Upper', '0', '0', '1', '0');
         addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDUpper', '1', '1');
         addToLVLI(destFile, e, fileChristineDeadlyDesire, 'ARMO', '00DDUpperSlutty', '1', '1');
@@ -3188,7 +3296,7 @@ begin
         AnyVampirePrefix := AnyVampirePrefix + '#CHDD Set';
     end;
     if Assigned(fileChristinePriestess) then begin
-        AddMasterIfMissing(destFile, GetFileName(fileChristinePriestess));
+        AddMasterDependencies(fileChristinePriestess, destFile);
         for i := 1 to 7 do begin
             s := IntToStr(i);
             e := newLVLI(e, destFile, 'CHHP priestess'+s, '0', '1', '0', '0');
@@ -3219,6 +3327,16 @@ begin
         AnyThievesGuild := combineLVLI(destFile, 'any_thieves_guild', AnyThievesGuildId, '');
         AnyThievesGuildId := EditorID(AnyThievesGuild);
         if Signature(AnyThievesGuild) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyThievesGuild)+' is invalid') end;
+    end;
+    if Assigned(AnyBeggarId) then begin
+        AnyBeggar := combineLVLI(destFile, 'any_beggar', AnyBeggarId, '');
+        AnyBeggarId := EditorID(AnyBeggar);
+        if Signature(AnyBeggar) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyBeggar)+' is invalid') end;
+    end;
+    if Assigned(AnyPrisonerId) then begin
+        AnyPrisoner := combineLVLI(destFile, 'any_prisoner', AnyPrisonerId, '');
+        AnyPrisonerId := EditorID(AnyPrisoner);
+        if Signature(AnyPrisoner) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyPrisoner)+' is invalid') end;
     end;
     if Assigned(AnyForswornId) then begin
         AnyForsworn := combineLVLI(destFile, 'any_forsworn', AnyForswornId, '');
@@ -3276,11 +3394,14 @@ begin
     if pos('#', AnyAssassinId) <> 0 then begin raise Exception.Create(AnyAssassinId+' is invalid') end;
     if pos('#', KitchenLingerieId) <> 0 then begin raise Exception.Create(KitchenLingerieId+' is invalid') end;
     if pos('#', AnyThievesGuildId) <> 0 then begin raise Exception.Create(AnyThievesGuildId+' is invalid') end;
+    if pos('#', AnyPrisonerId) <> 0 then begin raise Exception.Create(AnyThievesGuildId+' is invalid') end;
     if pos('#', AnyMagePrefix) <> 0 then begin raise Exception.Create(AnyMagePrefix+' is invalid') end;
     if pos('#', AnyVampirePrefix) <> 0 then begin raise Exception.Create(AnyVampirePrefix+' is invalid') end;
     if EndsStr('Ench', AnyVampirePrefix) then begin raise Exception.Create(AnyVampirePrefix+' is invalid') end;
     if pos('#', AnyWarlockPrefix) <> 0 then begin raise Exception.Create(AnyWarlockPrefix+' is invalid') end;
     if pos('#', AnyNecromancerPrefix) <> 0 then begin raise Exception.Create(AnyNecromancerPrefix+' is invalid') end;
+    if EditorID(AnyBeggar) <> AnyBeggarId then begin raise Exception.Create(AnyBeggarId+' <> '+EditorID(AnyBeggar)) end;
+    if EditorID(AnyPrisoner) <> AnyPrisonerId then begin raise Exception.Create(AnyPrisonerId+' <> '+EditorID(AnyPrisoner)) end;
     if EditorID(AnyAssassin) <> AnyAssassinId then begin raise Exception.Create(AnyAssassinId+' <> '+EditorID(AnyAssassin)) end;
     if EditorID(AnyLingerie) <> AnyLingerieId then begin raise Exception.Create(AnyLingerieId+' <> '+EditorID(AnyLingerie)) end;
     if EditorID(AnyBarkeeper) <> AnyBarkeeperId then begin raise Exception.Create(AnyBarkeeperId+' <> '+EditorID(AnyBarkeeper)) end;
@@ -3356,23 +3477,32 @@ var
     fname: string;
     i: integer;
     frm: TForm;
+    frmNPC: TForm;
     clb: TCheckListBox;
+    clbNPC: TCheckListBox;
+    newFileName: string;
 begin
     hasPantiesofskyrim := false;
     hasTAWOBA := false;
     hasTEWOBA := false;
     hasModularMage := false;
     frm := frmFileSelect;
+    frmNPC := frmFileSelect;
     try
         // Initialize dialog
-        frm.Caption := 'Select a plugin for outfit';
+        frm.Caption := 'Select destination for the patch';
         clb := TCheckListBox(frm.FindComponent('CheckListBox1'));
         clb.Items.Add('<new file>');
         clb.Items.Add('<new file - ESL flagged>');
+        frmNPC.Caption := 'Select mods to copy female NPCs from';
+        clb := TCheckListBox(frm.FindComponent('CheckListBox1'));
+        clbNPC := TCheckListBox(frmNPC.FindComponent('CheckListBox1'));
+        clbNPC.Items.Add('<only copy npcs, don''t create female armor patches>');
         for i := 0 to Pred(FileCount) do begin
             f := FileByIndex(i);
             fname := GetFileName(f);
             clb.Items.InsertObject(2, fname, f);
+            clbNPC.Items.InsertObject(1, fname, f);
             if fname = 'The Amazing World of Bikini Armors REMASTERED.esp' then begin
                 hasTAWOBA := true;
                 fileTAWOBA := f;
@@ -3387,12 +3517,14 @@ begin
             end else if fname = '(Pumpkin)-TEWOBA-TheExpandedWorldofBikiniArmor.esp' then begin
                 hasTEWOBA := true;
                 fileTEWOBA := f;
-            end else if fname = 'alagris_smash.esp' then begin
-                destinationFile := f;
+            // end else if fname = 'alagris_smash.esp' then begin
+            //     destinationFile := f;
             end else if fname = 'Skyrim.esm' then begin
                 fileSkyrim := f;
+                clbNPC.Checked[1] := true;
             end else if fname = 'unofficial skyrim special edition patch.esp' then begin
                 fileUSSEP := f;
+                clbNPC.Checked[1] := true;
             end else if fname = '[COCO]Bikini Collection.esp' then begin
                 fileCocoBikini := f;
             end else if fname = 'sirwho_Wizard_Hats-Full.esp' then begin 
@@ -3445,6 +3577,51 @@ begin
                 fileShinoSchool := f;
             end else if fname = '[Christine] GoW3 - Aphrodite Dress.esl' then begin
                 fileChristineAphrodite := f;
+            end else if fname = 'hydra_slavegirls.esp' then begin
+                npcFileHydSlavegirls := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'Dawnguard.esm' then begin
+                npcFileDawnguard := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'The Ancient Profession.esp' then begin
+                npcFileAnciProf := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'Dragonborn.esm' then begin
+                npcFileDragonborn := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'HearthFires.esm' then begin
+                npcFileHearthfires := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'ccbgssse069-contest.esl' then begin
+                npcFileCCContest := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'ccbgssse068-bloodfall.esl' then begin
+                npcFileCCBloodfall := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'ccBGSSSE025-AdvDSGS.esm' then begin
+                npcFileCCAdv := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'MoreBanditCamps.esp' then begin
+                npcFileMoreBCamp := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'MiasLair.esp' then begin
+                npcFileMiasL := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'SexLab-AmorousAdventures.esp' then begin
+                npcFileAAvd := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'JKs Skyrim.esp ' then begin
+                npcFileJKsS := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'SexLab_DibellaCult.esp ' then begin
+                npcFileSoD := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'SexLab_DibellaCult_Sisters.esp ' then begin
+                npcFileSoDs := f;
+                clbNPC.Checked[1] := true;
+            end else if fname = 'troublesofheroine.esp ' then begin
+                npcFileToH := f;
+                clbNPC.Checked[1] := true;
             end;
         end;
         if not Assigned(destinationFile) then begin
@@ -3456,15 +3633,38 @@ begin
             // Check which item was selected
             for i := 0 to Pred(clb.Items.Count) do
                 if clb.Checked[i] then begin
-                    if i = 0 then begin
-                        destinationFile := AddNewFile;
-                    end;
-                    if i = 1 then begin
-                        destinationFile := AddNewFile;
-                        SetElementNativeValues(ElementByIndex(destinationFile, 0), 'Record Header\Record Flags\ESL', 1);
-                    end;
                     if i > 1 then begin
                         destinationFile := ObjectToElement(clb.Items.Objects[i]);
+                        SetupRecordGroups();
+                        Result := generateLvlListsAndEnchArmorForClothingMods(destinationFile);
+                    end else begin
+                        if frmNPC.ShowModal <> mrOk then begin
+                            Result := 1;
+                            Exit;
+                        end;
+                        if not InputQuery('Create new mod', 'Name (default=alagris_smash)', newFileName) then begin
+                            Result := 1;
+                            Exit;
+                        end else if not Assigned(newFileName) or (newFileName='') then begin
+                            newFileName := 'alagris_smash.esp';
+                        end;
+                        if not EndsStr('.esp', newFileName) then begin
+                            newFileName := newFileName + '.esp';
+                        end;
+                        if Assigned(FileByName(newFileName)) then begin
+                            AddMessage('Mod '+newFileName+' already exists');
+                            Result := 1;
+                            exit;
+                        end;
+                        destinationFile := GenerateSmash(newFileName, clbNPC);
+                        if i = 1 then begin
+                            SetElementNativeValues(ElementByIndex(destinationFile, 0), 'Record Header\Record Flags\ESL', 1);
+                        end;
+                        if not clbNPC.Checked[0] then begin
+                            SetupRecordGroups();
+                            generateLvlListsAndEnchArmorForClothingMods(destinationFile);
+                            Result := ProcessAllNPCs();
+                        end;
                     end;
                     Break;
                 end;
@@ -3472,11 +3672,11 @@ begin
     finally
         frm.Free;
     end;
-    // Nothing was selected
-    if not Assigned(destinationFile) then begin
-        Result := 1;
-        Exit;
-    end;
+    
+end;    
+
+function SetupRecordGroups: integer;
+begin 
     outfitRecordGroup := GroupBySignature(destinationFile, 'OTFT');
     if not Assigned(outfitRecordGroup) then begin
         outfitRecordGroup := Add(destinationFile, 'OTFT', true);
@@ -3493,9 +3693,7 @@ begin
     if not Assigned(lvliRecordGroup) then begin
         lvliRecordGroup := Add(destinationFile, 'LVLI', true);
     end;
-    Result := generate(destinationFile);
-end;    
-
+end;
 function BoolToStr(B: Boolean): string;
 begin 
   if B then begin Result := '1' end else begin Result := '0'; end;
@@ -4047,7 +4245,11 @@ begin
                 end else if StartsStr('ClothesWench', oldItemId) then begin  
                     oldItemPrefix := 'ClothesWench';  
                     pantiesItemId := 'Panties-TheNine';
-                    newOutfitRef := AnyBarkeeper;
+                    if StartsStr(oldOutfitId, '_SLSD') then begin
+                        newOutfitRef := AnyMonk; // for sisterhood of dibella
+                    end else begin
+                        newOutfitRef := AnyBarkeeper;
+                    end;
                     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
                     removeOldItem := Assigned(newOutfitRef);
                 end else if StartsStr('ClothesMiner', oldItemId) then begin    
@@ -4063,38 +4265,33 @@ begin
                     if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
                     removeOldItem := Assigned(newOutfitRef);
                 end else if StartsStr('ClothesBarKeeper', oldItemId) then begin    
-                    oldItemPrefix := 'ClothesBarKeeper';  
-                    pantiesItemId := 'Panties-General-Vendor';
-                    newOutfitRef := AnyBarkeeper;
-                    if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                    removeOldItem := Assigned(newOutfitRef);
+                    if oldItemId = 'ClothesBarKeeper' then begin
+                        oldItemPrefix := 'ClothesBarKeeper';  
+                        pantiesItemId := 'Panties-General-Vendor';
+                        newOutfitRef := AnyBarkeeper;
+                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
+                    end;
+                    removeOldItem := Assigned(AnyBarkeeper);
                 end else if StartsStr('ClothesMerchant', oldItemId) then begin    
                     oldItemPrefix := 'ClothesMerchant';  
                     pantiesItemId := 'Panties-Big Vendor';
                 end else if StartsStr('ClothesBeggar', oldItemId) then begin
                     if (oldItemId = 'ClothesBeggarRags') or (oldItemId = 'ClothesBeggarRobes') then begin
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
+                        newOutfitRef := AnyBeggar;
                         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
                         removeOldItem := Assigned(newOutfitRef);
                     end else if oldItemId = 'ClothesBeggarHat' then begin
-                        removeOldItem := Assigned(fileChristineUndead);
+                        removeOldItem := Assigned(AnyBeggar);
                     end else if oldItemId = 'ClothesBeggarBoots' then begin   
-                        removeOldItem := Assigned(fileChristineUndead);
+                        removeOldItem := Assigned(AnyBeggar);
                     end;
                 end else if StartsStr('ClothesPrisoner', oldItemId) then begin
-                    if (oldItemId = 'ClothesPrisonerRags') or (oldItemId = 'ClothesPrisonerRagsBloody') then begin
-                        newOutfitRef := MainRecordByEditorID(GroupBySignature(fileChristineUndead, 'ARMO'), '00DSChosenUndeadLower');
+                    if (oldItemId = 'ClothesPrisonerRags') or (oldItemId = 'ClothesPrisonerRagsBloody') or (oldItemId = 'ClothesPrisonerTunic') then begin
+                        newOutfitRef := AnyPrisoner;
                         if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('00DSChosenUndeadLower not found'); end;
-                        removeOldItem := Assigned(newOutfitRef);
-                    end else if oldItemId = 'ClothesPrisonerTunic' then begin
-                        newOutfitRef := MainRecordByEditorID(lvliRecordGroup, 'CHUD Set');
-                        if Assigned(newOutfitRef) then begin pantiesFinal := 'skip'; end;
-                        if Assigned(fileChristineUndead) <> Assigned(newOutfitRef) then begin raise Exception.Create('CHUD Set not found'); end;
                         removeOldItem := Assigned(newOutfitRef);
                     end else if (oldItemId = 'ClothesPrisonerShoes') or (oldItemId = 'ClothesPrisonerBloodyShoes') then begin   
-                        removeOldItem := Assigned(fileChristineUndead);
+                        removeOldItem := Assigned(AnyPrisoner);
                     end;
                 end else if StartsStr('ClothesWarlock', oldItemId) then begin    
                     if StartsStr('ClothesWarlockRobes', oldItemId) then begin
@@ -4146,7 +4343,11 @@ begin
                 if StartsStr('DLC1Armor', oldItemId) then begin
                     if StartsStr('DLC1ArmorVampire', oldItemId) then begin
                         oldItemPrefix := 'DLC1ArmorVampire';
-                        pantiesItemId := 'Panties-VampireBasicBlack';
+                        if Assigned(AnyVampirePrefix) then begin
+                            pantiesItemId := 'skip';
+                        end else begin
+                            pantiesItemId := 'Panties-VampireBasicBlack';
+                        end;
                         if StartsStr('DLC1ArmorVampireArmor', oldItemId) then begin
                             oldItemPrefix := 'DLC1ArmorVampireArmor';
                             if (oldItemId = 'DLC1ArmorVampireArmorValerica') or (oldItemId = 'DLC1ArmorVampireArmorRoyalRed') then begin
@@ -4213,8 +4414,8 @@ begin
                         usesMage := usesMage or Assigned(newOutfitRef);
                     end;
                 end;
-            end else if StartsStr('DlC01ClothesVampire', oldItemId) then begin
-                if oldItemId = 'DlC01ClothesVampire' then begin
+            end else if StartsStr('DLC01ClothesVampire', oldItemId) or StartsStr('DlC01ClothesVampire', oldItemId) then begin 
+                if oldItemId = 'DLC01ClothesVampire' then begin
                     newOutfitRef := MainRecordByEditorID(lvliRecordGroup, AnyVampirePrefix);
                     if Assigned(AnyVampirePrefix) <> Assigned(newOutfitRef) then begin raise Exception.Create(AnyVampirePrefix+' not found'); end;
                     usesMage := usesMage or Assigned(newOutfitRef);
@@ -4640,7 +4841,11 @@ begin
     selectedElement := FindFemaleVersionOfNPC(selectedElement, createIfNotExists);
     if not Assigned(selectedElement) then begin exit; end;
     if GetFile(selectedElement) <> destinationFile then begin raise Exception.Create('assertion failed: '+FullPath(selectedElement)); end;
-    oldOutfitRecord := FindSourceOfNPCsOutfit(selectedElement);
+    if isInFaction(selectedElement, 'TAPWhoreFaction') then begin
+        newOutfitRecord := AnyLingerieOutfit;
+    end else begin
+        oldOutfitRecord := FindSourceOfNPCsOutfit(selectedElement);
+    end;
     if not Assigned(oldOutfitRecord) then begin
         if isInFaction(selectedElement, 'zbfFactionSlave') then begin
             newOutfitRecord := AnyLingerieOutfit;
@@ -4657,6 +4862,16 @@ begin
     Result := selectedElement;
 end;
 
+function ProcessAllNPCs(): integer;
+var
+    i: integer;
+begin
+   for i:=0 to ElementCount(npcRecordGroup) do begin
+     RecursiveCopyNPC(ElementByIndex(npcRecordGroup, i), false);
+   end;
+end;
+
+
 function Process(selectedElement: IInterface): integer;
 var
     recordSignature: string;
@@ -4669,4 +4884,16 @@ begin
     else if recordSignature = 'LVLI' then RecursiveCopyLVLI(selectedElement);
 end;
 
+
+// Called after processing
+// You can remove it if script doesn't require finalization code
+function Finalize: integer;
+begin
+    OverrideOutfit(npcFileMiasL, destinationFile, 'AQSS_MiaClothedSlave');
+    Result := 0;
+end;
+
 end.
+
+
+    
