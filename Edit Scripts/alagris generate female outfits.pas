@@ -391,7 +391,7 @@ begin
     if Assigned(fileModularMage) then begin
         addToLVLI_(destFile, e, 'LVLI', 'MM_JourneymanHH', '1', '1');
     end else begin
-        addToLVLI_(destFile, e, 'LVLI', 'ClothesMGBoots', '1', '1');
+        addToLVLI(destFile, e, fileUSSEP, 'LVLI', 'ClothesMGBoots', '1', '1');
     end;
     Result := e;
 end;
