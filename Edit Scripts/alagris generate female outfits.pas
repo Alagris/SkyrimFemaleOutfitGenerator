@@ -601,7 +601,8 @@ begin
     AddMasterDependencies(fileSkyrim, destFile);
     elems := assertResultWasCreated(getOrCopy_n(fileSkyrim, destFile, 'NPC_', 'Player', false));
     RemoveElement(elems, 'DOFT');
-    ClearNpcItems(elems);
+    // ClearNpcItems(elems);
+    // ElementAssign(elems, HighInteger, Main, false)
     isNew := wasNew;
 end;
 function FileByName(fn: string): IwbFile;
