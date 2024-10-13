@@ -6108,7 +6108,7 @@ begin
     recordSignature := Signature(leveled_npc);
     if recordSignature = 'NPC_' then begin
         AddMessage('RecursiveFeminizeLVLN_n calls RecursiveFeminizeNPC_n('+Name(leveled_npc)+')');
-        Result := RecursiveFeminizeNPC_n(leveled_npc);
+        Result := RecursiveFeminizeNPC_n(leveled_npc, true);
         if GetFileName(GetFile(Result)) <> GetFileName(destinationFile) then begin raise Exception.Create('unreachable '+FullPath(Result)) end;
         exit;
     end;
@@ -7319,7 +7319,7 @@ begin
     if Signature(npc) <> 'NPC_' then begin raise Exception.Create('NPC expected but got '+FullPath(npc)) end;
     ClearContainer(ElementByPath(npc, 'Items'));
 end;
-function RecursiveFeminizeNPC_n(selectedElement: IInterface): IwbMainRecord;
+function RecursiveFeminizeNPC_n(selectedElement: IInterface; skipIfNotNew: Boolean): IwbMainRecord;
 var
     selectedElementId: string;
     fileId: string;
@@ -7334,7 +7334,7 @@ begin
     selectedElementId := EditorID(selectedElement);
     fileId := GetFileName(GetFile(selectedElement));
     Result := FindFemaleVersionOfNPC_n(selectedElement);
-    if not isNew then begin exit; end;
+    if skipIfNotNew and not isNew then begin exit; end;
     if GetFile(Result) <> destinationFile then begin raise Exception.Create('assertion failed: '+FullPath(Result)); end;
     if isInFaction(Result, 'TAPWhoreFaction') then begin
         newOutfitRecord := AnyLingerieOutfit;
@@ -7369,6 +7369,7 @@ end;
 function CreateWithPushedBackOutfit_n(selectedElement: IInterface; pushedBackOutfit:IwbMainRecord): IwbMainRecord;
 var
     newId: string;
+    oldItems: IwbElement;
 begin
     newId := EditorId(selectedElement)+EditorID(pushedBackOutfit);
     Result := MainRecordByEditorID(GroupBySignature(destinationFile, Signature(selectedElement)), newId);
@@ -7378,6 +7379,14 @@ begin
         Result := wbCopyElementToFile(selectedElement, destinationFile, Assigned(pushedBackOutfit), true);
         if Assigned(pushedBackOutfit) then begin
             SetEditorID(Result, newId);
+            if Signature(Result) = 'NPC_' then begin
+                oldItems := ElementByPath(Result, 'DOFT');
+                if not Assigned(oldItems) then begin
+                    oldItems := Add(Result, 'DOFT', true);
+                end;
+                ElementAssign(oldItems, LowInteger, pushedBackOutfit, false);
+                if GetEditValue(oldItems) <> Name(pushedBackOutfit) then begin raise Exception.Create('unreachable '+FullPath(oldItems)+' = '+GetEditValue(oldItems)+' <> '+FullPath(pushedBackOutfit)) end;
+            end;
         end;
     end;
     if GetFileName(GetFile(Result)) <> GetFileName(destinationFile) then begin raise Exception.Create('unreachable '+FullPath(Result)) end;
@@ -7492,12 +7501,16 @@ begin
                 end;
                 AddMessage('UseInv UseTrait '+FullPath(selectedElement)+' <- '+EditorID(pushedBackOutfit)+' -> '+FullPath(Result));
             end else begin
+
                 // in this case we need to know if it's female or male
                 if GetElementEditValues(selectedElement, 'ACBS - Configuration\Flags\Female') = '1' then begin
                     // in this case we just have to feminize the inventory
                     Result := CreateWithPushedBackOutfit_n(selectedElement, pushedBackOutfit);
+                    if Assigned(pushedBackOutfit) then begin
+                        SetElementEditValues(Result, 'ACBS\Template Flags\Use Inventory', '0');
+                    end;
                     if isNew then begin
-                        newItem := RecursiveFeminizeNPC_n(Result);
+                        newItem := RecursiveFeminizeNPC_n(Result, false);
                         if FullPath(Result) <> FullPath(newItem) then begin raise Exception.Create('unreachable '+FullPath(Result)+' <> '+FullPath(newItem)) end;
                         if not Assigned(Result) then begin raise Exception.Create('unreachable') end;
                         if GetFileName(GetFile(Result)) <> GetFileName(destinationFile) then begin raise Exception.Create('unreachable '+FullPath(Result)) end;
@@ -7536,6 +7549,8 @@ begin
                     if isNew then begin
                         SetElementEditValues(Result, 'ACBS\Template Flags\Use Traits', '0');
                         SetElementEditValues(Result, 'ACBS - Configuration\Flags\Female', '1');
+                        newItem := RecursiveFeminizeNPC_n(Result, false);
+                        if FullPath(Result) <> FullPath(newItem) then begin raise Exception.Create('unreachable '+FullPath(Result)+' <> '+FullPath(newItem)) end;
                     end;
                     AddMessage('!UseInv UseTrait set female '+FullPath(selectedElement)+' <- '+EditorID(pushedBackOutfit)+' -> '+FullPath(Result));
                 end else begin
@@ -7568,18 +7583,10 @@ begin
                 // in this case we need to assign the pushed-back outfit (if any)
                 Result := CreateWithPushedBackOutfit_n(selectedElement, pushedBackOutfit);
                 if isNew then begin
-                    if Assigned(pushedBackOutfit) then begin
-                        oldItems := ElementByPath(Result, 'DOFT');
-                        if not Assigned(oldItems) then begin
-                            oldItems := Add(Result, 'DOFT', true);
-                        end;
-                        ElementAssign(oldItems, LowInteger, pushedBackOutfit, false);
-                        if GetEditValue(oldItems) <> Name(pushedBackOutfit) then begin raise Exception.Create('unreachable '+FullPath(oldItems)+' = '+GetEditValue(oldItems)+' <> '+FullPath(pushedBackOutfit)) end;
-                    end;
                     // and if it's a female, we also need to feminize the outfit.
                     if GetElementEditValues(selectedElement, 'ACBS - Configuration\Flags\Female') = '1' then begin
                         AddMessage('!UseInv !UseTrait Fem '+FullPath(selectedElement)+' <- '+EditorID(pushedBackOutfit));
-                        newItem := RecursiveFeminizeNPC_n(Result);
+                        newItem := RecursiveFeminizeNPC_n(Result, false);
                         if FullPath(Result) <> FullPath(newItem) then begin raise Exception.Create('unreachable '+FullPath(Result)+' <> '+FullPath(newItem)) end;
                     end else begin
                         AddMessage('!UseInv !UseTrait !Fem '+FullPath(selectedElement)+' <- '+EditorID(pushedBackOutfit)+' -> '+FullPath(Result));
@@ -7599,7 +7606,7 @@ begin
         if isFemale(selectedElement) then begin
             if Signature(selectedElement) = 'NPC_' then begin
                 AddMessage('Feminizing '+FullPath(selectedElement)); 
-                Result := RecursiveFeminizeNPC_n(selectedElement);
+                Result := RecursiveFeminizeNPC_n(selectedElement, true);
             end else begin
                 if Signature(selectedElement) <> 'LVLI' then begin raise Exception.Create('unreahcable '+FullPath(selectedElement)); end;
                 AddMessage('LVLI already fully female '+FullPath(selectedElement)); 
