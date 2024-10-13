@@ -566,6 +566,9 @@ var
     qust: IwbMainRecord;
     wasNew: Boolean;
     i: integer;
+    elemId: string;
+    shoesElem: IwbElement;
+    tunicElem: IwbElement;
 begin
     wasNew := isNew;
     AddMasterDependencies(fileAlternateStart, destFile);
@@ -585,18 +588,25 @@ begin
     if not Assigned(elems) then begin raise Exception.Create('unreachableH') end;
     props := ElementByPath(elems, 'Properties');
     if not Assigned(props) then begin raise Exception.Create('unreachableI') end;
-    elems := ElementByIndex(props, 175);
-    if not Assigned(elems) then begin raise Exception.Create('unreachableJ') end;
-    elems := ElementByPath(elems, 'Value\Object Union\Object v2\FormID');
-    if not Assigned(elems) then begin raise Exception.Create('unreachableK') end;
-    if EditorID(LinksTo(elems)) <> 'ClothesPrisonerTunic' then begin raise Exception.Create('expected ClothesPrisonerTunic but was '+EditorID(LinksTo(elems))) end;
-    SetEditValue(elems, nil);
-    elems := ElementByIndex(props, 176);
-    if not Assigned(elems) then begin raise Exception.Create('unreachableJ') end;
-    elems := ElementByPath(elems, 'Value\Object Union\Object v2\FormID');
-    if not Assigned(elems) then begin raise Exception.Create('unreachableK') end;
-    if EditorID(LinksTo(elems)) <> 'ClothesPrisonerShoes' then begin raise Exception.Create('expected ClothesPrisonerShoes but was '+EditorID(LinksTo(elems))) end;
-    SetEditValue(elems, nil);
+    for i := 0 to ElementCount(props)-1 do begin
+        elems := ElementByIndex(props, i);
+        elems := ElementByPath(elems, 'Value\Object Union\Object v2\FormID');
+        elemId := EditorID(LinksTo(elems));
+        if elemId = 'ClothesPrisonerTunic' then begin
+            tunicElem := elems;
+            if Assigned(shoesElem) then break;
+        end;
+        if elemId = 'ClothesPrisonerShoes' then begin
+            shoesElem := elems;
+            if Assigned(tunicElem) then break;
+        end;
+    end;
+    if Assigned(shoesElem) and Assigned(tunicElem) then begin
+        SetEditValue(shoesElem, nil);
+        SetEditValue(tunicElem, nil);
+    end else begin
+        raise Exception.Create('It seems you have some mod that affects player''s initial outfit. In this case you should uncheck the option <make player start naked (compatible with alternate start)>.');
+    end;
 
     AddMasterDependencies(fileSkyrim, destFile);
     elems := assertResultWasCreated(getOrCopy_n(fileSkyrim, destFile, 'NPC_', 'Player', false));
