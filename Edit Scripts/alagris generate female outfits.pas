@@ -165,6 +165,7 @@ var
     nthElement_container: IwbElement;
     wardrobeLvli: IwbMainRecord;
 
+    rebWorth: Boolean;
     rebWeight_collar: Real;
     rebWeight_belt: Integer;
     rebWeight_straps: Integer;
@@ -546,7 +547,6 @@ var
     npcFile: IwbFile;
     i: integer;
     modifyNpcs: Boolean;
-    rebWorth: Boolean;
     nakedStart: Boolean;
 begin
     AddMessage('Creating new mod:'+newFileName);
@@ -558,20 +558,22 @@ begin
 
     // the order matters. Once a record has been copied it is not overwritten again.
     // So the patches should come first before the original mods. Skyrim.esm comes last. 
-    if Assigned(ObjectToElement(clb.Items.Objects[0])) then begin raise Exception.Create('unreachable. This should be a special element'); end;
+    for i := 0 to numSpecialNpcItems-1 do begin
+        if Assigned(ObjectToElement(clb.Items.Objects[i])) then begin raise Exception.Create('unreachable. '+IntToStr(i)+' should be a special element'); end;
+    end;
     modifyNpcs := not clb.Checked[0];
-    nakedStart := clb.Checked[1];
-    rebWorth := clb.Checked[3]; 
+    nakedStart := clb.Checked[1]; 
     if modifyNpcs then begin
         SetupRecordGroups(Result);
         if nakedStart then begin
             implNakedStart(Result);
         end;
-        generateLvlListsAndEnchArmorForClothingMods(Result, makeSmash, rebWorth);
+        generateLvlListsAndEnchArmorForClothingMods(Result, makeSmash);
     end;
-    for i := 1 to Pred(clb.Items.Count) do begin
+    for i := numSpecialNpcItems to Pred(clb.Items.Count) do begin
         if clb.Checked[i] then begin
             npcFile := ObjectToElement(clb.Items.Objects[i]);
+            if not Assigned(npcFile) then begin raise Exception.Create('unreachable') end;
             CopyOverAllNPCs(npcFile, modifyNpcs);
         end;
     end;
@@ -779,17 +781,25 @@ end;
 function ArmorRebalance(srcFile, destFile: IwbFile; ref:string; weight, val:Real): IwbMainRecord;
 var
     wasNew: Boolean;
+    srcGrp: IwbGroupRecord;
 begin
-    wasNew := isNew;
-    Result := getOrCopy_n(srcFile, destFile, 'ARMO', ref, false);
-    if not Assigned(Result) then begin raise Exception.Create('unreachable'); end;
-    if isNew then begin
-        setArmorValue(Result, val);
-        setArmorWeight(Result, weight);
+    if rebWorth then begin
+        wasNew := isNew;
+        Result := getOrCopy_n(srcFile, destFile, 'ARMO', ref, false);
+        if not Assigned(Result) then begin raise Exception.Create('unreachable'); end;
+        if isNew then begin
+            setArmorValue(Result, val);
+            setArmorWeight(Result, weight);
+        end else begin
+            //raise Exception.Create('Tried to rebalance '+FullPath(Result)+' twice');
+        end;
+        isNew := wasNew;
     end else begin
-        //raise Exception.Create('Tried to rebalance '+FullPath(Result)+' twice');
+        srcGrp := GroupBySignature(srcFile, 'ARMO');
+        if not Assigned(srcGrp) then begin raise Exception.Create('No ARMO in '+GetFileName(srcFile)) end;
+        Result := MainRecordByEditorID(srcGrp, ref);
+        if not Assigned(Result) then begin raise Exception.Create('No ARMO '+ref+' in '+GetFileName(srcFile)) end;
     end;
-    isNew := wasNew;
 end;
 function addToLVLIReb(e: IwbElement; srcFile, destFile: IwbFile; ref, count, level:string; weight, val:Real): IwbMainRecord;
 var
@@ -819,7 +829,7 @@ var
     wasNew: Boolean;
 begin
     Result := MainRecordByEditorID(GroupBySignature(srcFile, 'ARMO'), ref);
-    if Assigned(Result) then begin
+    if Assigned(Result) and rebWorth then begin
         wasNew := isNew;
         Result := getOrCopyByRef_n(Result, destFile, false);
         if isNew then begin
@@ -883,12 +893,14 @@ begin
             SetElementEditValues(Result, 'EITM', Name(enchR));
             AddMessage('ENCH '+EditorID(Result)+' from '+FullPath(template)+' using '+ench);
             SetElementEditValues(Result, 'FULL', GetElementEditValues(template, 'FULL')+newName);
-            enchLastChar := AnsiLastChar(ench);
-            if ('0' <= enchLastChar) and (enchLastChar<='9') then begin
-                ench_lvl := StrToInt(enchLastChar);
-                val := GetElementEditValues(template, 'DATA\Value');
-                if not Assigned(val) then raise Exception.Create('No DATA\Value in '+FullPath(template));
-                setArmorValue(Result, max(val, minValOfEnchItem) + 100 + 100*ench_lvl);
+            if rebWorth then begin
+                enchLastChar := AnsiLastChar(ench);
+                if ('0' <= enchLastChar) and (enchLastChar<='9') then begin
+                    ench_lvl := StrToInt(enchLastChar);
+                    val := GetElementEditValues(template, 'DATA\Value');
+                    if not Assigned(val) then raise Exception.Create('No DATA\Value in '+FullPath(template));
+                    setArmorValue(Result, max(val, minValOfEnchItem) + 100 + 100*ench_lvl);
+                end;
             end;
         end;
     end;
@@ -969,7 +981,7 @@ begin
     if Assigned(fileModularMage) then begin
         addToLVLI(e, destFile, 'LVLI', 'MM_JourneymanHH', '1', '1');
     end else begin
-        addToLVLI(e, fileUSSEP, 'LVLI', 'ClothesMGBoots', '1', '1');
+        addToLVLI(e, fileUSSEP, 'ARMO', 'ClothesMGBoots', '1', '1');
     end;
     Result := e;
 end;
@@ -1797,7 +1809,7 @@ begin
         Result := srcFile;
     end;
 end;
-function generateLvlListsAndEnchArmorForClothingMods(destFile: IwbFile; makeSmash, rebWorth: Boolean): integer;
+function generateLvlListsAndEnchArmorForClothingMods(destFile: IwbFile; makeSmash: Boolean): integer;
 var
     s: string;
     i: integer;
@@ -4618,7 +4630,9 @@ begin
     if pos('#', AnyVampireId) <> 0 then begin raise Exception.Create(AnyVampireId+' is invalid') end;
     if pos('#', AnyVampirePrefix) <> 0 then begin raise Exception.Create(AnyVampirePrefix+' is invalid') end;
     if EndsStr('Ench', AnyVampireId) then begin raise Exception.Create(AnyVampireId+' is invalid') end;
-    if not EndsStr('Ench', AnyVampirePrefix) then begin raise Exception.Create(AnyVampirePrefix+' is invalid') end;
+    if Assigned(AnyVampirePrefix) then begin
+        if not EndsStr('Ench', AnyVampirePrefix) then begin raise Exception.Create(AnyVampirePrefix+' is invalid') end;
+    end;
     if pos('#', AnyWarlockPrefix) <> 0 then begin raise Exception.Create(AnyWarlockPrefix+' is invalid') end;
     if pos('#', AnyNecromancerPrefix) <> 0 then begin raise Exception.Create(AnyNecromancerPrefix+' is invalid') end;
     if EditorID(AnyBeggar) <> AnyBeggarId then begin raise Exception.Create(AnyBeggarId+' <> '+EditorID(AnyBeggar)) end;
@@ -5632,6 +5646,12 @@ begin
         exit;
       end;
     end;
+    for i := 1 to length(lvliIdsToCombine) do begin
+      if lvliIdsToCombine[i] = '@' then begin
+        // there is just one element to combine. Do need to repeat it
+        lvliIdsToCombine := copy(lvliIdsToCombine, i+1, length(lvliIdsToCombine)-i);
+      end;
+    end;
     AddMessage('One element to combine '+lvliIdsToCombine+suffix+'. Skipping '+combinedLvliId);
     Result := MainRecordByEditorID(lvliRecordGroup, lvliIdsToCombine+suffix);
     if not Assigned(Result) then begin raise Exception.Create('LVLI Not found: '+lvliIdsToCombine+suffix) end;
@@ -5654,13 +5674,16 @@ var
     frm: TForm;
     frmNPC: TForm;
     frmBook: TForm;
+    frmClothingMods: TForm;
     clb: TCheckListBox;
     clbNPC: TCheckListBox;
     clbBook: TCheckListBox;
+    clbClothingMods: TCheckListBox;
     newFileName: string;
     numSpecialItems: integer;
-    
+    clothinModAdded: Boolean;
     scarcityRate: integer;
+    lastAlagrisSmash: integer;
 begin
     hasPantiesofskyrim := false;
     hasTAWOBA := false;
@@ -5670,11 +5693,13 @@ begin
     frm := frmFileSelect;
     frmNPC := frmFileSelect;
     frmBook := frmFileSelect;
+    frmClothingMods := frmFileSelect;
     try
         // Initialize dialog
         frm.Caption := 'Select destination for the patch';
         clb := TCheckListBox(frm.FindComponent('CheckListBox1'));
         clb.Items.Add('<new file (patch)>');
+        clb.Checked[0] := true;
         //TODO: clb.Items.Add('<new file (smash)>');
         clb.Items.Add('<new file (patch) - ESL flagged>');
         //TODO: clb.Items.Add('<new file (smash) - ESL flagged>');
@@ -5691,35 +5716,46 @@ begin
         clbNPC.Checked[3] := true;
         clbNPC.Items.Add('<add books to leveled lists (eg. TAWOBA crafting books will appear anywhere)>');
         clbNPC.Checked[4] := true;
-        numSpecialNpcItems := 5;
+        clbNPC.Items.Add('<let me select subset of clothing mods>');
+        clbNPC.Checked[5] := true;
+        numSpecialNpcItems := 6;
 
         frmBook.Caption := 'Books to add to lvli (close to skip)';
         clbBook := TCheckListBox(frmBook.FindComponent('CheckListBox1'));
-
+        frmClothingMods.Caption := 'Select armor/clothing mods';
+        clbClothingMods := TCheckListBox(frmClothingMods.FindComponent('CheckListBox1'));
         for i := 0 to Pred(FileCount) do begin
             f := FileByIndex(i);
             fname := GetFileName(f);
             clb.Items.InsertObject(numSpecialItems, fname, f);
             clbNPC.Items.InsertObject(numSpecialNpcItems, fname, f);
             clbBook.Items.InsertObject(0, fname, f);
+            clothinModAdded := false;
             if fname = 'The Amazing World of Bikini Armors REMASTERED.esp' then begin
                 hasTAWOBA := true;
                 fileTAWOBA := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'TAWOBA Remastered Leveled List.esp' then begin
                 fileTAWOBALeveledList := f;
+                clothinModAdded := true;
             end else if fname = 'pantiesofskyrim.esp' then begin
                 hasPantiesofskyrim := true;
                 filePantiesofskyrim := f;
+                clothinModAdded := true;
             end else if fname = '[Imp] Modular Mage.esp' then begin
                 hasModularMage := true;
                 fileModularMage := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '(Pumpkin)-TEWOBA-TheExpandedWorldofBikiniArmor.esp' then begin
                 hasTEWOBA := true;
                 fileTEWOBA := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
-            // end else if fname = 'alagris_smash.esp' then begin
+                clothinModAdded := true;
+            end else if StartsStr('alagris_smash', fname) then begin
+                if length(fname) = 17 then begin
+                    lastAlagrisSmash := 1;
+                end else begin
+                    lastAlagrisSmash := max(lastAlagrisSmash, StrToInt(copy(fname, 13, length(fname)-13-length('.esp')))+1);
+                end;
             //     destinationFile := f;
             end else if fname = 'Skyrim.esm' then begin
                 fileSkyrim := f;
@@ -5734,118 +5770,118 @@ begin
                 fileDeviousLore := f;
             end else if fname = '[COCO]Bikini Collection.esp' then begin
                 fileCocoBikini := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'sirwho_Wizard_Hats-Full.esp' then begin 
                 fileWizardHats := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'sirwho_Witchy_Wizard_Hats-Full.esp' then begin 
                 fileWitchyHats := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[COCO]Lingerie.esp' then begin 
                 fileCocoLingerie := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[COCO] Lace Lingerie Pack.esp' then begin 
                 fileCocoLace := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[COCO] Witchiness.esp' then begin 
                 fileCocoWitch := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[COCO] Demon Shade.esp' then begin   
                 fileCocoDemon := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[COCO] Shadow Assassin.esp' then begin   
                 fileCocoAssassin := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Christine] DS Chosen Undead.esp' then begin   
                 fileChristineUndead := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Christine] Nocturnal''s Embrace.esp' then begin   
                 fileChristineNocturnal := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Christine] Black Magic Grove.esp' then begin   
                 fileChristineBlackMagic := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Christine] Deadly Desire.esp' then begin   
                 fileChristineDeadlyDesire := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Christine] High Priestess Bikini.esp' then begin   
                 fileChristinePriestess := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Christine] Exnem Demonic.esp' then begin   
                 fileChristineExnem := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'HS2_bunyCostume.esp' then begin 
                 fileHS2Bunny := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'KSO Mage Robes.esp' then begin 
                 fileKSOMage := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Caenarvon] Magecore.esp' then begin 
                 fileMegacore := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'ID_Skimpy Maid Outfits.esp' then begin 
                 fileSkimpyMaid := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'DX Fetish Fashion Volume 1 SE.esp' then begin 
                 fileDXFI := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'DX FetishFashion II.esp' then begin 
                 fileDXFII := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'DX StLouis SE.esp' then begin 
                 fileDXsT := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Christine] Kitchen Lingerie.esp' then begin 
                 fileChristineKitchen := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[NINI] Blacksmith.esp' then begin 
                 fileNiniBlacksmith := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Shino] Sailor Jupiter.esp' then begin 
                 fileSailorJupiter := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Dint999] Fogotten Princess Set.esp' then begin 
                 fileForgottenPrincess := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[COCO] Fairy Queen.esp' then begin 
                 fileFairyQueen := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[COCO] Ahri Uniforms.esp' then begin 
                 fileCocoAhri := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[NINI] Cat Maid.esp' then begin 
                 fileNiniCatMaid := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[NINI] Chat Noir.esp' then begin 
                 fileNiniChatNoir := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'alternate start - live another life.esp' then begin 
                 fileAlternateStart := f;
             end else if fname = 'Shino_School_Uniform.esp' then begin 
                 fileShinoSchool := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Christine] GoW3 - Aphrodite Dress.esl' then begin
                 fileChristineAphrodite := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Dint999] SecretChildOfTalos.esp' then begin
                 fileChildOfTalos := f;
                 hasCoT := true;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'Slave Outfit.esp' then begin
                 fileCocoSlave := f; 
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[COCO] Lolita.esp' then begin
                 fileCocoLolita := f; 
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[Melodic] Reverse Bunnysuit.esp' then begin
                 fileMelodicBunny := f; 
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'Haru Bondage.esp' then begin
                 fileHaruBondage := f; 
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = '[dint999] MysteriousKnightSet.esp' then begin
                 fileMystKnight := f;
-                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clothinModAdded := true;
             end else if fname = 'hydra_slavegirls.esp' then begin
                 npcFileHydSlavegirls := f;
                 clbNPC.Checked[numSpecialNpcItems] := true;
@@ -5918,7 +5954,13 @@ begin
             end else if fname = 'SKYGIRL BOOK.esp' then begin
                 clbBook.Checked[0] := true;
             end;
+            if clothinModAdded then begin
+                clbBook.Checked[0] := Assigned(GroupBySignature(f, 'BOOK'));
+                clbClothingMods.Items.InsertObject(0, fname, f);
+                clbClothingMods.Checked[0] := true;
+            end;
         end;
+
         if not Assigned(destinationFile) then begin
             // Check if OK was pressed
             if frm.ShowModal <> mrOk then begin
@@ -5941,11 +5983,109 @@ begin
                             Result := 1;
                             Exit;
                         end;
+                        if clbNPC.Checked[5] then begin
+                            if frmClothingMods.ShowModal <> mrOk then begin
+                                Result := 75898;
+                                Exit;
+                            end; 
+                            for i := 0 to Pred(clbClothingMods.Items.Count) do begin
+                                if not clbClothingMods.Checked[i] then begin
+                                    f := ObjectToElement(clbClothingMods.Items.Objects[i]);
+                                    if GetFileName(f) = GetFileName(fileTAWOBA) then begin
+                                        fileTAWOBA := nil;
+                                    end else if GetFileName(f) = GetFileName(fileTAWOBALeveledList) then begin
+                                        fileTAWOBALeveledList := nil;
+                                    end else if GetFileName(f) = GetFileName(filePantiesofskyrim) then begin
+                                        filePantiesofskyrim := nil;
+                                    end else if GetFileName(f) = GetFileName(fileModularMage) then begin
+                                        fileModularMage := nil;
+                                    end else if GetFileName(f) = GetFileName(fileTEWOBA) then begin
+                                        fileTEWOBA := nil;
+                                    end else if GetFileName(f) = GetFileName(fileCocoBikini) then begin
+                                        fileCocoBikini := nil;
+                                    end else if GetFileName(f) = GetFileName(fileWizardHats) then begin
+                                        fileWizardHats := nil;
+                                    end else if GetFileName(f) = GetFileName(fileWitchyHats) then begin
+                                        fileWitchyHats := nil;
+                                    end else if GetFileName(f) = GetFileName(fileCocoLingerie) then begin
+                                        fileCocoLingerie := nil;
+                                    end else if GetFileName(f) = GetFileName(fileCocoLace) then begin
+                                        fileCocoLace := nil;
+                                    end else if GetFileName(f) = GetFileName(fileCocoWitch) then begin
+                                        fileCocoWitch := nil;
+                                    end else if GetFileName(f) = GetFileName(fileCocoDemon) then begin
+                                        fileCocoDemon := nil;
+                                    end else if GetFileName(f) = GetFileName(fileCocoAssassin) then begin
+                                        fileCocoAssassin := nil;
+                                    end else if GetFileName(f) = GetFileName(fileChristineUndead) then begin
+                                        fileChristineUndead := nil;
+                                    end else if GetFileName(f) = GetFileName(fileChristineNocturnal) then begin
+                                        fileChristineNocturnal := nil;
+                                    end else if GetFileName(f) = GetFileName(fileChristineBlackMagic) then begin
+                                        fileChristineBlackMagic := nil;
+                                    end else if GetFileName(f) = GetFileName(fileChristineDeadlyDesire) then begin
+                                        fileChristineDeadlyDesire := nil;
+                                    end else if GetFileName(f) = GetFileName(fileChristinePriestess) then begin
+                                        fileChristinePriestess := nil;
+                                    end else if GetFileName(f) = GetFileName(fileChristineExnem) then begin
+                                        fileChristineExnem := nil;
+                                    end else if GetFileName(f) = GetFileName(fileHS2Bunny) then begin
+                                        fileHS2Bunny := nil;
+                                    end else if GetFileName(f) = GetFileName(fileKSOMage) then begin
+                                        fileKSOMage := nil;
+                                    end else if GetFileName(f) = GetFileName(fileMegacore) then begin
+                                        fileMegacore := nil;
+                                    end else if GetFileName(f) = GetFileName(fileSkimpyMaid) then begin
+                                        fileSkimpyMaid := nil;
+                                    end else if GetFileName(f) = GetFileName(fileDXFI) then begin
+                                        fileDXFI := nil;
+                                    end else if GetFileName(f) = GetFileName(fileDXFII) then begin
+                                        fileDXFII := nil;
+                                    end else if GetFileName(f) = GetFileName(fileDXsT) then begin
+                                        fileDXsT := nil;
+                                    end else if GetFileName(f) = GetFileName(fileChildOfTalos) then begin
+                                        fileChildOfTalos := nil;
+                                    end else if GetFileName(f) = GetFileName(fileChristineKitchen) then begin
+                                        fileChristineKitchen := nil;
+                                    end else if GetFileName(f) = GetFileName(fileNiniBlacksmith) then begin
+                                        fileNiniBlacksmith := nil;
+                                    end else if GetFileName(f) = GetFileName(fileSailorJupiter) then begin
+                                        fileSailorJupiter := nil;
+                                    end else if GetFileName(f) = GetFileName(fileForgottenPrincess) then begin
+                                        fileForgottenPrincess := nil;
+                                    end else if GetFileName(f) = GetFileName(fileFairyQueen) then begin
+                                        fileFairyQueen := nil;
+                                    end else if GetFileName(f) = GetFileName(fileCocoAhri) then begin
+                                        fileCocoAhri := nil;
+                                    end else if GetFileName(f) = GetFileName(fileNiniCatMaid) then begin
+                                        fileNiniCatMaid := nil;
+                                    end else if GetFileName(f) = GetFileName(fileNiniChatNoir) then begin
+                                        fileNiniChatNoir := nil;
+                                    end else if GetFileName(f) = GetFileName(fileShinoSchool) then begin
+                                        fileShinoSchool := nil;
+                                    end else if GetFileName(f) = GetFileName(fileChristineAphrodite) then begin
+                                        fileChristineAphrodite := nil;
+                                    end else if GetFileName(f) = GetFileName(fileCocoSlave) then begin
+                                        fileCocoSlave := nil;
+                                    end else if GetFileName(f) = GetFileName(fileCocoLolita) then begin
+                                        fileCocoLolita := nil;
+                                    end else if GetFileName(f) = GetFileName(fileMelodicBunny) then begin
+                                        fileMelodicBunny := nil;
+                                    end else if GetFileName(f) = GetFileName(fileHaruBondage) then begin
+                                        fileHaruBondage := nil;
+                                    end else if GetFileName(f) = GetFileName(fileMystKnight) then begin
+                                        fileMystKnight := nil;
+                                    end else begin 
+                                        raise Exception.Create('unhandled '+GetFileName(f));
+                                    end;
+                                end;
+                            end;
+                        end;
                         if not InputQuery('Create new mod', 'Name (default=alagris_smash)', newFileName) then begin
                             Result := 45;
                             Exit;
                         end else if not Assigned(newFileName) or (newFileName='') then begin
-                            newFileName := 'alagris_smash.esp';
+                            newFileName := 'alagris_smash'+IntToStr(lastAlagrisSmash)+'.esp';
                         end;
                         if not EndsStr('.esp', newFileName) then begin
                             newFileName := newFileName + '.esp';
@@ -5956,6 +6096,7 @@ begin
                             exit;
                         end;
                         AddMessage('Generating smash');
+                        rebWorth := clb.Checked[3];
                         GenerateSmash(newFileName, clbNPC, false);
                         if i = 1 then begin
                             SetElementNativeValues(ElementByIndex(destinationFile, 0), 'Record Header\Record Flags\ESL', 1);
@@ -6137,6 +6278,7 @@ begin
             newItem := LinksTo(newItem);
             AddMessage(EditorID(Result)+' calls RecursiveFeminizeLVLN_n('+Name(newItem)+')');
             newItem := RecursiveFeminizeLVLN_n(newItem);
+            if not Assigned(newItem) then raise Exception.Create('unreahcanble '+FullPath(oldItem)+' to '+FullPath(newItems));
             TransferListElement(oldItem, newItems, newItem, true);
         end;
         if ElementCount(oldItems) <> ElementCount(newItems) then begin raise Exception.Create('unreachable') end;
@@ -6213,7 +6355,8 @@ end;
 
 function TransferListElement(oldItem, newItems: IwbElement; newItemReference:IwbMainRecord; isLVLI: Boolean): IwbElement;
 begin
-    if isLVLI then begin 
+    if not Assigned(newItemReference) then raise Exception.Create('unreahcanble '+FullPath(newItems)+' from '+FullPath(oldItem));
+    if isLVLI then begin         
         Result := AddListElement(newItems, newItemReference, isLVLI, GetElementNativeValues(oldItem, 'LVLO\Count'), GetElementNativeValues(oldItem, 'LVLO\Level'));
     end else begin
         Result := AddListElement(newItems, newItemReference, isLVLI, 1, 1);
@@ -6764,7 +6907,11 @@ begin
             if Assigned(Result) then begin raise Exception.Create('unreachable '+FullPath(Result)) end;
             Result := MainRecordByEditorID(lvliRecordGroup, tawobaItemId);
             if not Assigned(Result) then begin
-                raise Exception.Create('unreachable: '+oldItemPrefix+'/'+oldItemId+' -> '+tawobaItemId);    
+                if (StartsStr('TWA', tawobaItemId) and Assigned(fileTAWOBA)) 
+                or (StartsStr('TEW', tawobaItemId) and Assigned(fileTEWOBA)) 
+                or (StartsStr('CoT', tawobaItemId) and Assigned(fileChildOfTalos)) then begin
+                    raise Exception.Create('unreachable: '+oldItemPrefix+'/'+oldItemId+' -> '+tawobaItemId);    
+                end;
             end;
         end;
     end;
@@ -6927,6 +7074,7 @@ begin
             oldOutfitItem := nthElement_container;
             if Signature(oldOutfitRef) = 'LVLI' then begin
                 newOutfitRef := RecursiveCopyLVLI(oldOutfitRef); // WARNING! The newFem flags are global. Therefore we first run recursive calls and only then process the rest of elements.
+                if not Assigned(newOutfitRef) then raise Exception.Create('unreahcanble '+FullPath(oldOutfitItem)+' to '+FullPath(newOutfitItems));
                 if etMainRecord <> ElementType(newOutfitRef) then raise Exception.Create('unreahcanble '+FullPath(newOutfitRef));
                 TransferListElement(oldOutfitItem, newOutfitItems, newOutfitRef, isLVLI);
             end;
@@ -6956,6 +7104,7 @@ begin
                     if (Assigned(newFemFullSet) or Assigned(newFemGloves)) and isBodyPart33(oldOutfitRef) then begin
                         continue;
                     end;
+                    if not Assigned(oldOutfitRef) then raise Exception.Create('unreahcanble '+FullPath(oldOutfitItem)+' in '+FullPath(oldOutfitRecord));
                     TransferListElement(oldOutfitItem, newOutfitItems, oldOutfitRef, isLVLI);
                 end;
             end;
@@ -6967,7 +7116,7 @@ begin
                     if etMainRecord <> ElementType(newFemCuirass) then raise Exception.Create('unreahcanble '+FullPath(newFemCuirass));
                     AddListElement(newOutfitItems, newFemCuirass, isLVLI, 1, 1);
                 end else begin
-                    if Assigned(newFemPanties) then begin 
+                    if Assigned(newFemPanties) and Assigned(filePantiesofskyrim) then begin 
                         //if not recursiveDetectBodyPart32(newOutfitRecord) then
                         AddListElement(newOutfitItems, newFemPantiesToMainRecord(), isLVLI, 1, 1);
                         //end;
@@ -6999,6 +7148,7 @@ begin
                             TransferListElement(oldOutfitItem, newOutfitItems, newOutfitRef, isLVLI);
                         end;
                     end else begin
+                        if not Assigned(oldOutfitRef) then raise Exception.Create('unreahcanble '+FullPath(oldOutfitItem)+' in '+FullPath(oldOutfitRecord));
                         TransferListElement(oldOutfitItem, newOutfitItems, oldOutfitRef, isLVLI);
                     end;
                 end;
@@ -7476,6 +7626,7 @@ begin
                     newItem := LinksTo(newItem);
                     AddMessage(EditorID(Result)+' calls SeparateMixedGender_n('+Name(newItem)+', '+Name(pushedBackOutfit)+')');
                     newItem := SeparateMixedGender_n(newItem, pushedBackOutfit);
+                    if not Assigned(newItem) then raise Exception.Create('unreahcanble '+FullPath(oldItem)+' to '+FullPath(newItems));
                     TransferListElement(oldItem, newItems, newItem, true);
                 end;
                 if ElementCount(oldItems) <> ElementCount(newItems) then begin raise Exception.Create('unreachable') end;
