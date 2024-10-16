@@ -5754,7 +5754,7 @@ begin
                 if length(fname) = 17 then begin
                     lastAlagrisSmash := 1;
                 end else begin
-                    lastAlagrisSmash := max(lastAlagrisSmash, StrToInt(copy(fname, 13, length(fname)-13-length('.esp')))+1);
+                    lastAlagrisSmash := max(lastAlagrisSmash, StrToInt(copy(fname, length('alagris_smash')+1, length(fname)-length('alagris_smash.esp')))+1);
                 end;
             //     destinationFile := f;
             end else if fname = 'Skyrim.esm' then begin
@@ -6096,7 +6096,7 @@ begin
                             exit;
                         end;
                         AddMessage('Generating smash');
-                        rebWorth := clb.Checked[3];
+                        rebWorth := clbNPC.Checked[3];
                         GenerateSmash(newFileName, clbNPC, false);
                         if i = 1 then begin
                             SetElementNativeValues(ElementByIndex(destinationFile, 0), 'Record Header\Record Flags\ESL', 1);
@@ -7580,13 +7580,34 @@ begin
             if GetElementEditValues(selectedElement, 'ACBS\Template Flags\Use Inventory') = '1' then begin
                 if GetElementEditValues(selectedElement, 'ACBS - Configuration\Flags\Female') <> '1' then begin
                     if canBeFemale(selectedElement) then begin
-                        raise Exception.Create('The NPC must be masculinized '+FullPath(selectedElement)) 
+                        Result := MasculinizeNPC_n(selectedElement);
                     end;
                 end;
             end;
             Result := false;   
         end;
     end;
+end;
+
+function MasculinizeNPC_n(selectedElement: IwbMainRecord): IwbMainRecord;
+begin
+    if Signature(selectedElement) <> 'NPC_' then begin raise Exception.Create('unreachable '+FullPath(selectedElement)) end; 
+                        // oldItems := ElementByPath(selectedElement, 'TPLT');
+                        // oldItem := LinksTo(oldItems);
+                        // if isFemale(oldItem) then begin
+                        //     // congrats. You found a bug in skyrim. Sombody forgot to set the female flag or set Use Traits
+                        //     Result := getOrCopyByRef_n(selectedElement, destinationFile, false);
+                        //     SetElementEditValues(Result, 'ACBS - Configuration\Flags\Female', '1');
+                        //     newItem := RecursiveFeminizeNPC_n(Result);
+                        //     if FullPath(Result) <> FullPath(newItem) then begin raise Exception.Create('unreachable '+FullPath(Result)+' <> '+FullPath(newItem)) end;
+                        // end else begin
+    if pos('Female', GetElementEditValues(selectedElement, 'VTCK')> <> 0 then begin                
+        Result := getOrCopyByRef_n(selectedElement, destinationFile, false);
+        SetElementEditValues(Result, 'ACBS - Configuration\Flags\Female', '1');
+    end else begin
+        raise Exception.Create('The NPC must be masculinized '+FullPath(selectedElement)) 
+    end;
+    
 end;
 
 function SeparateMixedGender_n(selectedElement: IInterface; pushedBackOutfit:IwbMainRecord): IwbMainRecord;
@@ -7671,20 +7692,12 @@ begin
                 end else begin
                     
                     if canBeFemale(selectedElement) then begin 
-                        // oldItems := ElementByPath(selectedElement, 'TPLT');
-                        // oldItem := LinksTo(oldItems);
-                        // if isFemale(oldItem) then begin
-                        //     // congrats. You found a bug in skyrim. Sombody forgot to set the female flag or set Use Traits
-                        //     Result := getOrCopyByRef_n(selectedElement, destinationFile, false);
-                        //     SetElementEditValues(Result, 'ACBS - Configuration\Flags\Female', '1');
-                        //     newItem := RecursiveFeminizeNPC_n(Result);
-                        //     if FullPath(Result) <> FullPath(newItem) then begin raise Exception.Create('unreachable '+FullPath(Result)+' <> '+FullPath(newItem)) end;
-                        // end else begin
-                        raise Exception.Create('The NPC must be masculinized '+FullPath(selectedElement)) 
+                        Result := MasculinizeNPC_n(selectedElement);
                         //end;
+                    end else begin
+                        Result := selectedElement;
+                        isNew := false;
                     end;
-                    Result := selectedElement;
-                    isNew := false;
                     if not Assigned(Result) then begin raise Exception.Create('unreachable') end;
                     AddMessage('UseInv !UseTrait !Fem '+FullPath(selectedElement)+' <- '+EditorID(pushedBackOutfit)+' -> '+FullPath(Result));
                     exit;
