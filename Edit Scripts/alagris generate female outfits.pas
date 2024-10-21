@@ -142,6 +142,8 @@ var
     newFemCuirass: IwbMainRecord;
     newFemPanties: string;
     newFemFactionNaked: Boolean;
+    newFemFactionDraugr: Boolean;
+    newFemFactionNonHuman: Boolean;
     newFemFactionSlave: Boolean;
     newFemFactionBeggar: Boolean;
     newFemFactionBarkeeper: Boolean;
@@ -154,6 +156,7 @@ var
     newFemFactionPrisoner: Boolean;
     newFemFactionGuard: Boolean;
     newFemFactionJarl: Boolean;
+    getOrCopy_n_srcRec: IwbMainRecord;
     ClassifyFemaleClothingItem_isFullSet : Boolean;
     ClassifyFemaleClothingItem_pantiesItemId: string;
     recursiveDetectBodyParts_32: Boolean;
@@ -444,7 +447,7 @@ begin
     if newlyCreated then begin
         AddMasterDependencies(fileSkyrim, dst);
         wasNew := isNew;
-        bookLvli := getOrCopy_n(fileSkyrim, dst, 'LVLI', 'LItemBook4All', false);
+        bookLvli := getOrCopy_n(fileSkyrim, dst, 'LVLI', 'LItemBook4All', nil);
         bookList := ElementByPath(bookLvli, 'Leveled List Entries');
         bookLvli := getOrCreateLVLI_n(dst, 'LItemBookSexy', '0', '0', '0', '0');
         isNew := wasNew;
@@ -471,24 +474,46 @@ begin
         RemoveByIndex(bookList, 0, true);
     end;
 end;
-function getOrCopyByRef_n(srcElem:IwbMainRecord; dstFile:IwbFile; asNew:Boolean):IwbMainRecord;
+function getOrCopyByRef_n(srcElem:IwbMainRecord; dstFile:IwbFile; newId:string):IwbMainRecord;
 var
     dstGrp: IwbGroupRecord;
+    srcGrp: IwbGroupRecord;
+    signat: string;
+    srcFile: IwbFile;
+    asNew: Boolean;
+    differentIdRec: IwbMainRecord;
 begin
     if Assigned(srcElem) then begin
-        dstGrp := GroupBySignature(dstFile, Signature(srcElem));
-        Result := MainRecordByEditorID(dstGrp, EditorId(srcElem));
+        signat := Signature(srcElem);
+        dstGrp := GroupBySignature(dstFile, signat);
+        if Assigned(newId) then begin
+            asNew := newId<>EditorID(srcElem);
+            if asNew then begin
+                srcFile := GetFile(srcElem);
+                srcGrp := GroupBySignature(srcFile, signat);
+                differentIdRec := MainRecordByEditorID(srcGrp, newId);
+                if Assigned(differentIdRec) then begin
+                    srcElem := differentIdRec;
+                    asNew := false;
+                end;
+            end;
+        end else begin
+            newId := EditorId(srcElem);
+            asNew := false;
+        end;
+        Result := MainRecordByEditorID(dstGrp, newId);
         isNew := not Assigned(Result);
         if isNew then begin
             if asNew then begin
-                AddMessage('Copying '+FullPath(srcElem)+' to '+GetFileName(dstFile));
+                AddMessage('Copying '+FullPath(srcElem)+' to '+GetFileName(dstFile)+' as '+newId);
             end else begin
-                AddMessage('Overriding '+FullPath(srcElem)+' in '+GetFileName(dstFile));
+                AddMessage('Overriding '+FullPath(srcElem)+' in '+GetFileName(dstFile)+' as '+newId);
             end
             Result := wbCopyElementToFile(srcElem, dstFile, asNew, true);
-            // if asNew then begin 
-            //     SetLoadOrderFormID(Result, GetLoadOrderFormID(srcElem));
-            // end;
+            if asNew then begin
+                if newId = EditorID(Result) then begin raise Exception.Create('Id conflict '+FullPath(srcElem)+' -> '+FullPath(Result)+' as '+newId) end;
+                SetEditorID(Result, newId);
+            end;
         end;
         if not Assigned(Result) then begin raise Exception.Create('unreachable') end;
         if GetFileName(GetFile(Result)) <> GetFileName(dstFile) then begin raise Exception.Create('unreachable '+FullPath(Result)) end;
@@ -500,16 +525,16 @@ begin
     if not Assigned(r) then begin raise Exception.Create('unreachable') end;
     Result := r;
 end;
-function getOrCopy_n(srcFile, dstFile:IwbFile; group, editorId:string; asNew:Boolean):IwbMainRecord;
+function getOrCopy_n(srcFile, dstFile:IwbFile; group, editorId:string; newId:string):IwbMainRecord;
 var
     srcGrp: IwbGroupRecord;
     srcRec: IwbMainRecord;
 begin
     srcGrp := GroupBySignature(srcFile, group);
     if not Assigned(srcGrp) then begin raise Exception.Create('No '+group+' in '+GetFileName(srcFile)) end;
-    srcRec := MainRecordByEditorID(srcGrp, editorId);
-    if not Assigned(srcRec) then begin raise Exception.Create('No '+group+' '+editorId+' in '+GetFileName(srcFile)) end;
-    Result := getOrCopyByRef_n(srcRec, dstFile, asNew);
+    getOrCopy_n_srcRec := MainRecordByEditorID(srcGrp, editorId);
+    if not Assigned(getOrCopy_n_srcRec) then begin raise Exception.Create('No '+group+' '+editorId+' in '+GetFileName(srcFile)) end;
+    Result := getOrCopyByRef_n(getOrCopy_n_srcRec, dstFile, newId);
     if not Assigned(Result) then begin raise Exception.Create('unreachable') end;
 end;
 function OverrideOutfit(src, dst: IwbFile; otftId: string): IwbMainRecord;
@@ -518,13 +543,10 @@ var
     wasNew: Boolean;
 begin
     if Assigned(src) then begin
-        srcOtft := MainRecordByEditorID(GroupBySignature(src, 'OTFT'), otftId);
-        if not Assigned(srcOtft) then begin raise Exception.Create('Outfit not found '+otftId+' in '+GetFileName(src)) end;
         wasNew := isNew;
-        Result := getOrCopyByRef_n(srcOtft, dst, false);
-        if not Assigned(Result) then begin raise Exception.Create('unreachable') end;
+        Result := getOrCopy_n(src, dst, 'OTFT', otftId, nil);
         if isNew then begin
-            ModifyFemaleOutfit(srcOtft, Result);
+            ModifyFemaleOutfit(getOrCopy_n_srcRec, Result);
         end;
         isNew := wasNew;
     end;
@@ -595,7 +617,7 @@ var
 begin
     wasNew := isNew;
     AddMasterDependencies(fileAlternateStart, destFile);
-    qust := assertResultWasCreated(getOrCopy_n(fileAlternateStart, destFile, 'QUST', 'MQ101', false));
+    qust := assertResultWasCreated(getOrCopy_n(fileAlternateStart, destFile, 'QUST', 'MQ101', nil));
     elems := ElementByPath(qust, 'Aliases');
     if not Assigned(elems) then begin raise Exception.Create('unreachableA') end;
     elems := ElementByIndex(elems, 1);
@@ -632,7 +654,7 @@ begin
     end;
 
     AddMasterDependencies(fileSkyrim, destFile);
-    elems := assertResultWasCreated(getOrCopy_n(fileSkyrim, destFile, 'NPC_', 'Player', false));
+    elems := assertResultWasCreated(getOrCopy_n(fileSkyrim, destFile, 'NPC_', 'Player', nil));
     RemoveElement(elems, 'DOFT');
     // ClearNpcItems(elems);
     // ElementAssign(elems, HighInteger, Main, false)
@@ -778,28 +800,53 @@ begin
     SetElementNativeValues(armor, 'DATA\Value', val);
     if GetElementNativeValues(armor, 'DATA\Value') <> round(val) then begin raise Exception.Create('Assigning '+FloatToStr(val)+' to '+FullPath(armor)+' failed. Was '+IntToStr(GetElementNativeValues(armor, 'DATA\Value'))) end;
 end;
-function ArmorRebalance(srcFile, destFile: IwbFile; ref:string; weight, val:Real): IwbMainRecord;
+
+procedure setAlchWeight(armor:IwbMainRecord; weight:Real);
+begin
+    if weight >= 0 then begin
+        SetElementEditValues(armor, 'DATA - Weight', weight);
+        if abs(GetElementNativeValues(armor, 'DATA - Weight') - weight) > 0.001 then begin raise Exception.Create('Assigning '+FloatToStr(weight)+' to '+FullPath(armor)+' failed. Was '+FloatToStr(GetElementNativeValues(armor, 'DATA - Weight'))) end;
+    end;
+end;
+procedure setAlchValue(armor:IwbMainRecord; val:Real);
+begin
+    if val < 0 then begin
+        val := -val * GetElementNativeValues(armor, 'ENIT\Value');
+    end;
+    SetElementNativeValues(armor, 'ENIT\Value', val);
+    if GetElementNativeValues(armor, 'ENIT\Value') <> round(val) then begin raise Exception.Create('Assigning '+FloatToStr(val)+' to '+FullPath(armor)+' failed. Was '+IntToStr(GetElementNativeValues(armor, 'ENIT\Value'))) end;
+end;
+function ItemRebalance(srcFile, destFile: IwbFile; signat,ref:string; weight, val:Real): IwbMainRecord;
 var
     wasNew: Boolean;
     srcGrp: IwbGroupRecord;
 begin
     if rebWorth then begin
         wasNew := isNew;
-        Result := getOrCopy_n(srcFile, destFile, 'ARMO', ref, false);
+        Result := getOrCopy_n(srcFile, destFile, signat, ref, nil);
         if not Assigned(Result) then begin raise Exception.Create('unreachable'); end;
         if isNew then begin
-            setArmorValue(Result, val);
-            setArmorWeight(Result, weight);
+            if signat = 'ALCH' then begin
+                setAlchValue(Result, val);
+                setAlchWeight(Result, weight);
+            end else begin
+                setArmorValue(Result, val);
+                setArmorWeight(Result, weight);
+            end;
         end else begin
             //raise Exception.Create('Tried to rebalance '+FullPath(Result)+' twice');
         end;
         isNew := wasNew;
     end else begin
-        srcGrp := GroupBySignature(srcFile, 'ARMO');
-        if not Assigned(srcGrp) then begin raise Exception.Create('No ARMO in '+GetFileName(srcFile)) end;
+        srcGrp := GroupBySignature(srcFile, signat);
+        if not Assigned(srcGrp) then begin raise Exception.Create('No '+signat+' in '+GetFileName(srcFile)) end;
         Result := MainRecordByEditorID(srcGrp, ref);
-        if not Assigned(Result) then begin raise Exception.Create('No ARMO '+ref+' in '+GetFileName(srcFile)) end;
+        if not Assigned(Result) then begin raise Exception.Create('No '+signat+' '+ref+' in '+GetFileName(srcFile)) end;
     end;
+end;
+function ArmorRebalance(srcFile, destFile: IwbFile;  ref:string; weight, val:Real): IwbMainRecord;
+begin
+    Result := ItemRebalance(srcFile, destFile, 'ARMO',  ref, weight, val);
 end;
 function addToLVLIReb(e: IwbElement; srcFile, destFile: IwbFile; ref, count, level:string; weight, val:Real): IwbMainRecord;
 var
@@ -807,6 +854,14 @@ var
     
 begin
     Result := ArmorRebalance(srcFile, destFile, ref, weight, val);
+    assignToLVLI(e, Result, count, level);
+end;
+function addToLVLIRebI(e: IwbElement; srcFile, destFile: IwbFile; signat, ref, count, level:string; weight, val:Real): IwbMainRecord;
+var
+    r: IwbMainRecord;
+    
+begin
+    Result := ItemRebalance(srcFile, destFile, signat, ref, weight, val);
     assignToLVLI(e, Result, count, level);
 end;
 function addToLVLIRebW(e: IwbElement; srcFile, destFile: IwbFile; ref, count, level:string; weight, val:Real): IwbMainRecord;
@@ -831,7 +886,7 @@ begin
     Result := MainRecordByEditorID(GroupBySignature(srcFile, 'ARMO'), ref);
     if Assigned(Result) and rebWorth then begin
         wasNew := isNew;
-        Result := getOrCopyByRef_n(Result, destFile, false);
+        Result := getOrCopyByRef_n(Result, destFile, nil);
         if isNew then begin
             setArmorValue(Result, val);
             setArmorWeight(Result, weight);
@@ -4692,7 +4747,7 @@ begin
         Result := MainRecordByEditorID(GroupBySignature(fileSkyrim, group), id);
     end;
     if not Assigned(Result) then begin raise Exception.Create(id+' not found') end;
-    Result := getOrCopyByRef_n(Result, destFile, false);
+    Result := getOrCopyByRef_n(Result, destFile, nil);
     if not Assigned(Result) then begin raise Exception.Create(id+' copy failed') end;
 end;
 function getOrCopyLvliFromSkyrim_n(destFile:IwbFile; id: string): IwbElement; 
@@ -4731,90 +4786,90 @@ begin
         if not Assigned(e) then begin raise Exception.Create('unreachable '+lvliId) end;
         oldElemCount := ElementCount(e);
         if lvliId = 'LootVampireChestPotions15' then begin
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAASensationEnhancement', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAALiquidAgony', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAAncientWhoreCocktail', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAAncientWhoreCocktail', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1');
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAASensationEnhancement', '1', '1', 0.5, 60);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAALiquidAgony', '1', '1', 0.5, 80);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAAncientWhoreCocktail', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAAncientWhoreCocktail', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1', 0.5, 0);
         end else if lvliId = 'LootHagravenChestPotions25' then begin
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAWhoreCocktail', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAStopRecoveryPoison', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanPiss', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAADisgustingSoup', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAASoulshatter', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHorsesCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHorsesPiss', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAASkeeversCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAASkeeversPiss', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAADogsCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAADogsPiss', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAASpriggansPleasureJuice', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanPrecum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAWomanLubricant', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHorsesSweat', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAGoatsCum', '1', '1');
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAWhoreCocktail', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAStopRecoveryPoison', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanPiss', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAADisgustingSoup', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAASoulshatter', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHorsesCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHorsesPiss', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAASkeeversCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAASkeeversPiss', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAADogsCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAADogsPiss', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAASpriggansPleasureJuice', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanPrecum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAWomanLubricant', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHorsesSweat', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAGoatsCum', '1', '1', 0.5, 0);
         end else if lvliId = 'LootForswornPotions10' then begin
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAATrollsCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHorsesCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHorsesPiss', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAASkeeversCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAADogsCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAADogsPiss', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanPrecum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAGoatsCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAABretonCum', '1', '1');
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAATrollsCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHorsesCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHorsesPiss', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAASkeeversCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAADogsCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAADogsPiss', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanPrecum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAGoatsCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAABretonCum', '1', '1', 0.5, 0);
         end else if lvliId = 'LootDraugrChestPotions05' then begin
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1');
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1', 0.5, 0);
         end else if lvliId = 'LootCWSonsChestPotions25' then begin
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanPiss', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanPrecum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAWomanLubricant', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAANordCum', '1', '1');
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanPiss', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanPrecum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAWomanLubricant', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAANordCum', '1', '1', 0.5, 0);
         end else if lvliId = 'LootCWImperialsChestPotions25' then begin
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanPiss', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanPrecum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAWomanLubricant', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAImperialCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAAltmerCum', '1', '1');
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanPiss', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanPrecum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAWomanLubricant', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAImperialCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAAltmerCum', '1', '1', 0.5, 0);
         end else if lvliId = 'LootBanditChestPotions100' then begin
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanPiss', '5', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanCum', '5', '1');
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanPiss', '5', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanCum', '5', '1', 0.5, 0);
         end else if lvliId = 'LootBanditChestPotions15' then begin
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanPiss', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAABretonCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAImperialCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAANordCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAARedguardCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAAltmerCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAABosmerCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAADunmerCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAOrcCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAArgonianCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAKhajiitCum', '1', '1');
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanPiss', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAABretonCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAImperialCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAANordCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAARedguardCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAAltmerCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAABosmerCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAADunmerCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAOrcCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAArgonianCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAKhajiitCum', '1', '1', 0.5, 0);
         end else begin
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanPrecum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAWomanLubricant', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanPiss', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAHumanCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAABretonCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAImperialCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAANordCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAARedguardCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAAltmerCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAABosmerCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAADunmerCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAOrcCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAArgonianCum', '1', '1');
-            addToLVLI(e, npcFileToH, 'ALCH', 'AAAKhajiitCum', '1', '1');
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAFoulWhoreCocktail', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanPrecum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAWomanLubricant', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanPiss', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAHumanCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAABretonCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAImperialCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAANordCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAARedguardCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAAltmerCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAABosmerCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAADunmerCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAOrcCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAArgonianCum', '1', '1', 0.5, 0);
+            addToLVLIRebI(e, npcFileToH, destFile, 'ALCH', 'AAAKhajiitCum', '1', '1', 0.5, 0);
         end;
         newElemCount := ElementCount(e);
         if newElemCount = oldElemCount then begin raise Exception.Create('unreachable '+lvliId) end;
@@ -6194,16 +6249,7 @@ var
     groupSignat: string;
     recordEditorId: string;
 begin 
-    groupSignat := Signature(element);
-    group := GroupBySignature(dstFile, groupSignat);
     recordEditorId := EditorID(element);
-    isNew := false;
-    Result := MainRecordByEditorID(group, recordEditorId); 
-    if Assigned(Result) then begin // already processed before
-        AddMessage(groupSignat+' (already converted) '+EditorID(element)+' -> '+EditorID(Result));
-        if GetFileName(GetFile(Result)) <> GetFileName(dstFile) then begin raise Exception.Create('unreachable '+FullPath(Result)) end;
-        exit;
-    end;
     if EndsStr('F', recordEditorId) then begin 
         recordEditorId := copy(recordEditorId, 1, length(recordEditorId)-1);
         recordEditorId := recordEditorId+'_F'; // this is to prevent EditorID conflict, as we are about to copy the original record as a brand new record (not override) a few lines below
@@ -6213,19 +6259,7 @@ begin
         end;
         recordEditorId := recordEditorId+'F';
     end; 
-    Result := MainRecordByEditorID(group, recordEditorId); 
-    if Assigned(Result) then begin // already processed before
-        AddMessage(groupSignat+' (already converted) '+EditorID(element)+' -> '+EditorID(Result));
-        if GetFileName(GetFile(Result)) <> GetFileName(dstFile) then begin raise Exception.Create('unreachable '+FullPath(Result)) end;
-        exit;
-    end;
-
-    isNew := true;
-    Result := wbCopyElementToFile(element, dstFile, true, true); // we always make a new copy because sometimes males use templates that include females. We don't want males to wear female clothes by accident
-    if EditorID(Result) = recordEditorId then begin raise Exception.Create('editor id conflict '+recordEditorId) end;
-    if not Assigned(Result) then begin raise Exception.Create('unreachable') end;
-    SetEditorID(Result, recordEditorId);   
-    AddMessage(groupSignat+' (converted) '+EditorID(element)+' -> '+EditorID(Result));
+    Result := getOrCopyByRef_n(element, dstFile, recordEditorId);
 end;
 function GetWinningSupportedOverride(e: IwbMainRecord): IwbMainRecord;
 begin
@@ -6412,6 +6446,9 @@ begin
         end else if StartsStr('ArmorSummerset', oldOutfitId) then begin
             newFemPanties := 'Panties-Summerset';    
         end;
+    end else if pos('Draugr', oldOutfitId) <> 0 then begin
+        newFemFactionDraugr := true;
+        newFemFactionNonHuman := true;
     end else if StartsStr('SSLV_Slave', oldOutfitId) then begin
         newFemFactionSlave := true; 
         newFemFactionPrisoner := true;
@@ -7000,7 +7037,7 @@ begin
 end;
 procedure DeriveFemaleOutfitSetFromFemFlags();
 begin
-    if newFemFactionNaked or newFemFactionSlave then begin
+    if (newFemFactionNaked and not newFemFactionNonHuman) or newFemFactionSlave then begin
         if newFemFactionKitchen then begin
             newFemFullSet := KitchenLingerie;
         end else if newFemFactionPrisoner then begin
@@ -7367,7 +7404,8 @@ begin
     selectedElement := GetWinningSupportedOverride(selectedElement);
     if (signat <> 'NPC_') and (signat <> 'LVLN') then raise Exception.Create('Not an NPC '+FullPath(selectedElement));
     if isFemale(selectedElement) then begin
-        Result := getOrCopyByRef_n(selectedElement, destinationFile, false);
+        Result := getOrCopyByRef_n(selectedElement, destinationFile, nil);
+        AddMessage('IsFemale '+FullPath(selectedElement)+'->'+FullPath(Result)+' isNew='+BoolToStr(isNew));
         if GetFileName(GetFile(Result)) <> GetFileName(destinationFile) then begin raise Exception.Create('unreachable '+FullPath(Result)) end;
         exit;
     end;
@@ -7484,7 +7522,10 @@ begin
     selectedElementId := EditorID(selectedElement);
     fileId := GetFileName(GetFile(selectedElement));
     Result := FindFemaleVersionOfNPC_n(selectedElement);
-    if skipIfNotNew and not isNew then begin exit; end;
+    if skipIfNotNew and not isNew then begin 
+        AddMessage('Skipping '+FullPath(Result)+'->'+FullPath(selectedElement));
+        exit; 
+    end;
     if GetFile(Result) <> destinationFile then begin raise Exception.Create('assertion failed: '+FullPath(Result)); end;
     if isInFaction(Result, 'TAPWhoreFaction') then begin
         newOutfitRecord := AnyLingerieOutfit;
@@ -7602,7 +7643,7 @@ begin
                         //     if FullPath(Result) <> FullPath(newItem) then begin raise Exception.Create('unreachable '+FullPath(Result)+' <> '+FullPath(newItem)) end;
                         // end else begin
     if pos('Female', GetElementEditValues(selectedElement, 'VTCK')> <> 0 then begin                
-        Result := getOrCopyByRef_n(selectedElement, destinationFile, false);
+        Result := getOrCopyByRef_n(selectedElement, destinationFile, nil);
         SetElementEditValues(Result, 'ACBS - Configuration\Flags\Female', '1');
     end else begin
         raise Exception.Create('The NPC must be masculinized '+FullPath(selectedElement)) 
