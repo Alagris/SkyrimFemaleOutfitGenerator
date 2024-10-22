@@ -62,6 +62,12 @@ var
     fileNiniChatNoir: IwbFile;
     fileNiniBlacksmith: IwbFile;
     fileSailorJupiter: IwbFile;
+    fileTIWOBAStormcloak: IwbFile;
+    fileDaughtersOfDimitrescu: IwbFile;
+    fileLeavesBody: IwbFile;
+    fileFireSoul: IwbFile;
+    fileFamitsuSwimsuit: IwbFile;
+    fileTribalScout: IwbFile;
     AnyMagePrefix: string;
     AnyNecromancerPrefix: string;
     AnyWarlockPrefix: string;
@@ -88,6 +94,10 @@ var
     AnyThievesGuildLeader: IwbMainRecord;
     AnyThievesGuildKarliahId: string;
     AnyThievesGuildKarliah: IwbMainRecord;
+    AnyMerchant: IwbMainRecord;
+    AnyMerchantId: string;
+    AnyMiner: IwbMainRecord;
+    AnyMinerId: string;
     AnyBeggar: IwbMainRecord;
     AnyBeggarId: string;
     AnyPrisoner: IwbMainRecord;
@@ -99,6 +109,8 @@ var
     AnyBlacksmithId: string;
     AnyBarkeeper: IwbMainRecord;
     AnyBarkeeperId: string;
+    AnyVerminaMonk: IwbMainRecord;
+    AnyVerminaMonkId: string;
     AnyMonk: IwbMainRecord;
     AnyMonkId: string;
     AnyVampirePrefix: string; // enchanted clothes
@@ -856,6 +868,25 @@ begin
     Result := ArmorRebalance(srcFile, destFile, ref, weight, val);
     assignToLVLI(e, Result, count, level);
 end;
+function addToLVLIRebE(e: IwbElement; srcFile, destFile: IwbFile; ref, count, level:string; weight, val:Real; ench:string): IwbMainRecord;
+var
+    r: IwbMainRecord;
+    enchant: IwbMainRecord;
+begin
+    Result := ArmorRebalance(srcFile, destFile, ref, weight, val);
+    if Assigned(ench) then begin
+        enchant := MainRecordByEditorID(GroupBySignature(fileSkyrim, 'ENCH'), ench);
+        if not Assigned(enchant) then begin
+            raise Exception.Create('unreachable'+ FullPath(ench));
+        end;
+    end;
+    if not Assigned(enchant) then begin
+        RemoveElement(Result, 'EITM');
+    end else begin
+        SetElementEditValues(Result, 'EITM', enchant);
+    end;
+    assignToLVLI(e, Result, count, level);
+end;
 function addToLVLIRebI(e: IwbElement; srcFile, destFile: IwbFile; signat, ref, count, level:string; weight, val:Real): IwbMainRecord;
 var
     r: IwbMainRecord;
@@ -1464,9 +1495,9 @@ begin
     ench :='EnchRobesFortify'+magic_type+'0'+lvl;
     e := newLVLI(e, destFile, 'Exnem demon Lower '+color+' '+magic_type+lvl, '0', '0', '1', '0');  
     ei_panties := GenerateEnchantedItem(destFile, destFile, '00ExnemDemonicLower'+color, 'Exnem demon Lower '+color+magic_type+lvl, magic_type, ench);
-    addToLVLI(e, destFile, 'ARMO', EditorID(ei_panties), '1', '1');
+    assignToLVLI(e, ei_panties, '1', '1');
     ei_panties := GenerateEnchantedItem(destFile, destFile, '00ExnemDemonicLower'+color+'Alt', 'Exnem demon Lower '+color+' Alt'+magic_type+lvl, magic_type, ench);
-    addToLVLI(e, destFile, 'ARMO', EditorID(ei_panties), '1', '1');
+    assignToLVLI(e, ei_panties, '1', '1');
     Result := e;
 end;
 function GenerateExnemDemonEnchClothingTypeAndLevelColor(destFile: IwbFile; e:IwbElement; level, magic_type, color:string; levelNum:integer): IwbElement;
@@ -1546,6 +1577,138 @@ begin
     e := GenerateExnemDemonEnchClothing(destFile, e, 'Peerless', 6);
     Result := e;
 end;
+
+
+
+
+function GenerateDaughtersOfDimitrescuEnchClothingTypeAndLevel(destFile: IwbFile; e:IwbElement; level, magic_type:string; levelNum:integer): IwbElement;
+var
+    ei_panties: IwbMainRecord;
+    lvl:string;
+    ench:string;
+begin 
+    lvl := IntToStr(levelNum);
+    ench :='EnchRobesFortify'+magic_type+'0'+lvl;
+    
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Grey'+magic_type+lvl, '0', '1', '0', '0');  
+    ei_panties := GenerateEnchantedItem(destFile, destFile, '00DDBottom1', '00DDBottom1'+magic_type+lvl, magic_type, ench);
+    assignToLVLI(e, ei_panties, '1', '1');
+    addToLVLI(e, destFile, 'ARMO', '00DDGarterBelt1', '1', '1');
+    addToLVLI(e, destFile, 'ARMO', '00DDGloves1', '1', '1');
+    addToLVLI(e, destFile, 'ARMO', '00DDHeels1', '1', '1');
+    addToLVLI(e, destFile, 'ARMO', '00DDNecklace1', '1', '1');
+    addToLVLI(e, destFile, 'ARMO', '00DDStockings1', '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Grey Top', '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Grey Collar', '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Grey Skirt', '1', '1');
+
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Black'+magic_type+lvl, '0', '1', '0', '0');  
+    ei_panties := GenerateEnchantedItem(destFile, destFile, '00DDBottom1BL', '00DDBottom1BL'+magic_type+lvl, magic_type, ench);
+    assignToLVLI(e, ei_panties, '1', '1');
+    addToLVLI(e, destFile, 'ARMO', '00DDGarterBelt1BL', '1', '1');
+    addToLVLI(e, destFile, 'ARMO', '00DDGloves1BL', '1', '1');
+    addToLVLI(e, destFile, 'ARMO', '00DDHeels1BL', '1', '1');
+    addToLVLI(e, destFile, 'ARMO', '00DDNecklace1Black', '1', '1');
+    addToLVLI(e, destFile, 'ARMO', '00DDStockings1BL', '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Black Top', '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Black Collar', '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Black Skirt', '1', '1');
+
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Set '+magic_type+lvl, '0', '0', '0', '0');  
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Black'+magic_type+lvl, '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Grey'+magic_type+lvl, '1', '1');
+end;
+
+function GenerateDaughtersOfDimitrescuEnchClothing(destFile: IwbFile; e:IwbElement; level: string; levelNum:integer): IwbElement;
+begin
+    e := GenerateDaughtersOfDimitrescuEnchClothingTypeAndLevel(destFile, e, level, 'Conjuration', levelNum);
+    e := GenerateDaughtersOfDimitrescuEnchClothingTypeAndLevel(destFile, e, level, 'Restoration', levelNum);
+    e := GenerateDaughtersOfDimitrescuEnchClothingTypeAndLevel(destFile, e, level, 'Destruction', levelNum);
+    e := GenerateDaughtersOfDimitrescuEnchClothingTypeAndLevel(destFile, e, level, 'Illusion', levelNum);
+    e := GenerateDaughtersOfDimitrescuEnchClothingTypeAndLevel(destFile, e, level, 'Alteration', levelNum);
+    if (levelNum > 1) and (levelNum < 6) then begin
+        e := GenerateDaughtersOfDimitrescuEnchClothingTypeAndLevel(destFile, e, level, 'MagickaRate', levelNum);
+    end;
+    Result := e;
+end;
+
+function GenerateDaughtersOfDimitrescu(destFile: IwbFile; e:IwbElement): IwbElement;
+var
+    s:string;
+    i : integer;
+begin
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Grey Collar', '0', '0', '0', '0'); 
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDCollar1', '1', '1', rebWeight_collar, rebValue_collar);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDCollar2', '1', '1', rebWeight_collar, rebValue_collar);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDCollar3', '1', '1', rebWeight_collar, rebValue_collar);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDCollar4', '1', '1', rebWeight_collar, rebValue_collar); 
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Grey Top Alt', '0', '0', '0', '0'); 
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDTopAlt1', '1', '1', rebWeight_top, rebValue_top);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDTopAlt1Hoodless', '1', '1', rebWeight_top, rebValue_top);
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Grey Top Alt and nip', '0', '1', '0', '0');
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDNipplecover1', '1', '1', rebWeight_jewelery, rebValue_jewelery);
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Grey Top Alt', '1', '1');
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Grey Top', '0', '0', '0', '0'); 
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDTop1', '1', '1', rebWeight_top, rebValue_top);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDTopHoodless1', '1', '1', rebWeight_top, rebValue_top);
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Grey Top Alt and nip', '1', '1');
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Grey Skirt', '0', '0', '0', '0'); 
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDSkirt1', '1', '1', rebWeight_skirt, rebValue_skirt);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDSkirt2A', '1', '1', rebWeight_skirt, rebValue_skirt);
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Grey', '0', '1', '0', '0');  
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDBottom1', '1', '1', rebWeight_panties, rebValue_panties);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDGarterBelt1', '1', '1', rebWeight_belt, rebValue_belt);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDGloves1', '1', '1', rebWeight_gloves, rebValue_gloves);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDHeels1', '1', '1', rebWeight_shoes, rebValue_shoes);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDNecklace1', '1', '1', rebWeight_jewelery, rebValue_jewelery);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDStockings1', '1', '1', rebWeight_stocking, rebValue_stocking);
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Grey Top', '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Grey Collar', '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Grey Skirt', '1', '1');
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Black Collar', '0', '0', '0', '0'); 
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDCollar1BL', '1', '1', rebWeight_collar, rebValue_collar);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDCollar1BL2', '1', '1', rebWeight_collar, rebValue_collar);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDCollar1BL3', '1', '1', rebWeight_collar, rebValue_collar);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDCollar1BL4', '1', '1', rebWeight_collar, rebValue_collar); 
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Black Top Alt', '0', '0', '0', '0'); 
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDTopAlt1BL', '1', '1', rebWeight_top, rebValue_top);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDTopAlt1BLHoodless', '1', '1', rebWeight_top, rebValue_top);
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Black Top Alt and nip', '0', '1', '0', '0');
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDNipplecover1BL', '1', '1', rebWeight_jewelery, rebWeight_jewelery);
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Black Top Alt', '1', '1');
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Black Top', '0', '0', '0', '0'); 
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDTop1BL', '1', '1', rebWeight_top, rebValue_top);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDTop1BLHoodless', '1', '1', rebWeight_top, rebValue_top);
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Black Top Alt and nip', '1', '1');
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Black Skirt', '0', '0', '0', '0'); 
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDSkirt1BL', '1', '1', rebWeight_skirt, rebValue_skirt);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDSkirt2ABlack', '1', '1', rebWeight_skirt, rebValue_skirt);
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Black', '0', '1', '0', '0');  
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDBottom1BL', '1', '1', rebWeight_panties, rebValue_panties);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDGarterBelt1BL', '1', '1', rebWeight_belt, rebValue_belt);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDGloves1BL', '1', '1', rebWeight_gloves, rebValue_gloves);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDHeels1BL', '1', '1', rebWeight_shoes, rebValue_shoes);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDNecklace1Black', '1', '1', rebWeight_jewelery, rebValue_jewelery);
+    addToLVLIReb(e, fileDaughtersOfDimitrescu, destFile, '00DDStockings1BL', '1', '1', rebWeight_stocking, rebValue_stocking);
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Black Top', '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Black Collar', '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Black Skirt', '1', '1');
+    e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Set', '0', '0', '0', '0');  
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Black', '1', '1');
+    addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Grey', '1', '1');
+
+    e := GenerateDaughtersOfDimitrescuEnchClothing(destFile, e, 'Minor', 1);
+    e := GenerateDaughtersOfDimitrescuEnchClothing(destFile, e, 'Common', 2);
+    e := GenerateDaughtersOfDimitrescuEnchClothing(destFile, e, 'Major', 3);
+    e := GenerateDaughtersOfDimitrescuEnchClothing(destFile, e, 'Eminent', 4);
+    e := GenerateDaughtersOfDimitrescuEnchClothing(destFile, e, 'Extreme', 5);
+    e := GenerateDaughtersOfDimitrescuEnchClothing(destFile, e, 'Peerless', 6);
+    Result := e;
+end;
+
+
+
+
 
 
 function GenerateCocoDemon(destFile: IwbFile; e:IwbElement): IwbElement;
@@ -2514,16 +2677,16 @@ begin
     if Assigned(fileNiniCatMaid) then begin
         fileNiniCatMaid := CopyOverWholeESPOrAddAsDependency(fileNiniCatMaid, destFile, makeSmash);
         e := newLVLI(e, destFile, 'NINI CatMaid top bot', '0', '1', '0', '0');
-        addToLVLIReb(e, fileNiniCatMaid, destFile, '0CatMaidLower', '1', '1', rebWeight_panties, rebValue_panties);
-        addToLVLIReb(e, fileNiniCatMaid, destFile, '0CatMaidUpper', '1', '1', rebWeight_bra, rebValue_bra);
+        addToLVLIRebE(e, fileNiniCatMaid, destFile, '0CatMaidLower', '1', '1', rebWeight_panties, rebValue_panties, nil);
+        addToLVLIRebE(e, fileNiniCatMaid, destFile, '0CatMaidUpper', '1', '1', rebWeight_bra, rebValue_bra, nil);
         e := newLVLI(e, destFile, 'NINI CatMaid suit', '0', '0', '0', '0');
         addToLVLI(e, destFile, 'LVLI', 'NINI CatMaid top bot', '1', '1');
-        addToLVLIReb(e, fileNiniCatMaid, destFile, '0CatMaidSlutty', '1', '1', rebWeight_onepiece_lingerie, rebValue_onepiece_lingerie);
+        addToLVLIRebE(e, fileNiniCatMaid, destFile, '0CatMaidSlutty', '1', '1', rebWeight_onepiece_lingerie, rebValue_onepiece_lingerie, nil);
         e := newLVLI(e, destFile, 'NINI CatMaid', '0', '1', '0', '0');
         addToLVLI(e, destFile, 'LVLI', 'NINI CatMaid suit', '1', '1');
-        addToLVLIReb(e, fileNiniCatMaid, destFile, '0CatMaidGloves', '1', '1', rebWeight_gloves, rebValue_gloves);
-        addToLVLIReb(e, fileNiniCatMaid, destFile, '0CatMaidHeaddress', '1', '1', rebWeight_bowtie, rebValue_bowtie);
-        addToLVLIReb(e, fileNiniCatMaid, destFile, '0CatMaidShoes', '1', '1', rebWeight_shoes, rebValue_shoes);
+        addToLVLIRebE(e, fileNiniCatMaid, destFile, '0CatMaidGloves', '1', '1', rebWeight_gloves, rebValue_gloves, nil);
+        addToLVLIRebE(e, fileNiniCatMaid, destFile, '0CatMaidHeaddress', '1', '1', rebWeight_bowtie, rebValue_bowtie, nil);
+        addToLVLIRebE(e, fileNiniCatMaid, destFile, '0CatMaidShoes', '1', '1', rebWeight_shoes, rebValue_shoes, nil);
         AnyBarkeeperId := AnyBarkeeperId + '#NINI CatMaid';
     end;
     if Assigned(fileChristineAphrodite) then begin
@@ -4308,10 +4471,115 @@ begin
         e := newLVLI(e, destFile, 'CoT Stormcloak Boots', '0', '1', '0', '0');
         addToLVLIReb(e, fileChildOfTalos, destFile, '_d_SCofT_boots', '1', '1', rebWeight_armored_shoes, rebValue_expensive_shoes);
     end;
+    if Assigned(fileTIWOBAStormcloak) then begin
+        fileTIWOBAStormcloak := CopyOverWholeESPOrAddAsDependency(fileTIWOBAStormcloak, destFile, makeSmash);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Bikini', '0', '0', '0', '0'); // slot 32
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm1', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm10', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm11', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm12', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm13', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm14', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm2', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm3', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm4', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm5', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm6', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm7', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm8', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'bikinistorm9', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Boots', '0', '0', '0', '0');
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormboots1', '1', '1', rebWeight_armored_shoes, rebValue_expensive_shoes);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormboots2', '1', '1', rebWeight_armored_shoes, rebValue_expensive_shoes);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormboots3', '1', '1', rebWeight_armored_shoes, rebValue_expensive_shoes);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Helmet', '0', '0', '0', '0'); // slot 42
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormhead1', '1', '1', rebWeight_armored_helmet, rebValue_expensive_helmet);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormhead2', '1', '1', rebWeight_armored_helmet, rebValue_expensive_helmet);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormhead3', '1', '1', rebWeight_armored_helmet, rebValue_expensive_helmet);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormhead4', '1', '1', rebWeight_armored_helmet, rebValue_expensive_helmet);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormhead5', '1', '1', rebWeight_armored_helmet, rebValue_expensive_helmet);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormhead6', '1', '1', rebWeight_armored_helmet, rebValue_expensive_helmet);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Panties', '0', '0', '0', '0');
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormthong1', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormthong2', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormthong3', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormthong4', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormthong5', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormthong6', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormthong7', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Tasset', '70', '0', '0', '0'); // slot 49
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormloincloth1', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormloincloth2', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormtasset1', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormtasset2', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormtasset3', '1', '1', rebWeight_armored_panties, rebValue_expensive_panties);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Thigh', '70', '0', '0', '0'); // slot 53
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormleg1', '1', '1', rebWeight_armored_panties, rebValue_expensive_stocking);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormleg2', '1', '1', rebWeight_armored_panties, rebValue_expensive_stocking);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormleg3', '1', '1', rebWeight_armored_panties, rebValue_expensive_stocking);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormleg4', '1', '1', rebWeight_armored_panties, rebValue_expensive_stocking);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormleg5', '1', '1', rebWeight_armored_panties, rebValue_expensive_stocking);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormleg6', '1', '1', rebWeight_armored_panties, rebValue_expensive_stocking);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormleg7', '1', '1', rebWeight_armored_panties, rebValue_expensive_stocking);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Leggings', '70', '0', '0', '0'); // slot 54
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormleggings1', '1', '1', rebWeight_armored_panties, rebValue_expensive_stocking);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormleggings2', '1', '1', rebWeight_armored_panties, rebValue_expensive_stocking);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormleggings3', '1', '1', rebWeight_armored_panties, rebValue_expensive_stocking);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormpants1', '1', '1', rebWeight_armored_panties, rebValue_expensive_stocking);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Gorget', '70', '0', '0', '0'); // slot 45
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormgorg2', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormgorget1', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormgorget10', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormgorget11', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormgorget12', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormgorget3', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormgorget4', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormgorget9', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Gauntlets', '0', '0', '0', '0'); // slot 33
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormgaunt1', '1', '1', rebWeight_armored_gloves, rebValue_expensive_gloves); 
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormgaunt2', '1', '1', rebWeight_armored_gloves, rebValue_expensive_gloves);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormgaunt3', '1', '1', rebWeight_armored_gloves, rebValue_expensive_gloves);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Shoulder', '0', '0', '0', '0'); // slot 57
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormshould2', '1', '1', rebWeight_armored_top, rebValue_expensive_gloves);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormshould3', '1', '1', rebWeight_armored_top, rebValue_expensive_gloves);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormshould2', '1', '1', rebWeight_armored_top, rebValue_expensive_gloves);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormshould3', '1', '1', rebWeight_armored_top, rebValue_expensive_gloves);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormshould2', '1', '1', rebWeight_armored_top, rebValue_expensive_gloves);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormshould3', '1', '1', rebWeight_armored_top, rebValue_expensive_gloves);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormcape1', '1', '1', rebWeight_armored_top, rebValue_expensive_top);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormcape2', '1', '1', rebWeight_armored_top, rebValue_expensive_top);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormcape3', '1', '1', rebWeight_armored_top, rebValue_expensive_top);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, '_Fuse00_Stormcape1', '1', '1', rebWeight_armored_top, rebValue_expensive_top);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, '_Fuse00_Stormcape2', '1', '1', rebWeight_armored_top, rebValue_expensive_top);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Mask', '70', '0', '0', '0'); // slot 44
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormmask1', '1', '1', rebWeight_armored_collar, rebValue_expensive_collar);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormmask2', '1', '1', rebWeight_armored_collar, rebValue_expensive_collar);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormmask3', '1', '1', rebWeight_armored_collar, rebValue_expensive_collar);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormmask4', '1', '1', rebWeight_armored_collar, rebValue_expensive_collar);
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormmask5', '1', '1', rebWeight_armored_collar, rebValue_expensive_collar);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Abs', '70', '0', '0', '0'); // slot 56
+        addToLVLIReb(e, fileTIWOBAStormcloak, destFile, 'stormabs1', '1', '1', rebWeight_armored_bra, rebValue_expensive_bra);
+        e := newLVLI(e, destFile, 'TIW Stormcloak Body', '0', '1', '0', '0'); 
+        addToLVLI(e, destFile, 'LVLI', 'TIW Stormcloak Bikini', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TIW Stormcloak Shoulder', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TIW Stormcloak Gorget', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TIW Stormcloak Leggings', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TIW Stormcloak Abs', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TIW Stormcloak Thigh', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TIW Stormcloak Panties', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TIW Stormcloak Tasset', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TIW Stormcloak Mask', '1', '1');
+    end;
     if Assigned(fileCocoDemon) then begin
         fileCocoDemon := CopyOverWholeESPOrAddAsDependency(fileCocoDemon, destFile, makeSmash); 
         e := GenerateCocoDemon(destFile, e);
         AnyNecromancerPrefix := AnyNecromancerPrefix + '#COCO demon';
+    end;
+    if Assigned(fileDaughtersOfDimitrescu) then begin
+        fileDaughtersOfDimitrescu := CopyOverWholeESPOrAddAsDependency(fileDaughtersOfDimitrescu, destFile, makeSmash); 
+        e := GenerateDaughtersOfDimitrescu(destFile, e);
+        AnyNecromancerPrefix := AnyNecromancerPrefix + '#DaughtersOfDimitrescu Set ';
+        AnyVerminaMonkId := AnyVerminaMonkId + '#DaughtersOfDimitrescu Set';
     end;
     if Assigned(fileChristineExnem) then begin
         fileChristineExnem := CopyOverWholeESPOrAddAsDependency(fileChristineExnem, destFile, makeSmash); 
@@ -4518,6 +4786,66 @@ begin
         addToLVLI(e, fileChristineBlackMagic, 'ARMO', '00BlackMagicGrovePanty', '1', '1');
         AnyForswornId := AnyForswornId + '#BlackMagicGrove';
     end;
+    if Assigned(fileLeavesBody) then begin
+        fileLeavesBody := CopyOverWholeESPOrAddAsDependency(fileLeavesBody, destFile, makeSmash);
+        e := newLVLI(e, destFile, 'LeavesBody Set', '0', '0', '0', '0');
+        addToLVLIReb(e, fileLeavesBody, destFile, 'leavesgreen', '1', '1', rebWeight_onepiece_lingerie, rebValue_onepiece_lingerie);
+        addToLVLIReb(e, fileLeavesBody, destFile, 'leavesblue', '1', '1', rebWeight_onepiece_lingerie, rebValue_onepiece_lingerie);
+        addToLVLIReb(e, fileLeavesBody, destFile, 'leavesred', '1', '1', rebWeight_onepiece_lingerie, rebValue_onepiece_lingerie);
+        addToLVLIReb(e, fileLeavesBody, destFile, 'leavespinkglow', '1', '1', rebWeight_onepiece_lingerie, rebValue_onepiece_lingerie);
+        AnyForswornId := AnyForswornId + '#LeavesBody Set';
+    end;
+    if Assigned(fileFamitsuSwimsuit) then begin
+        fileFamitsuSwimsuit := CopyOverWholeESPOrAddAsDependency(fileFamitsuSwimsuit, destFile, makeSmash);
+        e := newLVLI(e, destFile, 'FamitsuSwimsuit Set', '0', '1', '0', '0');
+        addToLVLIReb(e, fileFamitsuSwimsuit, destFile, 'XN_Famitsu_SwimsuitTop', '1', '1', rebWeight_top, rebValue_top);
+        addToLVLIReb(e, fileFamitsuSwimsuit, destFile, 'XN_Famitsu_SwimsuitUnderwear', '1', '1', rebWeight_panties, rebValue_panties);
+        AnyMinerId := AnyMinerId + '#FamitsuSwimsuit Set';
+    end;
+    if Assigned(fileFireSoul) then begin
+        fileFireSoul := CopyOverWholeESPOrAddAsDependency(fileFireSoul, destFile, makeSmash);
+        e := newLVLI(e, destFile, 'FireSoul Normal', '0', '1', '0', '0');
+        addToLVLIReb(e, fileFireSoul, destFile, '0FireSoulTop', '1', '1', rebWeight_top, rebValue_top);
+        addToLVLIReb(e, fileFireSoul, destFile, '0FireSoulChoker', '1', '1', rebWeight_collar, rebValue_collar);
+        addToLVLIReb(e, fileFireSoul, destFile, '0FireSoulBoots', '1', '1', rebWeight_shoes, rebValue_shoes);
+        addToLVLIReb(e, fileFireSoul, destFile, '0FireSoulHands', '1', '1', rebWeight_gloves, rebValue_gloves);
+        addToLVLIReb(e, fileFireSoul, destFile, '0FireSoulPants', '1', '1', rebWeight_bottom, rebValue_bottom);
+        e := newLVLI(e, destFile, 'FireSoul TR', '0', '1', '0', '0');
+        addToLVLIReb(e, fileFireSoul, destFile, '0FireSoulTopTR', '1', '1', rebWeight_top, rebValue_top);
+        addToLVLIReb(e, fileFireSoul, destFile, '0FireSoulChoker', '1', '1', rebWeight_collar, rebValue_collar);
+        addToLVLIReb(e, fileFireSoul, destFile, '0FireSoulBootsTR', '1', '1', rebWeight_shoes, rebValue_shoes);
+        addToLVLIReb(e, fileFireSoul, destFile, '0FireSoulHands', '1', '1', rebWeight_gloves, rebValue_gloves);
+        addToLVLIReb(e, fileFireSoul, destFile, '0FireSoulPantsTR', '1', '1', rebWeight_bottom, rebValue_bottom);
+        e := newLVLI(e, destFile, 'FireSoul Set', '0', '0', '0', '0');
+        addToLVLI(e, destFile, 'LVLI', 'FireSoul Normal', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'FireSoul TR', '1', '1');
+        AnyMerchantId := AnyMerchantId + '#FireSoul Set';
+    end;
+    if Assigned(fileTribalScout) then begin
+        fileTribalScout := CopyOverWholeESPOrAddAsDependency(fileTribalScout, destFile, makeSmash);
+        e := newLVLI(e, destFile, 'TribalScout Blue', '0', '1', '0', '0');
+        addToLVLIReb(e, fileTribalScout, destFile, '00EL_TribalScoutLowerBlueGlow', '1', '1', rebWeight_bottom, rebValue_bottom);
+        addToLVLIReb(e, fileTribalScout, destFile, '00EL_TribalScoutUpperBlueGlow', '1', '1', rebWeight_top, rebValue_top);
+        e := newLVLI(e, destFile, 'TribalScout Red', '0', '1', '0', '0');
+        addToLVLIReb(e, fileTribalScout, destFile, '00EL_TribalScoutLowerRed', '1', '1', rebWeight_bottom, rebValue_bottom);
+        addToLVLIReb(e, fileTribalScout, destFile, '00EL_TribalScoutUpperRed', '1', '1', rebWeight_top, rebValue_top);
+        e := newLVLI(e, destFile, 'TribalScout Red Glow', '0', '1', '0', '0');
+        addToLVLIReb(e, fileTribalScout, destFile, '00EL_TribalScoutLowerRedGlow', '1', '1', rebWeight_bottom, rebValue_bottom);
+        addToLVLIReb(e, fileTribalScout, destFile, '00EL_TribalScoutUpperRedGlow', '1', '1', rebWeight_top, rebValue_top);
+        e := newLVLI(e, destFile, 'TribalScout Viking', '0', '1', '0', '0');
+        addToLVLIReb(e, fileTribalScout, destFile, '00EL_TribalScoutLowerViking', '1', '1', rebWeight_bottom, rebValue_bottom);
+        addToLVLIReb(e, fileTribalScout, destFile, '00EL_TribalScoutUpperViking', '1', '1', rebWeight_top, rebValue_top);
+        e := newLVLI(e, destFile, 'TribalScout Normal', '0', '1', '0', '0');
+        addToLVLIReb(e, fileTribalScout, destFile, '00EL_TribalScoutUpper', '1', '1', rebWeight_top, rebValue_top);
+        addToLVLIReb(e, fileTribalScout, destFile, '00EL_TribalScoutLower', '1', '1', rebWeight_bottom, rebValue_bottom);
+        e := newLVLI(e, destFile, 'TribalScout Set', '0', '0', '0', '0');
+        addToLVLI(e, destFile, 'LVLI', 'TribalScout Blue', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TribalScout Red', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TribalScout Red Glow', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TribalScout Viking', '1', '1');
+        addToLVLI(e, destFile, 'LVLI', 'TribalScout Normal', '1', '1');
+        AnyForswornId := AnyForswornId + '#TribalScout Set';
+    end;
     if Assigned(fileChristineDeadlyDesire) then begin
         fileChristineDeadlyDesire := CopyOverWholeESPOrAddAsDependency(fileChristineDeadlyDesire, destFile, makeSmash);
         e := newLVLI(e, destFile, 'CHDD Upper', '0', '0', '0', '0');
@@ -4601,6 +4929,16 @@ begin
         AnyPrisonerOutfit := makeSingletonOutfit(destFile, 'AnyPrisonerOutfit', AnyPrisoner);
         if Signature(AnyPrisoner) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyPrisoner)+' is invalid') end;
     end;
+    if Assigned(AnyMinerId) then begin
+        AnyMiner := combineLVLI(destFile, 'any_miner', AnyMinerId, '');
+        AnyMinerId := EditorID(AnyMiner);
+        if Signature(AnyMiner) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyMiner)+' is invalid') end;
+    end;
+    if Assigned(AnyMerchantId) then begin
+        AnyMerchant := combineLVLI(destFile, 'any_merchant', AnyMerchantId, '');
+        AnyMerchantId := EditorID(AnyMerchant);
+        if Signature(AnyMerchant) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyMerchant)+' is invalid') end;
+    end;
     if Assigned(AnyForswornId) then begin
         AnyForsworn := combineLVLI(destFile, 'any_forsworn', AnyForswornId, '');
         AnyForswornId := EditorID(AnyForsworn);
@@ -4646,6 +4984,11 @@ begin
         AnyMonkId := EditorID(AnyMonk);
         if Signature(AnyMonk) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyMonk)+' is invalid') end;
     end;
+    if Assigned(AnyVerminaMonkId) then begin
+        AnyVerminaMonk := combineLVLI(destFile, 'any_vermina_monk', AnyVerminaMonkId, '');
+        AnyVerminaMonkId := EditorID(AnyVerminaMonk);
+        if Signature(AnyVerminaMonk) <> 'LVLI' then begin raise Exception.Create(FullPath(AnyVerminaMonk)+' is invalid') end;
+    end;
     if Assigned(AnyMagePrefix) then begin
         AnyMagePrefix := GenerateAnyMage(destFile, 5, 'AnyMage_', AnyMagePrefix, 0, 6);
     end;
@@ -4675,6 +5018,7 @@ begin
     if pos('#', AnyForswornId) <> 0 then begin raise Exception.Create(AnyLingerie+' is invalid') end;
     if pos('#', AnyBarkeeperId) <> 0 then begin raise Exception.Create(AnyBarkeeper+' is invalid') end;
     if pos('#', AnyMonkId) <> 0 then begin raise Exception.Create(AnyMonkId+' is invalid') end;
+    if pos('#', AnyVerminaMonkId) <> 0 then begin raise Exception.Create(AnyVerminaMonkId+' is invalid') end;
     if pos('#', AnyAssassinId) <> 0 then begin raise Exception.Create(AnyAssassinId+' is invalid') end;
     if pos('#', KitchenLingerieId) <> 0 then begin raise Exception.Create(KitchenLingerieId+' is invalid') end;
     if pos('#', AnyThievesGuildId) <> 0 then begin raise Exception.Create(AnyThievesGuildId+' is invalid') end;
@@ -4692,11 +5036,14 @@ begin
     if pos('#', AnyNecromancerPrefix) <> 0 then begin raise Exception.Create(AnyNecromancerPrefix+' is invalid') end;
     if EditorID(AnyBeggar) <> AnyBeggarId then begin raise Exception.Create(AnyBeggarId+' <> '+EditorID(AnyBeggar)) end;
     if EditorID(AnyPrisoner) <> AnyPrisonerId then begin raise Exception.Create(AnyPrisonerId+' <> '+EditorID(AnyPrisoner)) end;
+    if EditorID(AnyMiner) <> AnyMinerId then begin raise Exception.Create(AnyMinerId+' <> '+EditorID(AnyMiner)) end;
+    if EditorID(AnyMerchant) <> AnyMerchantId then begin raise Exception.Create(AnyMerchantId+' <> '+EditorID(AnyMerchant)) end;
     if EditorID(AnyAssassin) <> AnyAssassinId then begin raise Exception.Create(AnyAssassinId+' <> '+EditorID(AnyAssassin)) end;
     if EditorID(AnyLingerie) <> AnyLingerieId then begin raise Exception.Create(AnyLingerieId+' <> '+EditorID(AnyLingerie)) end;
     if EditorID(AnyBarkeeper) <> AnyBarkeeperId then begin raise Exception.Create(AnyBarkeeperId+' <> '+EditorID(AnyBarkeeper)) end;
     if EditorID(AnyForsworn) <> AnyForswornId then begin raise Exception.Create(AnyForswornId+' <> '+EditorID(AnyForsworn)) end;
     if EditorID(AnyMonk) <> AnyMonkId then begin raise Exception.Create(AnyMonkId+' <> '+EditorID(AnyMonk)) end;
+    if EditorID(AnyVerminaMonk) <> AnyVerminaMonkId then begin raise Exception.Create(AnyVerminaMonkId+' <> '+EditorID(AnyVerminaMonk)) end;
     if EditorID(KitchenLingerie) <> KitchenLingerieId then begin raise Exception.Create(KitchenLingerieId+' <> '+EditorID(KitchenLingerie)) end;
     if EditorID(AnyVampire) <> AnyVampireId then begin raise Exception.Create(AnyVampireId+' <> '+EditorID(AnyVampire)) end;
     if EditorID(AnyVampireEnch) <> AnyVampirePrefix then begin raise Exception.Create(AnyVampirePrefix+' <> '+EditorID(AnyVampireEnch)) end;
@@ -5892,6 +6239,24 @@ begin
             end else if fname = '[NINI] Blacksmith.esp' then begin 
                 fileNiniBlacksmith := f;
                 clothinModAdded := true;
+            end else if fname = 'TAWOBA_guards_addon.esp' then begin 
+                fileTIWOBAStormcloak := f;
+                clothinModAdded := true;
+            end else if fname = 'Daughters of Dimitrescu.esp' then begin 
+                fileDaughtersOfDimitrescu := f;
+                clothinModAdded := true;
+            end else if fname = '[Army]Leaves Body.esp' then begin 
+                fileLeavesBody := f;
+                clothinModAdded := true;
+            end else if fname = '[Melodic] Fire Soul.esp' then begin 
+                fileFireSoul := f;
+                clothinModAdded := true;
+            end else if fname = 'XN Famitsu Swimsuit.esp' then begin 
+                fileFamitsuSwimsuit := f;
+                clothinModAdded := true;
+            end else if fname = '[ELLE] Tribal Scout.esp' then begin 
+                fileTribalScout := f;
+                clothinModAdded := true;
             end else if fname = '[Shino] Sailor Jupiter.esp' then begin 
                 fileSailorJupiter := f;
                 clothinModAdded := true;
@@ -6104,6 +6469,18 @@ begin
                                         fileChristineKitchen := nil;
                                     end else if GetFileName(f) = GetFileName(fileNiniBlacksmith) then begin
                                         fileNiniBlacksmith := nil;
+                                    end else if GetFileName(f) = GetFileName(fileTIWOBAStormcloak) then begin
+                                        fileTIWOBAStormcloak := nil;
+                                    end else if GetFileName(f) = GetFileName(fileDaughtersOfDimitrescu) then begin
+                                        fileDaughtersOfDimitrescu := nil;
+                                    end else if GetFileName(f) = GetFileName(fileLeavesBody) then begin
+                                        fileLeavesBody := nil;
+                                    end else if GetFileName(f) = GetFileName(fileFireSoul) then begin
+                                        fileFireSoul := nil;
+                                    end else if GetFileName(f) = GetFileName(fileFamitsuSwimsuit) then begin
+                                        fileFamitsuSwimsuit := nil;
+                                    end else if GetFileName(f) = GetFileName(fileTribalScout) then begin
+                                        fileTribalScout := nil;
                                     end else if GetFileName(f) = GetFileName(fileSailorJupiter) then begin
                                         fileSailorJupiter := nil;
                                     end else if GetFileName(f) = GetFileName(fileForgottenPrincess) then begin
@@ -6582,6 +6959,7 @@ begin
         tawobaItemId := 'TEW Daedric ';
     end else if StartsStr('DA16VaerminaRobes', oldItemId) then begin
         pantiesItemId := 'Panties-Monk-Vaermina';
+        Result := AnyVerminaMonk;
     end else if StartsStr('DLC2', oldItemId) then begin
         if StartsStr('DLC2ArmorNordicHeavy', oldItemId) then begin
             tawobaItemId := 'TWA Nordic Carved ';
@@ -6687,6 +7065,7 @@ begin
         end else if StartsStr('ClothesMiner', oldItemId) then begin    
             oldItemPrefix := 'ClothesMiner';  
             pantiesItemId := 'Panties-TheNine';
+            Result := AnyMiner;
         end else if StartsStr('ClothesJarl', oldItemId) then begin    
             oldItemPrefix := 'ClothesJarl';  
             pantiesItemId := 'Panties-Ebony';
@@ -6702,6 +7081,7 @@ begin
         end else if StartsStr('ClothesMerchant', oldItemId) then begin    
             oldItemPrefix := 'ClothesMerchant';  
             pantiesItemId := 'Panties-Big Vendor';
+            Result := AnyMerchant;
         end else if StartsStr('ClothesBeggar', oldItemId) then begin
             Result := AnyBeggar;
         end else if StartsStr('ClothesPrisoner', oldItemId) then begin
@@ -6799,7 +7179,7 @@ begin
             end else begin
                 oldItemPrefix := 'ArmorStormcloak';
             end;
-            tawobaItemId := 'CoT Stormcloak ';
+            tawobaItemId := 'TIW Stormcloak ';
             pantiesItemId := 'Panties-Stormcloak';
         end else if StartsStr('ArmorSteel', oldItemId) then begin    
             if StartsStr('ArmorSteelPlate', oldItemId) then begin    
@@ -6946,6 +7326,7 @@ begin
             if not Assigned(Result) then begin
                 if (StartsStr('TWA', tawobaItemId) and Assigned(fileTAWOBA)) 
                 or (StartsStr('TEW', tawobaItemId) and Assigned(fileTEWOBA)) 
+                or (StartsStr('TIW', tawobaItemId) and Assigned(fileTIWOBAStormcloak)) 
                 or (StartsStr('CoT', tawobaItemId) and Assigned(fileChildOfTalos)) then begin
                     raise Exception.Create('unreachable: '+oldItemPrefix+'/'+oldItemId+' -> '+tawobaItemId);    
                 end;
