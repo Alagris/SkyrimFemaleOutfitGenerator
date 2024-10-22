@@ -7179,7 +7179,11 @@ begin
             end else begin
                 oldItemPrefix := 'ArmorStormcloak';
             end;
-            tawobaItemId := 'TIW Stormcloak ';
+            if Assigned(fileTIWOBAStormcloak) then begin
+                tawobaItemId := 'TIW Stormcloak ';
+            end else if Assigned(fileChildOfTalos) then begin
+                tawobaItemId := 'CoT Stormcloak ';
+            end;
             pantiesItemId := 'Panties-Stormcloak';
         end else if StartsStr('ArmorSteel', oldItemId) then begin    
             if StartsStr('ArmorSteelPlate', oldItemId) then begin    
