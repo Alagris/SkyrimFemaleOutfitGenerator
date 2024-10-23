@@ -1523,6 +1523,7 @@ begin
     addToLVLI(e, destFile, 'LVLI', 'Exnem demon'+magic_type+IntToStr(levelNum), '1', '1');
     addToLVLI(e, destFile, 'LVLI', 'Exnem demonBlack'+magic_type+IntToStr(levelNum), '1', '1');
     addToLVLI(e, destFile, 'LVLI', 'Exnem demonWhite'+magic_type+IntToStr(levelNum), '1', '1');
+    Result := e;
 end;
 
 function GenerateExnemDemonEnchClothing(destFile: IwbFile; e:IwbElement; level: string; levelNum:integer): IwbElement;
@@ -1617,6 +1618,7 @@ begin
     e := newLVLI(e, destFile, 'DaughtersOfDimitrescu Set '+magic_type+lvl, '0', '0', '0', '0');  
     addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Black'+magic_type+lvl, '1', '1');
     addToLVLI(e, destFile, 'LVLI', 'DaughtersOfDimitrescu Grey'+magic_type+lvl, '1', '1');
+    Result := e;
 end;
 
 function GenerateDaughtersOfDimitrescuEnchClothing(destFile: IwbFile; e:IwbElement; level: string; levelNum:integer): IwbElement;
@@ -7450,7 +7452,7 @@ begin
         item  := nthElement_container;
     end;
     Result := LinksTo(item);
-    if etMainRecord <> ElementType(Result) then raise Exception.Create('unreahcanble '+FullPath(Result));
+    if etMainRecord <> ElementType(Result) then raise Exception.Create('unreahcanble '+FullPath(items)+'///'+FullPath(item)+'->'+FullPath(Result));
 end;
 function newFemPantiesToMainRecord(): IwbMainRecord;
 begin
@@ -7471,9 +7473,20 @@ var
     newOutfitItems: IwbElement;
     newOutfitRef: IwbElement;
     newPanties: string;
+    useAll: Boolean;
+    hasBodyPart39: Boolean;
+    hasBodyPart32: Boolean;
+    hasBodyPart33: Boolean;
+    hasBodyPart37: Boolean;
+    hasBodyPart42or31: Boolean;
 begin      
     if not Assigned(oldOutfitRecord) then begin raise Exception.Create('old outfit is nil') end;
     if not Assigned(newOutfitRecord) then begin raise Exception.Create('new outfit is nil') end;
+    hasBodyPart39 := false;
+    hasBodyPart32 := false;
+    hasBodyPart33 := false;
+    hasBodyPart37 := false;
+    hasBodyPart42or31 := false;
     (* CREATING NEW FEMALE-ONLY ARMOR BASED ON SOME RULES *)
     (* IT CHECKS WHAT ARMOR MODS ARE INSTALLED AND AUTOMATICALLY USES THEM *)
     isLVLI := Signature(oldOutfitRecord) = 'LVLI';
@@ -7491,6 +7504,10 @@ begin
     BeginUpdate(newOutfitItems);
     try
         ClearContainer(newOutfitItems);
+        useAll := not isLVLI or GetElementEditValues(newOutfitRecord, 'LVLF\Use All') = '1';
+        if useAll then begin
+
+        end;
         for i := 0 to ElementCount(oldOutfitItems)-1 do begin
             oldOutfitRef := nthElement(oldOutfitItems, i, isLVLI);
             oldOutfitItem := nthElement_container;
@@ -7499,10 +7516,29 @@ begin
                 if not Assigned(newOutfitRef) then raise Exception.Create('unreahcanble '+FullPath(oldOutfitItem)+' to '+FullPath(newOutfitItems));
                 if etMainRecord <> ElementType(newOutfitRef) then raise Exception.Create('unreahcanble '+FullPath(newOutfitRef));
                 TransferListElement(oldOutfitItem, newOutfitItems, newOutfitRef, isLVLI);
+                if useAll then begin
+                    recursiveDetectBodyParts_reset();
+                    recursiveDetectBodyParts_(newOutfitRef);
+                    if recursiveDetectBodyParts_32 then begin
+                       hasBodyPart32 := true; 
+                    end;
+                    if recursiveDetectBodyParts_39 then begin
+                       hasBodyPart39 := true; 
+                    end;
+                    if recursiveDetectBodyParts_33 then begin
+                       hasBodyPart33 := true; 
+                    end;
+                    if recursiveDetectBodyParts_37 then begin
+                       hasBodyPart37 := true; 
+                    end;
+                    if recursiveDetectBodyParts_42 or recursiveDetectBodyParts_31 then begin
+                       hasBodyPart42or31 := true; 
+                    end;
+                end;
             end;
         end;
         ResetNewFemFlags();
-        if not isLVLI or GetElementEditValues(newOutfitRecord, 'LVLF\Use All') = '1' then begin
+        if useAll then begin
             
             ClassifyFemaleOutfitId(EditorID(oldOutfitRecord));
             newPanties := ClassifyFemaleOutfitSet(oldOutfitItems, isLVLI, EditorID(oldOutfitRecord));
@@ -7514,16 +7550,16 @@ begin
                 oldOutfitRef := nthElement(oldOutfitItems, i, isLVLI);
                 oldOutfitItem := nthElement_container;
                 if Signature(oldOutfitRef) <> 'LVLI' then begin
-                    if (Assigned(newFemFullSet) or Assigned(newFemCuirass)) and isBodyPart32(oldOutfitRef) then begin
+                    if (Assigned(newFemFullSet) or Assigned(newFemCuirass) or hasBodyPart32) and isBodyPart32(oldOutfitRef) then begin
                         continue;
                     end;
-                    if (Assigned(newFemFullSet) or Assigned(newFemBoots)) and isBodyPart37(oldOutfitRef) then begin
+                    if (Assigned(newFemFullSet) or Assigned(newFemBoots) or hasBodyPart37) and isBodyPart37(oldOutfitRef) then begin
                         continue;
                     end;
-                    if (Assigned(newFemFullSet) or Assigned(newFemHeadgear)) and (isBodyPart31(oldOutfitRef) or isBodyPart42(oldOutfitRef))then begin
+                    if (Assigned(newFemFullSet) or Assigned(newFemHeadgear) or hasBodyPart42or31) and (isBodyPart31(oldOutfitRef) or isBodyPart42(oldOutfitRef))then begin
                         continue;
                     end;
-                    if (Assigned(newFemFullSet) or Assigned(newFemGloves)) and isBodyPart33(oldOutfitRef) then begin
+                    if (Assigned(newFemFullSet) or Assigned(newFemGloves) or hasBodyPart33) and isBodyPart33(oldOutfitRef) then begin
                         continue;
                     end;
                     if not Assigned(oldOutfitRef) then raise Exception.Create('unreahcanble '+FullPath(oldOutfitItem)+' in '+FullPath(oldOutfitRecord));
