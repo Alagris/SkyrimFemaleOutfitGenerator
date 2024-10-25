@@ -2041,7 +2041,8 @@ begin
             raise Exception.Create('You should disable '''+GetFileName(fileTAWOBALeveledList)+''' to avoid conflicts!');
         end;
     end;
-
+    AddMasterDependencies(fileUSSEP, destFile);
+    AddMasterDependencies(fileSkyrim, destFile);
     rebWeight_collar := 0.1;
     rebWeight_shoes := 0.3;
     rebWeight_straps := 0.1;
