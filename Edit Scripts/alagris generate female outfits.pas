@@ -8158,7 +8158,10 @@ begin
                         Result := MasculinizeNPC_n(selectedElement);
                         //end;
                     end else begin
-                        Result := selectedElement;
+                        Result := CreateWithPushedBackOutfit_n(selectedElement, pushedBackOutfit);
+                        if Assigned(pushedBackOutfit) then begin
+                            SetElementEditValues(Result, 'ACBS\Template Flags\Use Inventory', '0');
+                        end;
                         isNew := false;
                     end;
                     if not Assigned(Result) then begin raise Exception.Create('unreachable') end;
